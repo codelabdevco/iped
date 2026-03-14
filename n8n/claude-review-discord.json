@@ -1,0 +1,127 @@
+{
+  "name": "Claude Code Review → Discord Alert",
+  "nodes": [
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "github-review-webhook",
+        "options": {}
+      },
+      "id": "webhook-1",
+      "name": "GitHub Webhook",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 1.1,
+      "position": [260, 300]
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict"
+          },
+          "conditions": [
+            {
+              "id": "condition-1",
+              "leftValue": "={{ $json.action }}",
+              "rightValue": "created",
+              "operator": {
+                "type": "string",
+                "operation": "equals"
+              }
+            },
+            {
+              "id": "condition-2",
+              "leftValue": "={{ $json.comment.user.login }}",
+              "rightValue": "github-actions[bot]",
+              "operator": {
+                "type": "string",
+                "operation": "equals"
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "id": "filter-1",
+      "name": "Filter Claude Comments",
+      "type": "n8n-nodes-base.filter",
+      "typeVersion": 2,
+      "position": [480, 300]
+    },
+    {
+      "parameters": {
+        "jsCode": "const comment = $input.first().json.comment.body;\nconst pr = $input.first().json.issue;\nconst repo = $input.first().json.repository;\n\n// Count severity levels\nconst criticalCount = (comment.match(/Critical|\\u{1F534}|\ud83d\udd34/gu) || []).length;\nconst warningCount = (comment.match(/Warning|\\u{1F7E1}|\ud83d\udfe1/gu) || []).length;\nconst suggestionCount = (comment.match(/Suggestion|\\u{1F7E3}|\ud83d\udfe3/gu) || []).length;\n\n// Determine overall status\nlet status, statusEmoji, color;\nif (criticalCount > 0) {\n  status = 'Critical Issues Found';\n  statusEmoji = '\ud83d\udd34';\n  color = 16711680; // Red\n} else if (warningCount > 0) {\n  status = 'Warnings Found';\n  statusEmoji = '\ud83d\udfe1';\n  color = 16776960; // Yellow\n} else {\n  status = 'Passed';\n  statusEmoji = '\u2705';\n  color = 65280; // Green\n}\n\n// Truncate comment for Discord (max 4096 chars)\nconst truncatedBody = comment.length > 2000 \n  ? comment.substring(0, 2000) + '\\n\\n... (truncated, see full review on GitHub)'\n  : comment;\n\nreturn [{\n  json: {\n    prNumber: pr.number,\n    prTitle: pr.title,\n    prUrl: pr.html_url,\n    repoName: repo.full_name,\n    author: pr.user.login,\n    status,\n    statusEmoji,\n    color,\n    criticalCount,\n    warningCount,\n    suggestionCount,\n    reviewBody: truncatedBody,\n    timestamp: new Date().toISOString()\n  }\n}];"
+      },
+      "id": "code-1",
+      "name": "Parse Review Results",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [700, 300]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "={{ $env.DISCORD_WEBHOOK_URL }}",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={\n  \"embeds\": [{\n    \"title\": \"{{ $json.statusEmoji }} Code Review: PR #{{ $json.prNumber }}\",\n    \"description\": \"**{{ $json.prTitle }}**\\n\\nRepo: `{{ $json.repoName }}`\\nAuthor: `{{ $json.author }}`\",\n    \"url\": \"{{ $json.prUrl }}\",\n    \"color\": {{ $json.color }},\n    \"fields\": [\n      {\n        \"name\": \"\ud83d\udd34 Critical\",\n        \"value\": \"{{ $json.criticalCount }}\",\n        \"inline\": true\n      },\n      {\n        \"name\": \"\ud83d\udfe1 Warning\",\n        \"value\": \"{{ $json.warningCount }}\",\n        \"inline\": true\n      },\n      {\n        \"name\": \"\ud83d\udfe3 Suggestion\",\n        \"value\": \"{{ $json.suggestionCount }}\",\n        \"inline\": true\n      },\n      {\n        \"name\": \"Status\",\n        \"value\": \"{{ $json.status }}\",\n        \"inline\": false\n      }\n    ],\n    \"footer\": {\n      \"text\": \"Claude Code Review • iPED\"\n    },\n    \"timestamp\": \"{{ $json.timestamp }}\"\n  }]\n}",
+        "options": {}
+      },
+      "id": "discord-1",
+      "name": "Send to Discord",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [920, 300]
+    }
+  ],
+  "connections": {
+    "GitHub Webhook": {
+      "main": [
+        [
+          {
+            "node": "Filter Claude Comments",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Filter Claude Comments": {
+      "main": [
+        [
+          {
+            "node": "Parse Review Results",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Parse Review Results": {
+      "main": [
+        [
+          {
+            "node": "Send to Discord",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "staticData": null,
+  "tags": [
+    {
+      "name": "code-review"
+    },
+    {
+      "name": "discord"
+    }
+  ]
+}
