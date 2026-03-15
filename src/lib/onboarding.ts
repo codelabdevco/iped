@@ -142,12 +142,13 @@ function askOccupationFlex() {
   };
 }
 
-function completeFlex(name: string, age: string, gender: string, occupation: string) {
+function completeFlex(name: string, age: string, gender: string, occupation: string, pictureUrl?: string) {
   return {
     type: "flex",
     altText: "ลงทะเบียนสำเร็จ!",
     contents: {
       type: "bubble",
+      ...(pictureUrl ? { hero: { type: "image", url: pictureUrl, size: "full", aspectRatio: "1:1", aspectMode: "cover" } } : {}),
       body: {
         type: "box",
         layout: "vertical",
@@ -483,7 +484,8 @@ export async function handleOnboarding(
           user.lineDisplayName || user.name || "User",
           ageLabel,
           user.gender || "-",
-          user.occupation || "-"
+          user.occupation || "-",
+          user.lineProfilePic || ""
         ),
       ]);
       return true;
