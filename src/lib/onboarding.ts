@@ -237,12 +237,6 @@ function needRegisterFlex() {
         ],
       },
     },
-    quickReply: quickReply([
-      { label: "18-24 ปี", text: "18-24" },
-      { label: "25-34 ปี", text: "25-34" },
-      { label: "35-44 ปี", text: "35-44" },
-      { label: "45+ ปี", text: "45+" },
-    ]),
   };
 }
 
