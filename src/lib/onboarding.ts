@@ -148,12 +148,12 @@ function completeFlex(name: string, age: string, gender: string, occupation: str
     altText: "ลงทะเบียนสำเร็จ!",
     contents: {
       type: "bubble",
-      ...(pictureUrl ? { hero: { type: "image", url: pictureUrl, size: "full", aspectRatio: "1:1", aspectMode: "cover" } } : {}),
       body: {
         type: "box",
         layout: "vertical",
         spacing: "md",
         contents: [
+          ...(pictureUrl ? [{ type: "box", layout: "horizontal", justifyContent: "center", contents: [{ type: "box", layout: "vertical", contents: [{ type: "image", url: pictureUrl, size: "full", aspectRatio: "1:1", aspectMode: "cover" }], width: "80px", height: "80px", cornerRadius: "40px" }] }] : []),
           {
             type: "text",
             text: "✅ ลงทะเบียนสำเร็จ!",
