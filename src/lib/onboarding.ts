@@ -219,7 +219,30 @@ function needRegisterFlex() {
             size: "lg",
             color: PRIMARY,
           },
+
+      footer: {
+        type: "box",
+        layout: "vertical",
+        spacing: "sm",
+        contents: [
           {
+            type: "button",
+            action: { type: "message", label: "ตกลง ลงทะเบียนเลย", text: "ตกลง" },
+            style: "primary",
+            color: PRIMARY,
+          },
+          {
+            type: "button",
+            action: { type: "uri", label: "กรอกข้อมูลเองผ่านเว็บ", uri: "https://iped.codelabdev.co/register" },
+            style: "secondary",
+          },
+          {
+            type: "button",
+            action: { type: "message", label: "ยังก่อน", text: "ยังก่อน" },
+            style: "secondary",
+          },
+        ],
+      },          {
             type: "text",
             text: "ก่อนส่งสลิป ขอทราบข้อมูลเพิ่มเติมสักครู่นะครับ เพื่อให้บริการคุณได้ดียิ่งขึ้น",
             wrap: true,
@@ -298,10 +321,7 @@ export async function handleImageOnboarding(
     return false; // User is registered, proceed with image processing
   }
 
-  // User not registered yet - start onboarding
-  // Set step to 1 (waiting for age answer)
-  user.onboardingStep = 1;
-  await user.save();
+    // User not registered yet - show registration prompt
 
   // Send registration prompt with age question
   await replyMessage(replyToken, [needRegisterFlex()]);
@@ -387,7 +407,22 @@ export async function handleOnboarding(
 
   if (!user) return false;
   if (user.onboardingComplete) return false;
-  if (user.onboardingStep === 0) return false; // Not started yet
+  // Step 0: Waiting for user to accept registration
+  if (user.onboardingStep === 0) {
+    if (t === "ตกลง") {
+      user.onboardingStep = 1;
+      await user.save();
+      await replyMessage(replyToken, [askAgeFlex()]);
+      return true;
+    }
+    if (t === "ยังก่อน") {
+      await replyMessage(replyToken, [
+        { type: "text", text: "  " },
+      ]);
+      return true;
+    }
+    return false;
+  }
 
   const t = text.trim();
 
