@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { verifySignature, replyMessage, getMessageContent } from "@/lib/line-bot";
-import { receiptConfirmFlex, duplicateWarningFlex } from "@/lib/line-flex";
+import { receiptConfirmFlex, duplicateWarningFlex, errorFlex, notReceiptFlex } from "@/lib/line-flex";
 import { connectDB } from "@/lib/mongodb";
 import Receipt from "@/models/Receipt";
 import Anthropic from "@anthropic-ai/sdk";
@@ -188,19 +188,19 @@ export async function POST(request: NextRequest) {
 
           // 3. Not a receipt? (📄)
           if (!ocr || ocr.isReceipt === false) {
-            const st = getStatus(ocr, null);
-            await replyMessage(rt, [{ type: "text", text: st.emoji + " " + st.title + "\n" + st.sub, quoteToken: qt }]);
+            const nrFlex = notReceiptFlex();
+            await replyMessage(rt, [{ type: "text", text: "📄 ภาพนี้ไม่ใช่ใบเสร็จ", quoteToken: qt }, nrFlex]);
             console.log("Reply: not_receipt");
             continue;
           }
 
           // 4. Cannot read? (❌)
-          if (!ocr.amount) {
-            const st = getStatus(null, null);
-            await replyMessage(rt, [{ type: "text", text: st.emoji + " " + st.title + "\n" + st.sub, quoteToken: qt }]);
-            console.log("Reply: error no amount");
-            continue;
-          }
+    if (!ocr.amount) {
+      const errFlex = errorFlex(ocr.confidence);
+      await replyMessage(rt, [{ type: "text", text: "❌ ไม่สามารถอ่านใบเสร็จได้", quoteToken: qt }, errFlex]);
+      console.log("Reply: error no amount");
+      continue;
+    }
 
           // 5. Check duplicate (🔄)
           const dup = await checkDuplicate(ocr.merchant, ocr.amount, ocr.date, uid || "");
@@ -238,6 +238,7 @@ export async function POST(request: NextRequest) {
             confidence: ocr.confidence || 50,
             receiptId: rid,
             webAppUrl: APP_URL,
+      isExpense: ocr.type !== "income",
           });
 
           // 8. Reply: status text (quoted on image) + flex summary

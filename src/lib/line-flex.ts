@@ -1,548 +1,433 @@
 /**
- * iPED — LINE Flex Message Templates
- * Design: Minimal, clean, consistent color tone
- * Brand Palette:
- *   Primary: #FACC15 (yellow-400)
- *   Black:   #111111
- *   Success: #16A34A (green)
- *   Danger:  #DC2626 (red)
- *   Text:    #111111 (black)
- *   Sub:     #6B7280 (gray)
- *   BG:      #F9FAFB (light gray)
- *   White:   #FFFFFF
+ * iPED — LINE Flex Message Templates (v2)
+ * Design: B-style header + A-style body + income/expense + category + time + iPED icon
  */
 
-const COLORS = {
-  primary: "#FACC15",
-  primaryLight: "#FEF9C3",
-  primaryDark: "#111111",
-  success: "#16A34A",
-  successLight: "#DCFCE7",
-  warning: "#F59E0B",
-  warningLight: "#FEF3C7",
-  danger: "#DC2626",
-  dangerLight: "#FEE2E2",
-  text: "#111111",
-  sub: "#6B7280",
-  border: "#E5E7EB",
-  bg: "#F9FAFB",
-  white: "#FFFFFF",
-  black: "#111111",
+// ─── Status colors ───
+const C = {
+  green: "#06C755", greenBg: "#E8F8EE",
+  amber: "#E09100", amberBg: "#FFF8E1",
+  red: "#E53E3E", redBg: "#FEE2E2",
+  blue: "#3B82F6", blueBg: "#E8F0FE",
+  text: "#111111", sub: "#999999", border: "#F0F0F0",
+  bg: "#F5F5F5", white: "#FFFFFF",
 };
 
-/** Receipt confirmation flex after OCR */
-export function receiptConfirmFlex(data: {
+// ─── Helpers ───
+function fmtDate(d: string | Date): string {
+  const dt = typeof d === "string" ? new Date(d) : d;
+  if (isNaN(dt.getTime())) return String(d);
+  const m = ["ม.ค.","ก.พ.","มี.ค.","เม.ย.","พ.ค.","มิ.ย.","ก.ค.","ส.ค.","ก.ย.","ต.ค.","พ.ย.","ธ.ค."];
+  return `${dt.getDate()} ${m[dt.getMonth()]} ${dt.getFullYear() + 543}`;
+}
+function fmtTime(): string {
+  const now = new Date();
+  return `${String(now.getHours()).padStart(2,"0")}:${String(now.getMinutes()).padStart(2,"0")} น.`;
+}
+function fmtAmt(n: number): string {
+  return n.toLocaleString("th-TH", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+}
+
+// ─── Shared: header box ───
+function headerBox(badge: string, badgeColor: string, badgeBg: string, logoColor: string): any {
+  return {
+    type: "box", layout: "horizontal", paddingAll: "14px",
+    contents: [
+      {
+        type: "box", layout: "horizontal", flex: 0, width: "28px", height: "28px",
+        cornerRadius: "7px", backgroundColor: logoColor,
+        contents: [{ type: "text", text: "iPED", size: "xxs", color: C.white, align: "center", gravity: "center", weight: "bold" }],
+      },
+      { type: "text", text: badge, size: "xs", color: badgeColor, weight: "bold", flex: 0, margin: "md",
+        decoration: "none", backgroundColor: badgeBg, offsetTop: "2px", offsetBottom: "2px" },
+      { type: "text", text: `\ud83d\udd50 ${fmtTime()}`, size: "xxs", color: C.sub, align: "end", gravity: "center" },
+    ],
+  };
+}
+
+// ─── Shared: merchant row ───
+function merchantRow(icon: string, name: string, subtext: string): any {
+  return {
+    type: "box", layout: "horizontal", spacing: "md", paddingBottom: "14px",
+    borderWidth: "0px 0px 1px 0px", borderColor: C.border,
+    contents: [
+      {
+        type: "box", layout: "vertical", flex: 0, width: "40px", height: "40px",
+        cornerRadius: "10px", backgroundColor: "#F4F7F4",
+        contents: [{ type: "text", text: icon, size: "lg", align: "center", gravity: "center" }],
+      },
+      {
+        type: "box", layout: "vertical", flex: 1,
+        contents: [
+          { type: "text", text: name, size: "sm", weight: "bold", color: C.text, wrap: true },
+          { type: "text", text: subtext, size: "xxs", color: C.sub, margin: "xs" },
+        ],
+      },
+    ],
+  };
+}
+
+// ─── Shared: type + category row ───
+function typeCatRow(isExpense: boolean, catIcon: string, catName: string): any {
+  const typeText = isExpense ? "\ud83d\udce4 รายจ่าย" : "\ud83d\udce5 รายรับ";
+  const typeColor = isExpense ? C.red : C.green;
+  const typeBg = isExpense ? C.redBg : C.greenBg;
+  return {
+    type: "box", layout: "horizontal", spacing: "sm", margin: "lg",
+    contents: [
+      { type: "text", text: typeText, size: "xs", color: typeColor, weight: "bold", flex: 0,
+        backgroundColor: typeBg, offsetTop: "1px", offsetBottom: "1px" },
+      { type: "text", text: `${catIcon} ${catName}`, size: "xs", color: "#555555", flex: 0,
+        backgroundColor: C.bg, offsetTop: "1px", offsetBottom: "1px" },
+    ],
+  };
+}
+
+// ─── Shared: detail grid row ───
+function detailRow(label: string, value: string): any {
+  return {
+    type: "box", layout: "vertical", flex: 1,
+    contents: [
+      { type: "text", text: label, size: "xxs", color: C.sub },
+      { type: "text", text: value, size: "xs", color: C.text, weight: "bold", margin: "xs" },
+    ],
+  };
+}
+
+// ─── Shared: confidence bar ───
+function confBar(pct: number, color: string): any {
+  const w = Math.max(5, Math.min(100, pct));
+  return {
+    type: "box", layout: "horizontal", spacing: "md", paddingAll: "10px",
+    cornerRadius: "8px", backgroundColor: C.bg, margin: "md",
+    contents: [
+      { type: "text", text: "\u0e04\u0e27\u0e32\u0e21\u0e41\u0e21\u0e48\u0e19\u0e22\u0e33", size: "xxs", color: C.sub, flex: 0 },
+      {
+        type: "box", layout: "vertical", flex: 1, height: "6px", cornerRadius: "3px",
+        backgroundColor: "#E0E0E0",
+        contents: [{
+          type: "box", layout: "vertical", height: "6px", cornerRadius: "3px",
+          backgroundColor: color, width: `${w}%`, contents: [{ type: "filler" }],
+        }],
+      },
+      { type: "text", text: `${pct}%`, size: "xs", color: color, weight: "bold", flex: 0, align: "end" },
+    ],
+  };
+}
+
+// ─── Shared: button ───
+function btnBox(label: string, style: "primary" | "secondary", color: string, data?: string, url?: string): any {
+  const action: any = data
+    ? { type: "postback", label, data }
+    : url
+    ? { type: "uri", label, uri: url }
+    : { type: "message", label, text: label };
+  return {
+    type: "button", action, style, height: "sm", color: style === "primary" ? color : undefined,
+  };
+}
+
+// ════════════════════════════════════════════════════
+//  1. receiptConfirmFlex — ✅ success / ⚠️ warning
+// ════════════════════════════════════════════════════
+interface ReceiptFlexData {
   merchant: string;
+  merchantTaxId?: string | null;
   date: string;
   amount: number;
-  vat?: number;
+  vat?: number | null;
   category: string;
   categoryIcon: string;
+  items?: string;
+  paymentMethod?: string | null;
+  documentType?: string;
   confidence: number;
   receiptId: string;
   webAppUrl: string;
-}) {
-  return {
-    type: "flex",
-    altText: `ใบเสร็จ ${data.merchant} ฿${data.amount.toLocaleString()}`,
-    contents: {
-      type: "bubble",
-      size: "mega",
-      header: {
-        type: "box",
-        layout: "horizontal",
-        contents: [
-          {
-            type: "box",
-            layout: "vertical",
-            contents: [
-              {
-                type: "text",
-                text: "iPED",
-                size: "xs",
-                color: COLORS.sub,
-              },
-              {
-                type: "text",
-                text: "อ่านใบเสร็จสำเร็จ",
-                size: "md",
-                weight: "bold",
-                color: COLORS.text,
-              },
-            ],
-            flex: 1,
-          },
-          {
-            type: "box",
-            layout: "vertical",
-            contents: [
-              {
-                type: "text",
-                text: `${data.confidence}%`,
-                size: "xs",
-                color: COLORS.primary,
-                align: "center",
-              },
-            ],
-            backgroundColor: COLORS.primaryLight,
-            cornerRadius: "xl",
-            paddingAll: "6px",
-            width: "48px",
-            height: "24px",
-            justifyContent: "center",
-          },
-        ],
-        backgroundColor: COLORS.white,
-        paddingAll: "16px",
-      },
-      body: {
-        type: "box",
-        layout: "vertical",
-        contents: [
-          // Merchant
-          {
-            type: "text",
-            text: data.merchant,
-            size: "lg",
-            weight: "bold",
-            color: COLORS.text,
-            wrap: true,
-          },
-          // Separator
-          {
-            type: "separator",
-            margin: "lg",
-            color: COLORS.border,
-          },
-          // Details
-          {
-            type: "box",
-            layout: "vertical",
-            margin: "lg",
-            spacing: "md",
-            contents: [
-              {
-                type: "box",
-                layout: "horizontal",
-                contents: [
-                  { type: "text", text: "วันที่", size: "sm", color: COLORS.sub, flex: 2 },
-                  { type: "text", text: data.date, size: "sm", color: COLORS.text, flex: 3, align: "end" },
-                ],
-              },
-              {
-                type: "box",
-                layout: "horizontal",
-                contents: [
-                  { type: "text", text: "หมวด", size: "sm", color: COLORS.sub, flex: 2 },
-                  { type: "text", text: `${data.categoryIcon} ${data.category}`, size: "sm", color: COLORS.text, flex: 3, align: "end" },
-                ],
-              },
-              ...(data.vat
-                ? [
-                    {
-                      type: "box" as const,
-                      layout: "horizontal" as const,
-                      contents: [
-                        { type: "text" as const, text: "VAT 7%", size: "sm" as const, color: COLORS.sub, flex: 2 },
-                        { type: "text" as const, text: `฿${data.vat.toLocaleString()}`, size: "sm" as const, color: COLORS.text, flex: 3, align: "end" as const },
-                      ],
-                    },
-                  ]
-                : []),
-            ],
-          },
-          // Separator
-          {
-            type: "separator",
-            margin: "lg",
-            color: COLORS.border,
-          },
-          // Total
-          {
-            type: "box",
-            layout: "horizontal",
-            margin: "lg",
-            contents: [
-              { type: "text", text: "รวม", size: "md", weight: "bold", color: COLORS.text, flex: 2 },
-              { type: "text", text: `฿${data.amount.toLocaleString()}`, size: "xl", weight: "bold", color: COLORS.primary, flex: 3, align: "end" },
-            ],
-          },
-        ],
-        backgroundColor: COLORS.white,
-        paddingAll: "16px",
-      },
-      footer: {
-        type: "box",
-        layout: "horizontal",
-        spacing: "md",
-        contents: [
-          {
-            type: "button",
-            action: {
-              type: "postback",
-              label: "✅ ยืนยัน",
-              data: `action=confirm&id=${data.receiptId}`,
-            },
-            style: "primary",
-            color: COLORS.success,
-            height: "sm",
-          },
-          {
-            type: "button",
-            action: {
-              type: "uri",
-              label: "✏️ แก้ไข",
-              uri: `${data.webAppUrl}/receipt/${data.receiptId}`,
-            },
-            style: "secondary",
-            height: "sm",
-          },
-        ],
-        paddingAll: "16px",
-        backgroundColor: COLORS.bg,
-      },
-    },
-  };
+  isExpense?: boolean;
 }
 
-/** Daily summary flex */
-export function dailySummaryFlex(data: {
-  date: string;
-  totalAmount: number;
-  count: number;
-  budget?: number;
-  topCategory: { icon: string; name: string; amount: number };
-  items: { merchant: string; amount: number; icon: string }[];
-}) {
-  const budgetPercent = data.budget ? Math.round((data.totalAmount / data.budget) * 100) : null;
-  const remaining = data.budget ? data.budget - data.totalAmount : null;
+export function receiptConfirmFlex(data: ReceiptFlexData) {
+  const isWarn = data.confidence < 70;
+  const isExpense = data.isExpense !== false; // default expense
+  const amtPrefix = isExpense ? "- " : "+ ";
+  const amtColor = isWarn ? C.amber : (isExpense ? C.red : C.green);
+  const badge = isWarn ? "\u26a0\ufe0f \u0e01\u0e23\u0e38\u0e15\u0e32\u0e15\u0e23\u0e27\u0e08\u0e2a\u0e2d\u0e1a" : "\u2705 \u0e1a\u0e31\u0e19\u0e17\u0e36\u0e01\u0e2a\u0e33\u0e40\u0e23\u0e47\u0e08";
+  const badgeColor = isWarn ? C.amber : C.green;
+  const badgeBg = isWarn ? C.amberBg : C.greenBg;
+  const logoColor = isWarn ? C.amber : C.green;
+  const confColor = isWarn ? C.amber : C.green;
+  const payment = data.paymentMethod || "\u2014";
 
   return {
-    type: "flex",
-    altText: `สรุปวันนี้: ฿${data.totalAmount.toLocaleString()} จาก ${data.count} รายการ`,
+    type: "flex" as const,
+    altText: `${isExpense ? "\u0e23\u0e32\u0e22\u0e08\u0e48\u0e32\u0e22" : "\u0e23\u0e32\u0e22\u0e23\u0e31\u0e1b"} ${data.merchant} \u0e3f${fmtAmt(data.amount)}`,
     contents: {
-      type: "bubble",
-      size: "mega",
-      header: {
-        type: "box",
-        layout: "vertical",
-        contents: [
-          { type: "text", text: "📊 สรุปรายจ่ายวันนี้ — iPED", size: "md", weight: "bold", color: COLORS.primary },
-          { type: "text", text: data.date, size: "xs", color: "#9CA3AF", margin: "sm" },
-        ],
-        backgroundColor: COLORS.black,
-        paddingAll: "16px",
-      },
+      type: "bubble", size: "mega",
+      header: headerBox(badge, badgeColor, badgeBg, logoColor),
       body: {
-        type: "box",
-        layout: "vertical",
+        type: "box", layout: "vertical", paddingAll: "16px", spacing: "md",
         contents: [
-          // Total
+          merchantRow(data.categoryIcon, data.merchant, data.merchantTaxId ? `Tax ID: ${data.merchantTaxId}` : (data.documentType || "\u0e43\u0e1a\u0e40\u0e2a\u0e23\u0e47\u0e08")),
+          typeCatRow(isExpense, data.categoryIcon, data.category),
+          // Amount
           {
-            type: "box",
-            layout: "vertical",
+            type: "box", layout: "vertical", margin: "md",
             contents: [
-              { type: "text", text: `฿${data.totalAmount.toLocaleString()}`, size: "xxl", weight: "bold", color: COLORS.text, align: "center" },
-              { type: "text", text: `${data.count} รายการ`, size: "sm", color: COLORS.sub, align: "center", margin: "sm" },
+              { type: "text", text: "\u0e22\u0e2d\u0e14\u0e23\u0e27\u0e21", size: "xxs", color: C.sub },
+              { type: "text", text: `${amtPrefix}\u0e3f ${fmtAmt(data.amount)}`, size: "xl", weight: "bold", color: amtColor, margin: "xs" },
             ],
-            paddingAll: "16px",
           },
-          // Budget bar (if set)
-          ...(budgetPercent !== null && remaining !== null
-            ? [
-                {
-                  type: "box" as const,
-                  layout: "vertical" as const,
-                  contents: [
-                    {
-                      type: "box" as const,
-                      layout: "horizontal" as const,
-                      contents: [
-                        { type: "text" as const, text: `งบ: ฿${data.budget!.toLocaleString()}`, size: "xs" as const, color: COLORS.sub },
-                        {
-                          type: "text" as const,
-                          text: remaining >= 0 ? `เหลือ ฿${remaining.toLocaleString()}` : `เกิน ฿${Math.abs(remaining).toLocaleString()}`,
-                          size: "xs" as const,
-                          color: remaining >= 0 ? COLORS.success : COLORS.danger,
-                          align: "end" as const,
-                        },
-                      ],
-                    },
-                    {
-                      type: "box" as const,
-                      layout: "vertical" as const,
-                      contents: [
-                        {
-                          type: "box" as const,
-                          layout: "vertical" as const,
-                          contents: [] as any[],
-                          backgroundColor: budgetPercent > 90 ? COLORS.danger : budgetPercent > 70 ? COLORS.warning : COLORS.success,
-                          width: `${Math.min(budgetPercent, 100)}%`,
-                          height: "6px",
-                          cornerRadius: "md",
-                        },
-                      ],
-                      backgroundColor: COLORS.border,
-                      height: "6px",
-                      cornerRadius: "md",
-                      margin: "sm" as const,
-                    },
-                  ],
-                  margin: "md" as const,
-                  paddingStart: "16px",
-                  paddingEnd: "16px",
-                },
-              ]
-            : []),
-          // Separator
-          { type: "separator", margin: "lg", color: COLORS.border },
+          // Details grid
+          {
+            type: "box", layout: "horizontal", spacing: "md", margin: "lg",
+            contents: [
+              detailRow(`\ud83d\udcc5 \u0e27\u0e31\u0e19\u0e17\u0e35\u0e48 / \u0e40\u0e27\u0e25\u0e32`, `${fmtDate(data.date)} \u00b7 ${fmtTime()}`),
+              detailRow(`\ud83e\uddc9 VAT`, data.vat ? `\u0e3f ${fmtAmt(data.vat)}` : "\u2014"),
+            ],
+          },
+          {
+            type: "box", layout: "horizontal", spacing: "md", margin: "sm",
+            contents: [
+              detailRow(`\ud83d\udcb3 \u0e0a\u0e33\u0e23\u0e30`, payment),
+              detailRow(`\ud83d\udcc4 \u0e1b\u0e23\u0e30\u0e40\u0e20\u0e17`, data.documentType || "\u0e43\u0e1a\u0e40\u0e2a\u0e23\u0e47\u0e08"),
+            ],
+          },
           // Items
-          {
-            type: "box",
-            layout: "vertical",
-            margin: "lg",
-            spacing: "md",
-            contents: data.items.slice(0, 5).map((item) => ({
-              type: "box" as const,
-              layout: "horizontal" as const,
-              contents: [
-                { type: "text", text: `${item.icon} ${item.merchant}`, size: "sm", color: COLORS.text, flex: 3, wrap: false },
-                { type: "text", text: `฿${item.amount.toLocaleString()}`, size: "sm", color: COLORS.text, flex: 1, align: "end" as const },
-              ],
-            })),
-          },
-          // Top category
-          {
-            type: "box",
-            layout: "horizontal",
-            margin: "lg",
-            backgroundColor: COLORS.bg,
-            cornerRadius: "md",
-            paddingAll: "10px",
+          ...(data.items ? [{
+            type: "box" as const, layout: "vertical" as const, cornerRadius: "8px",
+            backgroundColor: "#FAFAFA", paddingAll: "10px", margin: "lg" as const,
             contents: [
-              { type: "text", text: "ใช้มากสุด", size: "xs", color: COLORS.sub, flex: 2 },
-              { type: "text", text: `${data.topCategory.icon} ${data.topCategory.name} ฿${data.topCategory.amount.toLocaleString()}`, size: "xs", color: COLORS.text, flex: 3, align: "end" },
+              { type: "text" as const, text: "\ud83d\udccb \u0e23\u0e32\u0e22\u0e01\u0e32\u0e23", size: "xxs" as const, color: C.sub },
+              { type: "text" as const, text: data.items, size: "xs" as const, color: "#555555", wrap: true, margin: "xs" as const },
             ],
-          },
+          }] : []),
+          confBar(data.confidence, confColor),
         ],
-        paddingAll: "16px",
       },
       footer: {
-        type: "box",
-        layout: "vertical",
+        type: "box", layout: "horizontal", spacing: "md", paddingAll: "12px",
         contents: [
-          {
-            type: "button",
-            action: {
-              type: "uri",
-              label: "📊 ดูรายละเอียดทั้งหมด",
-              uri: "https://app.iped.co/history",
-            },
-            style: "primary",
-            color: COLORS.black,
-            height: "sm",
-          },
+          btnBox("\u270f\ufe0f \u0e41\u0e01\u0e49\u0e44\u0e02", "secondary", C.sub, `action=edit&id=${data.receiptId}`),
+          btnBox("\u2705 \u0e22\u0e37\u0e19\u0e22\u0e31\u0e19", "primary", isWarn ? C.amber : C.green, `action=confirm&id=${data.receiptId}`),
         ],
-        paddingAll: "16px",
-        backgroundColor: COLORS.bg,
       },
     },
   };
 }
 
-/** Budget alert flex */
-export function budgetAlertFlex(data: {
-  category: string;
-  categoryIcon: string;
-  spent: number;
-  budget: number;
-  percent: number;
-  level: "warning" | "danger" | "exceeded";
-}) {
-  const color = data.level === "exceeded" ? COLORS.danger : data.level === "danger" ? COLORS.danger : COLORS.warning;
-  const bgColor = data.level === "exceeded" ? COLORS.dangerLight : data.level === "danger" ? COLORS.dangerLight : COLORS.warningLight;
-  const emoji = data.level === "exceeded" ? "🚫" : data.level === "danger" ? "🔴" : "⚠️";
-  const message =
-    data.level === "exceeded"
-      ? `เกินงบ ฿${(data.spent - data.budget).toLocaleString()}`
-      : `เหลืออีก ฿${(data.budget - data.spent).toLocaleString()}`;
-
-  return {
-    type: "flex",
-    altText: `${emoji} งบ${data.category}: ${message}`,
-    contents: {
-      type: "bubble",
-      size: "kilo",
-      body: {
-        type: "box",
-        layout: "vertical",
-        contents: [
-          {
-            type: "box",
-            layout: "horizontal",
-            contents: [
-              { type: "text", text: `${emoji} แจ้งเตือนงบ`, size: "sm", weight: "bold", color },
-            ],
-          },
-          {
-            type: "text",
-            text: `${data.categoryIcon} ${data.category}`,
-            size: "lg",
-            weight: "bold",
-            color: COLORS.text,
-            margin: "md",
-          },
-          {
-            type: "text",
-            text: message,
-            size: "sm",
-            color,
-            margin: "sm",
-          },
-          {
-            type: "box",
-            layout: "vertical",
-            contents: [
-              {
-                type: "box",
-                layout: "vertical",
-                contents: [],
-                backgroundColor: color,
-                width: `${Math.min(data.percent, 100)}%`,
-                height: "6px",
-                cornerRadius: "md",
-              },
-            ],
-            backgroundColor: COLORS.border,
-            height: "6px",
-            cornerRadius: "md",
-            margin: "lg",
-          },
-          {
-            type: "box",
-            layout: "horizontal",
-            margin: "sm",
-            contents: [
-              { type: "text", text: `฿${data.spent.toLocaleString()}`, size: "xs", color: COLORS.sub },
-              { type: "text", text: `/ ฿${data.budget.toLocaleString()}`, size: "xs", color: COLORS.sub, align: "end" },
-            ],
-          },
-        ],
-        paddingAll: "16px",
-        backgroundColor: bgColor,
-      },
-    },
-  };
-}
-
-/** Duplicate warning flex */
+// ════════════════════════════════════════════════════
+//  2. duplicateWarningFlex — 🔄
+// ════════════════════════════════════════════════════
 export function duplicateWarningFlex(data: {
   merchant: string;
   amount: number;
   originalDate: string;
   receiptId: string;
+  categoryIcon?: string;
+  category?: string;
+  merchantTaxId?: string | null;
+  confidence?: number;
 }) {
+  const conf = data.confidence || 90;
   return {
-    type: "flex",
-    altText: `⚠️ ใบเสร็จ ${data.merchant} อาจซ้ำ`,
+    type: "flex" as const,
+    altText: `\ud83d\udd04 \u0e1e\u0e1b\u0e23\u0e32\u0e22\u0e01\u0e32\u0e23\u0e0b\u0e49\u0e33 ${data.merchant} \u0e3f${fmtAmt(data.amount)}`,
     contents: {
-      type: "bubble",
-      size: "kilo",
+      type: "bubble", size: "mega",
+      header: headerBox("\ud83d\udd04 \u0e1e\u0e1b\u0e23\u0e32\u0e22\u0e01\u0e32\u0e23\u0e0b\u0e49\u0e33", C.blue, C.blueBg, C.blue),
       body: {
-        type: "box",
-        layout: "vertical",
+        type: "box", layout: "vertical", paddingAll: "16px", spacing: "md",
         contents: [
-          { type: "text", text: "⚠️ ใบเสร็จนี้อาจซ้ำ", size: "sm", weight: "bold", color: COLORS.warning },
+          merchantRow(data.categoryIcon || "\ud83c\udfea", data.merchant, data.merchantTaxId ? `Tax ID: ${data.merchantTaxId}` : ""),
+          typeCatRow(true, data.categoryIcon || "\ud83c\udfea", data.category || "\u0e44\u0e21\u0e48\u0e23\u0e30\u0e1b\u0e38"),
           {
-            type: "text",
-            text: `${data.merchant} ฿${data.amount.toLocaleString()}`,
-            size: "md",
-            weight: "bold",
-            color: COLORS.text,
-            margin: "md",
+            type: "box", layout: "vertical", margin: "md",
+            contents: [
+              { type: "text", text: "\u0e22\u0e2d\u0e14\u0e23\u0e27\u0e21", size: "xxs", color: C.sub },
+              { type: "text", text: `- \u0e3f ${fmtAmt(data.amount)}`, size: "xl", weight: "bold", color: C.blue, margin: "xs" },
+            ],
           },
+          // Duplicate warning box
           {
-            type: "text",
-            text: `เคยบันทึกเมื่อ ${data.originalDate}`,
-            size: "xs",
-            color: COLORS.sub,
-            margin: "sm",
+            type: "box", layout: "vertical", cornerRadius: "8px", backgroundColor: "#F0F5FF",
+            paddingAll: "12px", margin: "lg", borderWidth: "0px 0px 0px 3px", borderColor: C.blue,
+            contents: [
+              { type: "text", text: "\u26a0\ufe0f \u0e23\u0e32\u0e22\u0e01\u0e32\u0e23\u0e19\u0e35\u0e49\u0e2d\u0e32\u0e08\u0e0b\u0e49\u0e33\u0e01\u0e31\u0e1a", size: "xs", color: C.blue, weight: "bold" },
+              { type: "text", text: `\u0e1b\u0e31\u0e19\u0e17\u0e36\u0e01\u0e40\u0e21\u0e37\u0e48\u0e2d ${fmtDate(data.originalDate)} \u2014 \u0e3f${fmtAmt(data.amount)}`, size: "xs", color: "#555555", margin: "xs", wrap: true },
+              { type: "text", text: "\u0e23\u0e49\u0e32\u0e19\u0e40\u0e14\u0e35\u0e22\u0e27\u0e01\u0e31\u0e19 \u0e22\u0e2d\u0e14\u0e40\u0e14\u0e35\u0e22\u0e27\u0e01\u0e31\u0e19 \u0e27\u0e31\u0e19\u0e40\u0e14\u0e35\u0e22\u0e27\u0e01\u0e31\u0e19", size: "xxs", color: C.sub, margin: "xs" },
+            ],
           },
+          confBar(conf, C.green),
         ],
-        paddingAll: "16px",
-        backgroundColor: COLORS.warningLight,
       },
       footer: {
-        type: "box",
-        layout: "horizontal",
-        spacing: "md",
+        type: "box", layout: "horizontal", spacing: "md", paddingAll: "12px",
         contents: [
-          {
-            type: "button",
-            action: { type: "postback", label: "บันทึกซ้ำ", data: `action=force_save&id=${data.receiptId}` },
-            style: "secondary",
-            height: "sm",
-          },
-          {
-            type: "button",
-            action: { type: "postback", label: "ยกเลิก", data: `action=cancel&id=${data.receiptId}` },
-            style: "secondary",
-            height: "sm",
-          },
+          btnBox("\u274c \u0e22\u0e01\u0e40\u0e25\u0e34\u0e01", "secondary", C.sub, `action=cancel&id=${data.receiptId}`),
+          btnBox("\ud83d\udcbe \u0e1a\u0e31\u0e19\u0e17\u0e36\u0e01\u0e0b\u0e49\u0e33", "primary", C.blue, `action=force_save&id=${data.receiptId}`),
         ],
-        paddingAll: "12px",
-        backgroundColor: COLORS.bg,
       },
     },
   };
 }
 
-/** Chat AI response flex */
+// ════════════════════════════════════════════════════
+//  3. errorFlex — ❌ can't read
+// ════════════════════════════════════════════════════
+export function errorFlex(confidence?: number) {
+  const conf = confidence || 0;
+  return {
+    type: "flex" as const,
+    altText: "\u274c \u0e44\u0e21\u0e48\u0e2a\u0e32\u0e21\u0e32\u0e23\u0e16\u0e2d\u0e48\u0e32\u0e19\u0e43\u0e1b\u0e40\u0e2a\u0e23\u0e47\u0e08\u0e44\u0e14\u0e49",
+    contents: {
+      type: "bubble", size: "mega",
+      header: headerBox("\u274c \u0e2d\u0e48\u0e32\u0e19\u0e44\u0e21\u0e48\u0e0a\u0e31\u0e14", C.red, C.redBg, C.red),
+      body: {
+        type: "box", layout: "vertical", paddingAll: "20px", spacing: "md",
+        contents: [
+          { type: "text", text: "\ud83d\udcf8", size: "3xl", align: "center" },
+          { type: "text", text: "\u0e44\u0e21\u0e48\u0e2a\u0e32\u0e21\u0e32\u0e23\u0e16\u0e2d\u0e48\u0e32\u0e19\u0e43\u0e1a\u0e40\u0e2a\u0e23\u0e47\u0e08\u0e44\u0e14\u0e49", size: "sm", weight: "bold", color: C.text, align: "center", margin: "md" },
+          { type: "text", text: "\u0e20\u0e32\u0e1e\u0e2d\u0e32\u0e08\u0e44\u0e21\u0e48\u0e0a\u0e31\u0e14\u0e2b\u0e23\u0e37\u0e2d\u0e40\u0e1a\u0e25\u0e2d\n\u0e01\u0e23\u0e38\u0e13\u0e32\u0e16\u0e48\u0e32\u0e22\u0e23\u0e39\u0e1b\u0e43\u0e2b\u0e21\u0e48\u0e43\u0e2b\u0e49\u0e0a\u0e31\u0e14\u0e40\u0e08\u0e19", size: "xs", color: C.sub, align: "center", wrap: true },
+          confBar(conf, C.red),
+        ],
+      },
+      footer: {
+        type: "box", layout: "vertical", paddingAll: "12px",
+        contents: [
+          btnBox("\ud83d\udcf8 \u0e2a\u0e48\u0e07\u0e23\u0e39\u0e1b\u0e43\u0e2b\u0e21\u0e48", "secondary", C.sub),
+        ],
+      },
+    },
+  };
+}
+
+// ════════════════════════════════════════════════════
+//  4. notReceiptFlex — 📄 not a receipt
+// ════════════════════════════════════════════════════
+export function notReceiptFlex() {
+  return {
+    type: "flex" as const,
+    altText: "\ud83d\udcc4 \u0e20\u0e32\u0e1e\u0e19\u0e35\u0e49\u0e44\u0e21\u0e48\u0e43\u0e0a\u0e48\u0e43\u0e1b\u0e40\u0e2a\u0e23\u0e47\u0e08",
+    contents: {
+      type: "bubble", size: "mega",
+      header: headerBox("\ud83d\udcc4 \u0e44\u0e21\u0e48\u0e43\u0e0a\u0e48\u0e43\u0e1b\u0e40\u0e2a\u0e23\u0e47\u0e08", C.red, C.redBg, C.red),
+      body: {
+        type: "box", layout: "vertical", paddingAll: "20px", spacing: "md",
+        contents: [
+          { type: "text", text: "\ud83d\uddbc\ufe0f", size: "3xl", align: "center" },
+          { type: "text", text: "\u0e20\u0e32\u0e1e\u0e19\u0e35\u0e49\u0e44\u0e21\u0e48\u0e43\u0e0a\u0e48\u0e43\u0e1a\u0e40\u0e2a\u0e23\u0e47\u0e08", size: "sm", weight: "bold", color: C.text, align: "center", margin: "md" },
+          { type: "text", text: "\u0e23\u0e30\u0e1a\u0e1b\u0e15\u0e23\u0e27\u0e08\u0e1e\u0e1b\u0e27\u0e48\u0e32\u0e20\u0e32\u0e1e\u0e17\u0e35\u0e48\u0e2a\u0e48\u0e07\u0e21\u0e32\n\u0e44\u0e21\u0e48\u0e43\u0e0a\u0e48\u0e43\u0e1a\u0e40\u0e2a\u0e23\u0e47\u0e08\u0e2b\u0e23\u0e37\u0e2d\u0e40\u0e2d\u0e01\u0e2a\u0e32\u0e23\u0e17\u0e32\u0e07\u0e01\u0e32\u0e23\u0e40\u0e07\u0e34\u0e19", size: "xs", color: C.sub, align: "center", wrap: true },
+          // Supported list
+          {
+            type: "box", layout: "vertical", cornerRadius: "8px", backgroundColor: "#FFF5F5",
+            paddingAll: "12px", margin: "lg",
+            contents: [
+              { type: "text", text: "\ud83d\udcce \u0e15\u0e31\u0e27\u0e2d\u0e22\u0e48\u0e32\u0e07\u0e17\u0e35\u0e48\u0e23\u0e2d\u0e07\u0e23\u0e31\u0e1b", size: "xxs", color: C.sub },
+              { type: "text", text: "\ud83e\uddc9 \u0e43\u0e1a\u0e40\u0e2a\u0e23\u0e47\u0e08\u0e23\u0e31\u0e1b\u0e40\u0e07\u0e34\u0e19\n\ud83d\udcc4 \u0e43\u0e1a\u0e01\u0e33\u0e01\u0e31\u0e1b\u0e20\u0e32\u0e29\u0e35\n\ud83c\udfe6 \u0e2a\u0e25\u0e34\u0e1b\u0e42\u0e2d\u0e19\u0e40\u0e07\u0e34\u0e19\n\ud83d\udcb3 \u0e43\u0e1b\u0e41\u0e08\u0e49\u0e07\u0e2b\u0e19\u0e35\u0e49\u0e1b\u0e31\u0e15\u0e23\u0e40\u0e04\u0e23\u0e14\u0e34\u0e15\n\ud83d\udcdd \u0e1b\u0e34\u0e25\u0e04\u0e48\u0e32\u0e19\u0e49\u0e33/\u0e04\u0e48\u0e32\u0e44\u0e1f", size: "xs", color: "#555555", wrap: true, margin: "sm", lineSpacing: "6px" },
+            ],
+          },
+        ],
+      },
+      footer: {
+        type: "box", layout: "vertical", paddingAll: "12px",
+        contents: [
+          btnBox("\ud83d\udcf8 \u0e2a\u0e48\u0e07\u0e23\u0e39\u0e1b\u0e43\u0e1b\u0e40\u0e2a\u0e23\u0e47\u0e08", "secondary", C.sub),
+        ],
+      },
+    },
+  };
+}
+
+// ════════════════════════════════════════════════════
+//  5. dailySummaryFlex (keep existing)
+// ════════════════════════════════════════════════════
+export function dailySummaryFlex(data: {
+  date: string;
+  totalExpense: number;
+  totalIncome: number;
+  count: number;
+  categories: { icon: string; name: string; amount: number }[];
+}) {
+  return {
+    type: "flex" as const,
+    altText: `\ud83d\udcca \u0e2a\u0e23\u0e38\u0e1b\u0e27\u0e31\u0e19\u0e19\u0e35\u0e49 \u0e3f${fmtAmt(data.totalExpense)}`,
+    contents: {
+      type: "bubble", size: "mega",
+      header: headerBox("\ud83d\udcca \u0e2a\u0e23\u0e38\u0e1b\u0e27\u0e31\u0e19\u0e19\u0e35\u0e49", C.green, C.greenBg, C.green),
+      body: {
+        type: "box", layout: "vertical", paddingAll: "16px", spacing: "md",
+        contents: [
+          { type: "text", text: fmtDate(data.date), size: "sm", color: C.sub },
+          {
+            type: "box", layout: "horizontal", margin: "md",
+            contents: [
+              { type: "box", layout: "vertical", flex: 1, contents: [
+                { type: "text", text: "\u0e23\u0e32\u0e22\u0e08\u0e48\u0e32\u0e22", size: "xxs", color: C.sub },
+                { type: "text", text: `\u0e3f ${fmtAmt(data.totalExpense)}`, size: "lg", weight: "bold", color: C.red },
+              ]},
+              { type: "box", layout: "vertical", flex: 1, contents: [
+                { type: "text", text: "\u0e23\u0e32\u0e22\u0e23\u0e31\u0e1b", size: "xxs", color: C.sub },
+                { type: "text", text: `\u0e3f ${fmtAmt(data.totalIncome)}`, size: "lg", weight: "bold", color: C.green },
+              ]},
+            ],
+          },
+          { type: "text", text: `\u0e23\u0e32\u0e22\u0e01\u0e32\u0e23\u0e17\u0e31\u0e49\u0e07\u0e2b\u0e21\u0e14 ${data.count} \u0e23\u0e32\u0e22\u0e01\u0e32\u0e23`, size: "xs", color: C.sub, margin: "md" },
+          { type: "separator", color: C.border, margin: "md" },
+          ...data.categories.slice(0, 5).map(c => ({
+            type: "box" as const, layout: "horizontal" as const, margin: "sm" as const,
+            contents: [
+              { type: "text" as const, text: `${c.icon} ${c.name}`, size: "xs" as const, color: C.text, flex: 2 },
+              { type: "text" as const, text: `\u0e3f ${fmtAmt(c.amount)}`, size: "xs" as const, color: C.text, align: "end" as const, flex: 1 },
+            ],
+          })),
+        ],
+      },
+    },
+  };
+}
+
+// ════════════════════════════════════════════════════
+//  6. chatResponseFlex (keep existing)
+// ════════════════════════════════════════════════════
 export function chatResponseFlex(data: {
   question: string;
   answer: string;
   details?: { label: string; value: string }[];
 }) {
   return {
-    type: "flex",
+    type: "flex" as const,
     altText: data.answer,
     contents: {
-      type: "bubble",
-      size: "mega",
+      type: "bubble", size: "mega",
       body: {
-        type: "box",
-        layout: "vertical",
+        type: "box", layout: "vertical", paddingAll: "16px",
         contents: [
           {
-            type: "box",
-            layout: "horizontal",
+            type: "box", layout: "horizontal",
             contents: [
-              { type: "text", text: "🤖", size: "lg" },
-              { type: "text", text: data.answer, size: "sm", color: COLORS.text, wrap: true, flex: 5, margin: "md" },
+              { type: "text", text: "\ud83e\udd16", size: "lg" },
+              { type: "text", text: data.answer, color: C.text, wrap: true, flex: 5, margin: "md" },
             ],
           },
-          ...(data.details
-            ? [
-                { type: "separator" as const, margin: "lg" as const, color: COLORS.border },
-                {
-                  type: "box" as const,
-                  layout: "vertical" as const,
-                  margin: "lg" as const,
-                  spacing: "sm" as const,
-                  contents: data.details.map((d) => ({
-                    type: "box" as const,
-                    layout: "horizontal" as const,
-                    contents: [
-                      { type: "text" as const, text: d.label, size: "xs" as const, color: COLORS.sub, flex: 2 },
-                      { type: "text" as const, text: d.value, size: "xs" as const, color: COLORS.text, flex: 3, align: "end" as const },
-                    ],
-                  })),
-                },
-              ]
-            : []),
+          ...(data.details ? [
+            { type: "separator" as const, margin: "lg" as const, color: C.border },
+            {
+              type: "box" as const, layout: "vertical" as const, margin: "lg" as const, spacing: "sm" as const,
+              contents: data.details.map(d => ({
+                type: "box" as const, layout: "horizontal" as const,
+                contents: [
+                  { type: "text" as const, text: d.label, size: "xs" as const, color: C.sub, flex: 2 },
+                  { type: "text" as const, text: d.value, size: "xs" as const, color: C.text, flex: 3, align: "end" as const },
+                ],
+              })),
+            },
+          ] : []),
         ],
-        paddingAll: "16px",
       },
     },
   };
 }
+
+// Re-export legacy name for backward compat
+export { receiptConfirmFlex as budgetAlertFlex };
