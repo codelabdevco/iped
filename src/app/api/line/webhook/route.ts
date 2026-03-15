@@ -5,7 +5,7 @@ import { connectDB } from "@/lib/mongodb";
 import Receipt from "@/models/Receipt";
 import Anthropic from "@anthropic-ai/sdk";
 import crypto from "crypto";
-import { handleFollow, handleImageOnboarding, handleOnboarding } from "@/lib/onboarding";
+import { handleFollow, handleImageOnboarding, handleOnboarding, handleLogout } from "@/lib/onboarding";
 
 const TOKEN = process.env.LINE_CHANNEL_ACCESS_TOKEN || "";
 const APP_URL = process.env.NEXT_PUBLIC_APP_URL || "";
@@ -172,7 +172,13 @@ export async function POST(request: NextRequest) {
     if (uid && ev.type === "message" && ev.message?.type === "text") {
       let dn = "";
       try { const p = await getUserProfile(uid); dn = p.displayName || ""; } catch {}
-      const handled = await handleOnboarding(ev.replyToken, uid, ev.message.text, dn);
+      // Check logout command
+        const txtLower = (ev.message as any).text?.trim().toLowerCase() || "";
+        if (txtLower === "logout" || txtLower === "\u0e2d\u0e2d\u0e01\u0e08\u0e32\u0e01\u0e23\u0e30\u0e1a\u0e1a") {
+          await handleLogout(ev.replyToken, uid);
+          continue;
+        }
+        const handled = await handleOnboarding(ev.replyToken, uid, ev.message.text, dn);
       if (handled) {
         console.log("Reply: onboarding step");
         continue;
