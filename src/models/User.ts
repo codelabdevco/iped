@@ -54,6 +54,7 @@ const UserSchema = new Schema<IUser>(
     passwordHash: String,
     name: { type: String, required: true },
     age: Number,
+  birthDate: Date,
     gender: String,
     occupation: String,
     phone: String,

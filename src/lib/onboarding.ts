@@ -53,10 +53,10 @@ function welcomeFlex(displayName: string) {
   };
 }
 
-function askAgeFlex() {
+function askAgeFlex(): any {
   return {
     type: "flex",
-    altText: "ขอทราบช่วงอายุ",
+    altText: "\u0e27\u0e31\u0e19\u0e40\u0e01\u0e34\u0e14",
     contents: {
       type: "bubble",
       body: {
@@ -66,35 +66,21 @@ function askAgeFlex() {
         contents: [
           {
             type: "text",
-            text: "📋 ก่อนเริ่มใช้งาน",
+            text: "\ud83c\udf82 \u0e27\u0e31\u0e19\u0e40\u0e01\u0e34\u0e14\u0e02\u0e2d\u0e07\u0e04\u0e38\u0e13",
             weight: "bold",
             size: "lg",
             color: PRIMARY,
           },
           {
             type: "text",
-            text: "ขอทราบข้อมูลเพิ่มเติมสักครู่นะครับ\nเพื่อให้บริการคุณได้ดียิ่งขึ้น",
+            text: "\u0e01\u0e23\u0e38\u0e13\u0e32\u0e1e\u0e34\u0e21\u0e1e\u0e4c\u0e27\u0e31\u0e19\u0e40\u0e01\u0e34\u0e14\u0e43\u0e19\u0e23\u0e39\u0e1b\u0e41\u0e1a\u0e1b\n\u0e27\u0e27/\u0e14\u0e14/\u0e1b\u0e1b\u0e1b\u0e1b \u0e40\u0e0a\u0e48\u0e19 25/12/1990",
             wrap: true,
             size: "sm",
             color: "#666666",
           },
-          { type: "separator", margin: "lg" },
-          {
-            type: "text",
-            text: "คุณอายุช่วงไหนครับ?",
-            weight: "bold",
-            size: "md",
-            margin: "lg",
-          },
         ],
       },
     },
-    quickReply: quickReply([
-      { label: "18-24 ปี", text: "18-24" },
-      { label: "25-34 ปี", text: "25-34" },
-      { label: "35-44 ปี", text: "35-44" },
-      { label: "45+ ปี", text: "45+" },
-    ]),
   };
 }
 
@@ -266,6 +252,7 @@ async function getOrCreateUser(userId: string, displayName?: string) {
     user = await User.create({
       lineUserId: userId,
       lineDisplayName: displayName || "User",
+      lineProfilePic: pictureUrl || "",
       name: displayName || "User",
       onboardingStep: 0,
       onboardingComplete: false,
@@ -282,13 +269,15 @@ async function getOrCreateUser(userId: string, displayName?: string) {
  */
 export async function handleFollow(replyToken: string, userId: string) {
   let displayName = "User";
+  let pictureUrl = "";
   try {
     const profile = await getUserProfile(userId);
     displayName = profile.displayName || "User";
+    pictureUrl = profile.pictureUrl || "";
   } catch {}
 
   // Create user record silently
-  await getOrCreateUser(userId, displayName);
+  await getOrCreateUser(userId, displayName, pictureUrl);
 
   await replyMessage(replyToken, [welcomeFlex(displayName)]);
 }
@@ -399,20 +388,31 @@ export async function handleOnboarding(
   const t = text.trim();
 
   switch (user.onboardingStep) {
-    // Step 1: Waiting for age
+    // Step 1: Waiting for birthday (DD/MM/YYYY)
     case 1: {
-      const ageMap: Record<string, number> = {
-        "18-24": 21, "25-34": 30, "35-44": 40, "45+": 50,
-      };
-      const age = ageMap[t];
-      if (!age) {
+      const parts = t.split("/");
+      if (parts.length !== 3) {
         await replyMessage(replyToken, [
-          { type: "text", text: "กรุณาเลือกช่วงอายุจาก Quick Reply ด้านล่างครับ" },
+          { type: "text", text: "กรุณาพิมพ์วันเกิด วว/ดด/ปปปป เช่น 25/12/1990" },
           askAgeFlex(),
         ]);
         return true;
       }
+      const [dd, mm, yyyy] = parts.map(Number);
+      const birthDate = new Date(yyyy, mm - 1, dd);
+      if (isNaN(birthDate.getTime()) || yyyy < 1900 || yyyy > new Date().getFullYear()) {
+        await replyMessage(replyToken, [
+          { type: "text", text: "วันเกิดไม่ถูกต้อง กรุณาพิมพ์ใหม่ เช่น 25/12/1990" },
+          askAgeFlex(),
+        ]);
+        return true;
+      }
+      const today = new Date();
+      let age = today.getFullYear() - birthDate.getFullYear();
+      const md = today.getMonth() - birthDate.getMonth();
+      if (md < 0 || (md === 0 && today.getDate() < birthDate.getDate())) age--;
       user.age = age;
+      (user as any).birthDate = birthDate;
       user.onboardingStep = 2;
       await user.save();
       await replyMessage(replyToken, [askGenderFlex()]);
@@ -450,7 +450,7 @@ export async function handleOnboarding(
       await user.save();
 
       const ageLabel =
-        user.age <= 24 ? "18-24" : user.age <= 34 ? "25-34" : user.age <= 44 ? "35-44" : "45+";
+        `${user.age} \u0e1b\u0e35`;
 
       await replyMessage(replyToken, [
         completeFlex(
