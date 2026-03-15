@@ -246,9 +246,23 @@ function needRegisterFlex() {
 }
 
 // ============ DB Helpers ============
-async function getOrCreateUser(userId: string, displayName?: string) {
+async function getOrCreateUser(userId: string, displayName?: string, pictureUrl?: string) {
   await connectDB();
   let user = await User.findOne({ lineUserId: userId });
+  if (user) {
+    let updated = false;
+    if (displayName && displayName !== "User") {
+      user.lineDisplayName = displayName;
+      user.name = displayName;
+      updated = true;
+    }
+    if (pictureUrl) {
+      user.lineProfilePic = pictureUrl;
+      updated = true;
+    }
+    if (updated) await user.save();
+    return user;
+  }
   if (!user) {
     user = await User.create({
       lineUserId: userId,
