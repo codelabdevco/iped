@@ -207,24 +207,115 @@ function needRegisterFlex(userId?: string) {
     altText: "กรุณาลงทะเบียนก่อนใช้งาน",
     contents: {
       type: "bubble",
+      size: "mega",
+      header: {
+        type: "box",
+        layout: "vertical",
+        contents: [
+          {
+            type: "box",
+            layout: "vertical",
+            contents: [],
+            height: "6px",
+            backgroundColor: "#FA3633",
+          },
+        ],
+        paddingAll: "0px",
+      },
       body: {
         type: "box",
         layout: "vertical",
-        spacing: "md",
+        spacing: "lg",
+        paddingAll: "24px",
         contents: [
           {
-            type: "text",
-            text: "📋 ลงทะเบียนก่อนใช้งาน",
-            weight: "bold",
-            size: "lg",
-            color: PRIMARY,
+            type: "box",
+            layout: "horizontal",
+            contents: [
+              {
+                type: "box",
+                layout: "vertical",
+                contents: [
+                  {
+                    type: "text",
+                    text: "📋",
+                    size: "xxl",
+                    align: "center",
+                  },
+                ],
+                width: "52px",
+                height: "52px",
+                backgroundColor: "#FFF0F0",
+                cornerRadius: "12px",
+                justifyContent: "center",
+                alignItems: "center",
+              },
+              {
+                type: "box",
+                layout: "vertical",
+                contents: [
+                  {
+                    type: "text",
+                    text: "ลงทะเบียนก่อนใช้งาน",
+                    weight: "bold",
+                    size: "lg",
+                    color: "#1a1a1a",
+                  },
+                  {
+                    type: "text",
+                    text: "ใช้เวลาไม่ถึง 1 นาที",
+                    size: "xs",
+                    color: "#999999",
+                  },
+                ],
+                paddingStart: "16px",
+                justifyContent: "center",
+              },
+            ],
+          },
+          {
+            type: "separator",
+            color: "#f0f0f0",
           },
           {
             type: "text",
-            text: "ก่อนส่งสลิป ขอทราบข้อมูลเพิ่มเติมสักครู่นะครับ เพื่อให้บริการคุณได้ดียิ่งขึ้น",
+            text: "ขอทราบข้อมูลเบื้องต้นสักหน่อย เพื่อให้เราช่วยจัดการค่าใช้จ่ายของคุณได้ดียิ่งขึ้นครับ",
             wrap: true,
             size: "sm",
             color: "#666666",
+            lineSpacing: "6px",
+          },
+          {
+            type: "box",
+            layout: "vertical",
+            spacing: "xs",
+            contents: [
+              {
+                type: "box",
+                layout: "horizontal",
+                contents: [
+                  { type: "text", text: "•", size: "sm", color: "#FA3633", flex: 0 },
+                  { type: "text", text: " วันเกิด", size: "sm", color: "#444444" },
+                ],
+              },
+              {
+                type: "box",
+                layout: "horizontal",
+                contents: [
+                  { type: "text", text: "•", size: "sm", color: "#FA3633", flex: 0 },
+                  { type: "text", text: " เพศ", size: "sm", color: "#444444" },
+                ],
+              },
+              {
+                type: "box",
+                layout: "horizontal",
+                contents: [
+                  { type: "text", text: "•", size: "sm", color: "#FA3633", flex: 0 },
+                  { type: "text", text: " อาชีพ", size: "sm", color: "#444444" },
+                ],
+              },
+            ],
+            paddingStart: "8px",
           },
         ],
       },
@@ -232,22 +323,29 @@ function needRegisterFlex(userId?: string) {
         type: "box",
         layout: "vertical",
         spacing: "sm",
+        paddingAll: "20px",
+        paddingTop: "0px",
         contents: [
           {
             type: "button",
             action: { type: "message", label: "ตกลง ลงทะเบียนเลย", text: "ตกลง" },
             style: "primary",
-            color: PRIMARY,
+            color: "#FA3633",
+            height: "md",
           },
           {
             type: "button",
             action: { type: "uri", label: "กรอกข้อมูลเองผ่านเว็บ", uri: `https://iped.codelabdev.co/register${userId ? `?uid=${userId}` : ""}` },
             style: "secondary",
+            height: "md",
+            color: "#F5F5F5",
           },
           {
             type: "button",
             action: { type: "message", label: "ยังก่อน", text: "ยังก่อน" },
-            style: "secondary",
+            style: "link",
+            color: "#999999",
+            height: "sm",
           },
         ],
       },
