@@ -96,12 +96,11 @@ function detailRow(label: string, value: string): any {
 function confBar(pct: number, color: string): any {
   const w = Math.max(5, Math.min(100, pct));
   return {
-    type: "box", layout: "horizontal", spacing: "md", paddingAll: "10px",
-    cornerRadius: "8px", backgroundColor: C.bg, margin: "md",
+    type: "box", layout: "horizontal", spacing: "md", paddingAll: "10px", cornerRadius: "8px", backgroundColor: C.bg, margin: "md", alignItems: "center",
     contents: [
       { type: "text", text: "\u0e04\u0e27\u0e32\u0e21\u0e41\u0e21\u0e48\u0e19\u0e22\u0e33", size: "xxs", color: C.sub, flex: 0, gravity: "center" },
       {
-        type: "box", layout: "vertical", flex: 1, height: "6px", cornerRadius: "3px", gravity: "center",
+        type: "box", layout: "vertical", flex: 1, height: "6px", cornerRadius: "3px",
         backgroundColor: "#E0E0E0",
         contents: [{
           type: "box", layout: "vertical", height: "6px", cornerRadius: "3px",
