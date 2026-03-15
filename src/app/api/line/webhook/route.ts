@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import { verifySignature, replyMessage, getMessageContent } from "@/lib/line-bot";
+import { verifySignature, replyMessage, getMessageContent, getUserProfile } from "@/lib/line-bot";
 import { receiptConfirmFlex, duplicateWarningFlex, errorFlex, notReceiptFlex } from "@/lib/line-flex";
 import { connectDB } from "@/lib/mongodb";
 import Receipt from "@/models/Receipt";
@@ -170,7 +170,9 @@ export async function POST(request: NextRequest) {
 
       // === ONBOARDING CHECK ===
     if (uid && ev.type === "message" && ev.message?.type === "text") {
-      const handled = await handleOnboarding(ev.replyToken, uid, ev.message.text);
+      let dn = "";
+      try { const p = await getUserProfile(uid); dn = p.displayName || ""; } catch {}
+      const handled = await handleOnboarding(ev.replyToken, uid, ev.message.text, dn);
       if (handled) {
         console.log("Reply: onboarding step");
         continue;
@@ -279,9 +281,13 @@ export async function POST(request: NextRequest) {
 
       // === FOLLOW ===
       } else if (ev.type === "follow") {
-        await replyMessage(ev.replyToken, [{ type: "text", text: "\ud83d\ude4f \u0e2a\u0e27\u0e31\u0e2a\u0e14\u0e35\u0e04\u0e23\u0e31\u0e1a \u0e22\u0e34\u0e19\u0e14\u0e35\u0e15\u0e49\u0e2d\u0e19\u0e23\u0e31\u0e1a\u0e2a\u0e39\u0e48 iPED!\n\n\u0e2a\u0e48\u0e07\u0e23\u0e39\u0e1b\u0e43\u0e1a\u0e40\u0e2a\u0e23\u0e47\u0e08\u0e21\u0e32\u0e44\u0e14\u0e49\u0e40\u0e25\u0e22 \u0e23\u0e30\u0e1a\u0e1a\u0e08\u0e30\u0e2d\u0e48\u0e32\u0e19\u0e41\u0e25\u0e30\u0e08\u0e31\u0e14\u0e01\u0e32\u0e23\u0e04\u0e48\u0e32\u0e43\u0e0a\u0e49\u0e08\u0e48\u0e32\u0e22\u0e43\u0e2b\u0e49\u0e2d\u0e31\u0e15\u0e42\u0e19\u0e21\u0e31\u0e15\u0e34\u0e04\u0e23\u0e31\u0e1a" }]);
-
-      // === POSTBACK (duplicate buttons) ===
+    let dn = "User";
+    try { const p = await getUserProfile(uid || ""); dn = p.displayName || "User"; } catch {}
+    const handled = await handleOnboarding(ev.replyToken, uid || "", "", dn);
+    if (!handled) {
+      await replyMessage(ev.replyToken, [{ type: "text", text: "🙏 ยินดีต้อนรัปสู่ iPED!\n\nส่งรัปใปเสร็จมาได้เลยครัป" }]);
+    }
+    // === POSTBACK (duplicate buttons) ===
       } else if (ev.type === "postback") {
         const pd = ev.postback?.data || "";
         console.log("Postback:", pd);
