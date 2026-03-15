@@ -1,6 +1,6 @@
 /**
- * iPED — LINE Flex Message Templates (v2)
- * Design: B-style header + A-style body + income/expense + category + time + iPED icon
+ * iped — LINE Flex Message Templates (v2)
+ * Design: B-style header + A-style body + income/expense + category + time + iped icon
  */
 
 // ─── Status colors ───
@@ -31,15 +31,19 @@ function fmtAmt(n: number): string {
 // ─── Shared: header box ───
 function headerBox(badge: string, badgeColor: string, badgeBg: string, logoColor: string): any {
   return {
-    type: "box", layout: "horizontal", paddingAll: "14px",
+    type: "box", layout: "horizontal", paddingAll: "12px", spacing: "sm",
     contents: [
       {
-        type: "box", layout: "horizontal", flex: 0, width: "28px", height: "28px",
-        cornerRadius: "7px", backgroundColor: logoColor,
-        contents: [{ type: "text", text: "iPED", size: "xxs", color: C.white, align: "center", gravity: "center", weight: "bold" }],
+        type: "box", layout: "horizontal", flex: 0, width: "22px", height: "22px",
+        cornerRadius: "11px", backgroundColor: logoColor,
+        contents: [{ type: "text", text: "i", size: "xxs", color: "#FFFFFF", align: "center", gravity: "center", weight: "bold" }],
       },
-      { type: "box", layout: "horizontal", flex: 0, margin: "md", backgroundColor: badgeBg, cornerRadius: "4px", paddingAll: "2px", paddingStart: "6px", paddingEnd: "6px", contents: [{ type: "text", text: badge, size: "xs", color: badgeColor, weight: "bold" }] },
-      { type: "text", text: `\ud83d\udd50 ${fmtTime()}`, size: "xxs", color: C.sub, align: "end", gravity: "center" },
+      { type: "text", text: "iped", size: "xs", color: "#555555", weight: "bold", flex: 0, gravity: "center" },
+      {
+        type: "box", layout: "horizontal", flex: 0, backgroundColor: badgeBg, cornerRadius: "10px",
+        paddingAll: "3px", paddingStart: "8px", paddingEnd: "8px",
+        contents: [{ type: "text", text: badge, size: "xxs", color: badgeColor, weight: "bold", maxLines: 1 }],
+      },
     ],
   };
 }
@@ -120,8 +124,17 @@ function btnBox(label: string, style: "primary" | "secondary", color: string, da
     : url
     ? { type: "uri", label, uri: url }
     : { type: "message", label, text: label };
+  if (style === "primary") {
+    return {
+      type: "box", layout: "horizontal", backgroundColor: color, cornerRadius: "8px",
+      paddingAll: "8px", flex: 1, action,
+      contents: [{ type: "text", text: label, size: "xs", color: "#FFFFFF", align: "center", weight: "bold" }],
+    };
+  }
   return {
-    type: "button", action, style, height: "sm", color: style === "primary" ? color : undefined,
+    type: "box", layout: "horizontal", backgroundColor: "#F5F5F5",
+    cornerRadius: "8px", paddingAll: "8px", flex: 1, action,
+    contents: [{ type: "text", text: label, size: "xs", color: "#888888", align: "center" }],
   };
 }
 
@@ -150,7 +163,7 @@ export function receiptConfirmFlex(data: ReceiptFlexData) {
   const isExpense = data.isExpense !== false; // default expense
   const amtPrefix = isExpense ? "- " : "+ ";
   const amtColor = isWarn ? C.amber : (isExpense ? C.red : C.green);
-  const badge = isWarn ? "\u26a0\ufe0f \u0e01\u0e23\u0e38\u0e15\u0e32\u0e15\u0e23\u0e27\u0e08\u0e2a\u0e2d\u0e1a" : "\u2705 \u0e1a\u0e31\u0e19\u0e17\u0e36\u0e01\u0e2a\u0e33\u0e40\u0e23\u0e47\u0e08";
+  const badge = isWarn ? "⚠️ ตรวจสอบ" : "✅ สำเร็จ";
   const badgeColor = isWarn ? C.amber : C.green;
   const badgeBg = isWarn ? C.amberBg : C.greenBg;
   const logoColor = isWarn ? C.amber : C.green;
@@ -204,10 +217,13 @@ export function receiptConfirmFlex(data: ReceiptFlexData) {
         ],
       },
       footer: {
-        type: "box", layout: "horizontal", spacing: "md", paddingAll: "12px",
+        type: "box", layout: "vertical", paddingAll: "12px", spacing: "sm",
         contents: [
-          btnBox("\u270f\ufe0f \u0e41\u0e01\u0e49\u0e44\u0e02", "secondary", C.sub, `action=edit&id=${data.receiptId}`),
-          btnBox("\u2705 \u0e22\u0e37\u0e19\u0e22\u0e31\u0e19", "primary", isWarn ? C.amber : C.green, `action=confirm&id=${data.receiptId}`),
+          { type: "box", layout: "horizontal", spacing: "sm", contents: [
+            btnBox("\u270f\ufe0f \u0e41\u0e01\u0e49\u0e44\u0e02", "secondary", C.sub, `action=edit&id=${data.receiptId}`),
+            btnBox("\u2705 \u0e22\u0e37\u0e19\u0e22\u0e31\u0e19", "primary", isWarn ? C.amber : C.green, `action=confirm&id=${data.receiptId}`),
+          ]},
+          { type: "text", text: "Powered by codelabs tech", size: "xxs", color: "#BBBBBB", align: "center", margin: "md" },
         ],
       },
     },
@@ -233,7 +249,7 @@ export function duplicateWarningFlex(data: {
     altText: `\ud83d\udd04 \u0e1e\u0e1b\u0e23\u0e32\u0e22\u0e01\u0e32\u0e23\u0e0b\u0e49\u0e33 ${data.merchant} \u0e3f${fmtAmt(data.amount)}`,
     contents: {
       type: "bubble", size: "mega",
-      header: headerBox("\ud83d\udd04 \u0e1e\u0e1b\u0e23\u0e32\u0e22\u0e01\u0e32\u0e23\u0e0b\u0e49\u0e33", C.blue, C.blueBg, C.blue),
+      header: headerBox("🔄 ซ้ำ", C.blue, C.blueBg, C.blue),
       body: {
         type: "box", layout: "vertical", paddingAll: "16px", spacing: "md",
         contents: [
@@ -260,10 +276,13 @@ export function duplicateWarningFlex(data: {
         ],
       },
       footer: {
-        type: "box", layout: "horizontal", spacing: "md", paddingAll: "12px",
+        type: "box", layout: "vertical", paddingAll: "12px", spacing: "sm",
         contents: [
-          btnBox("\u274c \u0e22\u0e01\u0e40\u0e25\u0e34\u0e01", "secondary", C.sub, `action=cancel&id=${data.receiptId}`),
-          btnBox("\ud83d\udcbe \u0e1a\u0e31\u0e19\u0e17\u0e36\u0e01\u0e0b\u0e49\u0e33", "primary", C.blue, `action=force_save&id=${data.receiptId}`),
+          { type: "box", layout: "horizontal", spacing: "sm", contents: [
+            btnBox("\u274c \u0e22\u0e01\u0e40\u0e25\u0e34\u0e01", "secondary", C.sub, `action=cancel&id=${data.receiptId}`),
+            btnBox("\ud83d\udcbe \u0e1a\u0e31\u0e19\u0e17\u0e36\u0e01\u0e0b\u0e49\u0e33", "primary", C.blue, `action=force_save&id=${data.receiptId}`),
+          ]},
+          { type: "text", text: "Powered by codelabs tech", size: "xxs", color: "#BBBBBB", align: "center", margin: "md" },
         ],
       },
     },
@@ -280,7 +299,7 @@ export function errorFlex(confidence?: number) {
     altText: "\u274c \u0e44\u0e21\u0e48\u0e2a\u0e32\u0e21\u0e32\u0e23\u0e16\u0e2d\u0e48\u0e32\u0e19\u0e43\u0e1b\u0e40\u0e2a\u0e23\u0e47\u0e08\u0e44\u0e14\u0e49",
     contents: {
       type: "bubble", size: "mega",
-      header: headerBox("\u274c \u0e2d\u0e48\u0e32\u0e19\u0e44\u0e21\u0e48\u0e0a\u0e31\u0e14", C.red, C.redBg, C.red),
+      header: headerBox("❌ ผิดพลาด", C.red, C.redBg, C.red),
       body: {
         type: "box", layout: "vertical", paddingAll: "20px", spacing: "md",
         contents: [
@@ -291,9 +310,10 @@ export function errorFlex(confidence?: number) {
         ],
       },
       footer: {
-        type: "box", layout: "vertical", paddingAll: "12px",
+        type: "box", layout: "vertical", paddingAll: "12px", spacing: "sm",
         contents: [
           btnBox("\ud83d\udcf8 \u0e2a\u0e48\u0e07\u0e23\u0e39\u0e1b\u0e43\u0e2b\u0e21\u0e48", "secondary", C.sub),
+          { type: "text", text: "Powered by codelabs tech", size: "xxs", color: "#BBBBBB", align: "center", margin: "md" },
         ],
       },
     },
@@ -309,7 +329,7 @@ export function notReceiptFlex() {
     altText: "\ud83d\udcc4 \u0e20\u0e32\u0e1e\u0e19\u0e35\u0e49\u0e44\u0e21\u0e48\u0e43\u0e0a\u0e48\u0e43\u0e1b\u0e40\u0e2a\u0e23\u0e47\u0e08",
     contents: {
       type: "bubble", size: "mega",
-      header: headerBox("\ud83d\udcc4 \u0e44\u0e21\u0e48\u0e43\u0e0a\u0e48\u0e43\u0e1b\u0e40\u0e2a\u0e23\u0e47\u0e08", C.red, C.redBg, C.red),
+      header: headerBox("📄 ไม่ใช่", C.red, C.redBg, C.red),
       body: {
         type: "box", layout: "vertical", paddingAll: "20px", spacing: "md",
         contents: [
@@ -328,9 +348,10 @@ export function notReceiptFlex() {
         ],
       },
       footer: {
-        type: "box", layout: "vertical", paddingAll: "12px",
+        type: "box", layout: "vertical", paddingAll: "12px", spacing: "sm",
         contents: [
           btnBox("\ud83d\udcf8 \u0e2a\u0e48\u0e07\u0e23\u0e39\u0e1b\u0e43\u0e1b\u0e40\u0e2a\u0e23\u0e47\u0e08", "secondary", C.sub),
+          { type: "text", text: "Powered by codelabs tech", size: "xxs", color: "#BBBBBB", align: "center", margin: "md" },
         ],
       },
     },
@@ -352,7 +373,7 @@ export function dailySummaryFlex(data: {
     altText: `\ud83d\udcca \u0e2a\u0e23\u0e38\u0e1b\u0e27\u0e31\u0e19\u0e19\u0e35\u0e49 \u0e3f${fmtAmt(data.totalExpense)}`,
     contents: {
       type: "bubble", size: "mega",
-      header: headerBox("\ud83d\udcca \u0e2a\u0e23\u0e38\u0e1b\u0e27\u0e31\u0e19\u0e19\u0e35\u0e49", C.green, C.greenBg, C.green),
+      header: headerBox("📊 สรุป", C.green, C.greenBg, C.green),
       body: {
         type: "box", layout: "vertical", paddingAll: "16px", spacing: "md",
         contents: [
@@ -379,6 +400,12 @@ export function dailySummaryFlex(data: {
               { type: "text" as const, text: `\u0e3f ${fmtAmt(c.amount)}`, size: "xs" as const, color: C.text, align: "end" as const, flex: 1 },
             ],
           })),
+        ],
+      },
+      footer: {
+        type: "box" as const, layout: "vertical" as const, paddingAll: "8px",
+        contents: [
+          { type: "text" as const, text: "Powered by codelabs tech" as const, size: "xxs" as const, color: "#BBBBBB" as const, align: "center" as const },
         ],
       },
     },
@@ -421,6 +448,12 @@ export function chatResponseFlex(data: {
               })),
             },
           ] : []),
+        ],
+      },
+      footer: {
+        type: "box" as const, layout: "vertical" as const, paddingAll: "8px",
+        contents: [
+          { type: "text" as const, text: "Powered by codelabs tech" as const, size: "xxs" as const, color: "#BBBBBB" as const, align: "center" as const },
         ],
       },
     },
