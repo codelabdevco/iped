@@ -1,2 +1,3 @@
 hello
 auto-deploy test from cowork - 2026-03-15
+auto-deploy pipeline verified! - nginx fixed, webhook working
