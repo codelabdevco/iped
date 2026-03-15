@@ -195,7 +195,7 @@ export async function POST(request: NextRequest) {
           }
 
           // 4. Cannot read? (❌)
-          if (ocr.amount) {
+          if (!ocr.amount) {
             const st = getStatus(null, null);
             await replyMessage(rt, [{ type: "text", text: st.emoji + " " + st.title + "\n" + st.sub, quoteToken: qt }]);
             console.log("Reply: error no amount");
