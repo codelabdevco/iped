@@ -38,8 +38,7 @@ function headerBox(badge: string, badgeColor: string, badgeBg: string, logoColor
         cornerRadius: "7px", backgroundColor: logoColor,
         contents: [{ type: "text", text: "iPED", size: "xxs", color: C.white, align: "center", gravity: "center", weight: "bold" }],
       },
-      { type: "text", text: badge, size: "xs", color: badgeColor, weight: "bold", flex: 0, margin: "md",
-        decoration: "none", backgroundColor: badgeBg, offsetTop: "2px", offsetBottom: "2px" },
+      { type: "box", layout: "horizontal", flex: 0, margin: "md", backgroundColor: badgeBg, cornerRadius: "4px", paddingAll: "2px", paddingStart: "6px", paddingEnd: "6px", contents: [{ type: "text", text: badge, size: "xs", color: badgeColor, weight: "bold" }] },
       { type: "text", text: `\ud83d\udd50 ${fmtTime()}`, size: "xxs", color: C.sub, align: "end", gravity: "center" },
     ],
   };
@@ -49,7 +48,6 @@ function headerBox(badge: string, badgeColor: string, badgeBg: string, logoColor
 function merchantRow(icon: string, name: string, subtext: string): any {
   return {
     type: "box", layout: "horizontal", spacing: "md", paddingBottom: "14px",
-    borderWidth: "0px 0px 1px 0px", borderColor: C.border,
     contents: [
       {
         type: "box", layout: "vertical", flex: 0, width: "40px", height: "40px",
@@ -60,7 +58,7 @@ function merchantRow(icon: string, name: string, subtext: string): any {
         type: "box", layout: "vertical", flex: 1,
         contents: [
           { type: "text", text: name, size: "sm", weight: "bold", color: C.text, wrap: true },
-          { type: "text", text: subtext, size: "xxs", color: C.sub, margin: "xs" },
+          ...(subtext ? [{ type: "text", text: subtext, size: "xxs", color: C.sub, margin: "xs" }] : []),
         ],
       },
     ],
@@ -76,9 +74,9 @@ function typeCatRow(isExpense: boolean, catIcon: string, catName: string): any {
     type: "box", layout: "horizontal", spacing: "sm", margin: "lg",
     contents: [
       { type: "text", text: typeText, size: "xs", color: typeColor, weight: "bold", flex: 0,
-        backgroundColor: typeBg, offsetTop: "1px", offsetBottom: "1px" },
+offsetTop: "1px", offsetBottom: "1px" },
       { type: "text", text: `${catIcon} ${catName}`, size: "xs", color: "#555555", flex: 0,
-        backgroundColor: C.bg, offsetTop: "1px", offsetBottom: "1px" },
+offsetTop: "1px", offsetBottom: "1px" },
     ],
   };
 }
@@ -251,7 +249,7 @@ export function duplicateWarningFlex(data: {
           // Duplicate warning box
           {
             type: "box", layout: "vertical", cornerRadius: "8px", backgroundColor: "#F0F5FF",
-            paddingAll: "12px", margin: "lg", borderWidth: "0px 0px 0px 3px", borderColor: C.blue,
+            paddingAll: "12px", margin: "lg",
             contents: [
               { type: "text", text: "\u26a0\ufe0f \u0e23\u0e32\u0e22\u0e01\u0e32\u0e23\u0e19\u0e35\u0e49\u0e2d\u0e32\u0e08\u0e0b\u0e49\u0e33\u0e01\u0e31\u0e1a", size: "xs", color: C.blue, weight: "bold" },
               { type: "text", text: `\u0e1b\u0e31\u0e19\u0e17\u0e36\u0e01\u0e40\u0e21\u0e37\u0e48\u0e2d ${fmtDate(data.originalDate)} \u2014 \u0e3f${fmtAmt(data.amount)}`, size: "xs", color: "#555555", margin: "xs", wrap: true },

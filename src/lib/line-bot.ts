@@ -12,7 +12,7 @@ export function verifySignature(body: string, signature: string): boolean {
 export async function replyMessage(replyToken: string, messages: unknown[]) {
   if (!LINE_CHANNEL_ACCESS_TOKEN) return;
 
-  await fetch("https://api.line.me/v2/bot/message/reply", {
+  const res = await fetch("https://api.line.me/v2/bot/message/reply", {
     method: "POST",
     headers: {
       "Content-Type": "application/json",
@@ -20,6 +20,8 @@ export async function replyMessage(replyToken: string, messages: unknown[]) {
     },
     body: JSON.stringify({ replyToken, messages }),
   });
+  const resBody = await res.text();
+  console.log("LINE reply:", res.status, resBody);
 }
 
 export async function pushMessage(userId: string, messages: unknown[]) {
