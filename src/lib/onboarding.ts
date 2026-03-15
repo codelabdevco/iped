@@ -73,7 +73,7 @@ function askAgeFlex(): any {
           },
           {
             type: "text",
-            text: "\u0e01\u0e23\u0e38\u0e13\u0e32\u0e1e\u0e34\u0e21\u0e1e\u0e4c\u0e27\u0e31\u0e19\u0e40\u0e01\u0e34\u0e14\u0e43\u0e19\u0e23\u0e39\u0e1b\u0e41\u0e1a\u0e1b\n\u0e27\u0e27/\u0e14\u0e14/\u0e1b\u0e1b\u0e1b\u0e1b \u0e40\u0e0a\u0e48\u0e19 25/12/1990",
+            text: "\u0e1e\u0e34\u0e21\u0e1e\u0e4c\u0e15\u0e31\u0e27\u0e40\u0e25\u0e02 8 \u0e2b\u0e25\u0e31\u0e01\u0e15\u0e34\u0e14\u0e01\u0e31\u0e19\u0e44\u0e14\u0e49\u0e40\u0e25\u0e22\n\u0e40\u0e0a\u0e48\u0e19 25121990 \u0e2b\u0e23\u0e37\u0e2d 25/12/1990",
             wrap: true,
             size: "sm",
             color: "#666666",
@@ -83,6 +83,7 @@ function askAgeFlex(): any {
     },
   };
 }
+
 
 function askGenderFlex() {
   return {
@@ -388,21 +389,30 @@ export async function handleOnboarding(
   const t = text.trim();
 
   switch (user.onboardingStep) {
-    // Step 1: Waiting for birthday (DD/MM/YYYY)
+    // Step 1: Waiting for birthday
     case 1: {
-      const parts = t.split("/");
-      if (parts.length !== 3) {
+      // Accept: 25121990, 25/12/1990, 25-12-1990, 25 12 1990
+      const raw = t.replace(/[\s/\-]/g, "");
+      if (!/^\d{8}$/.test(raw)) {
         await replyMessage(replyToken, [
-          { type: "text", text: "กรุณาพิมพ์วันเกิด วว/ดด/ปปปป เช่น 25/12/1990" },
+          { type: "text", text: "\u0e01\u0e23\u0e38\u0e13\u0e32\u0e1e\u0e34\u0e21\u0e1e\u0e4c\u0e27\u0e31\u0e19\u0e40\u0e01\u0e34\u0e14 8 \u0e2b\u0e25\u0e31\u0e01 \u0e40\u0e0a\u0e48\u0e19 25121990\n\u0e2b\u0e23\u0e37\u0e2d\u0e43\u0e2a\u0e48\u0e41\u0e1b\u0e1b 25/12/1990 \u0e01\u0e47\u0e44\u0e14\u0e49\u0e04\u0e48\u0e30" },
           askAgeFlex(),
         ]);
         return true;
       }
-      const [dd, mm, yyyy] = parts.map(Number);
+      const dd = parseInt(raw.substring(0, 2));
+      const mm = parseInt(raw.substring(2, 4));
+      const yyyy = parseInt(raw.substring(4, 8));
       const birthDate = new Date(yyyy, mm - 1, dd);
-      if (isNaN(birthDate.getTime()) || yyyy < 1900 || yyyy > new Date().getFullYear()) {
+      if (
+        isNaN(birthDate.getTime()) ||
+        birthDate.getDate() !== dd ||
+        birthDate.getMonth() !== mm - 1 ||
+        yyyy < 1900 ||
+        yyyy > new Date().getFullYear()
+      ) {
         await replyMessage(replyToken, [
-          { type: "text", text: "วันเกิดไม่ถูกต้อง กรุณาพิมพ์ใหม่ เช่น 25/12/1990" },
+          { type: "text", text: "\u0e27\u0e31\u0e19\u0e17\u0e35\u0e48\u0e44\u0e21\u0e48\u0e16\u0e39\u0e01\u0e15\u0e49\u0e2d\u0e07\u0e04\u0e48\u0e30 \u0e25\u0e2d\u0e07\u0e43\u0e2b\u0e21\u0e48\u0e19\u0e30\u0e04\u0e30 \u0e40\u0e0a\u0e48\u0e19 25121990" },
           askAgeFlex(),
         ]);
         return true;
