@@ -393,8 +393,10 @@ export async function handleOnboarding(
   text: string,
   displayName?: string
 ): Promise<boolean> {
-  await connectDB();
-  const user = await User.findOne({ lineUserId: userId });
+  let dn = displayName || "User";
+  let picUrl = "";
+  try { const p = await getUserProfile(userId); dn = p.displayName || dn; picUrl = p.pictureUrl || ""; } catch {}
+  const user = await getOrCreateUser(userId, dn, picUrl);
 
   if (!user) return false;
   if (user.onboardingComplete) return false;
