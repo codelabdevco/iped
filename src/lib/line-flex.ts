@@ -39,11 +39,7 @@ function headerBox(badge: string, badgeColor: string, badgeBg: string, logoColor
         contents: [{ type: "text", text: "i", size: "xxs", color: "#FFFFFF", align: "center", gravity: "center", weight: "bold" }],
       },
       { type: "text", text: "iped", size: "xs", color: "#555555", weight: "bold", flex: 0, gravity: "center" },
-      {
-        type: "box", layout: "horizontal", flex: 0, backgroundColor: badgeBg, cornerRadius: "10px",
-        paddingAll: "3px", paddingStart: "8px", paddingEnd: "8px",
-        contents: [{ type: "text", text: badge, size: "xxs", color: badgeColor, weight: "bold", maxLines: 1 }],
-      },
+      { type: "text", text: badge, size: "xs", color: badgeColor, weight: "bold", flex: 0, gravity: "center" },
     ],
   };
 }
@@ -103,16 +99,16 @@ function confBar(pct: number, color: string): any {
     type: "box", layout: "horizontal", spacing: "md", paddingAll: "10px",
     cornerRadius: "8px", backgroundColor: C.bg, margin: "md",
     contents: [
-      { type: "text", text: "\u0e04\u0e27\u0e32\u0e21\u0e41\u0e21\u0e48\u0e19\u0e22\u0e33", size: "xxs", color: C.sub, flex: 0 },
+      { type: "text", text: "\u0e04\u0e27\u0e32\u0e21\u0e41\u0e21\u0e48\u0e19\u0e22\u0e33", size: "xxs", color: C.sub, flex: 0, gravity: "center" },
       {
-        type: "box", layout: "vertical", flex: 1, height: "6px", cornerRadius: "3px",
+        type: "box", layout: "vertical", flex: 1, height: "6px", cornerRadius: "3px", gravity: "center",
         backgroundColor: "#E0E0E0",
         contents: [{
           type: "box", layout: "vertical", height: "6px", cornerRadius: "3px",
           backgroundColor: color, width: `${w}%`, contents: [{ type: "filler" }],
         }],
       },
-      { type: "text", text: `${pct}%`, size: "xs", color: color, weight: "bold", flex: 0, align: "end" },
+      { type: "text", text: `${pct}%`, size: "xs", color: color, weight: "bold", flex: 0, align: "end", gravity: "center" },
     ],
   };
 }
