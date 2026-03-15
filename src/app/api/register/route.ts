@@ -5,10 +5,12 @@ import User from '@/models/User';
 export async function POST(req: NextRequest) {
   try {
     const { lineUserId, birthDate, gender, occupation } = await req.json();
+    if (!lineUserId || !birthDate || !gender || !occupation) {
       return NextResponse.json({ success: false, message: 'Missing fields' }, { status: 400 });
     }
     await connectDB();
     const user = await User.findOne({ lineUserId });
+    if (!user) {
       return NextResponse.json({ success: false, message: 'User not found' }, { status: 404 });
     }
     const bd = new Date(birthDate);

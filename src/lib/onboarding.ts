@@ -219,7 +219,15 @@ function needRegisterFlex(userId?: string) {
             size: "lg",
             color: PRIMARY,
           },
-
+          {
+            type: "text",
+            text: "ก่อนส่งสลิป ขอทราบข้อมูลเพิ่มเติมสักครู่นะครับ เพื่อให้บริการคุณได้ดียิ่งขึ้น",
+            wrap: true,
+            size: "sm",
+            color: "#666666",
+          },
+        ],
+      },
       footer: {
         type: "box",
         layout: "vertical",
@@ -240,14 +248,6 @@ function needRegisterFlex(userId?: string) {
             type: "button",
             action: { type: "message", label: "ยังก่อน", text: "ยังก่อน" },
             style: "secondary",
-          },
-        ],
-      },          {
-            type: "text",
-            text: "ก่อนส่งสลิป ขอทราบข้อมูลเพิ่มเติมสักครู่นะครับ เพื่อให้บริการคุณได้ดียิ่งขึ้น",
-            wrap: true,
-            size: "sm",
-            color: "#666666",
           },
         ],
       },
