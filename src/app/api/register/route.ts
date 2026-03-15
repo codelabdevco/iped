@@ -34,12 +34,7 @@ export async function POST(req: NextRequest) {
     // Send same completeFlex as chat registration
     try {
       const flex = completeFlex(
-        displayName || '-',
-        String(age),
-        gender,
-        occupation,
-        pictureUrl || undefined,
-      );
+        displayName || '-', String(age), gender, occupation, pictureUrl || undefined, lineUserId);
       await pushMessage(lineUserId, [flex]);
     } catch (pushErr) {
       console.error('Push message error:', pushErr);

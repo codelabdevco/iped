@@ -142,7 +142,7 @@ function askOccupationFlex() {
   };
 }
 
-export function completeFlex(name: string, age: string, gender: string, occupation: string, pictureUrl?: string) {
+export function completeFlex(name: string, age: string, gender: string, occupation: string, pictureUrl?: string, lineUserId?: string) {
   return {
     type: "flex",
     altText: "ลงทะเบียนสำเร็จ!",
@@ -186,6 +186,25 @@ export function completeFlex(name: string, age: string, gender: string, occupati
           },
         ],
       },
+
+      footer: lineUserId ? {
+        type: "box",
+        layout: "vertical",
+        contents: [
+          {
+            type: "button",
+            action: {
+              type: "uri",
+              label: "แก้ไขข้อมูล",
+              uri: `https://iped.codelabdev.co/register?lineUserId=${lineUserId}`,
+            },
+            style: "primary",
+            color: "#FA3633",
+            height: "sm",
+          },
+        ],
+        paddingAll: "12px",
+      } : undefined,
     },
   };
 }
@@ -606,7 +625,7 @@ export async function handleOnboarding(
           user.gender || "-",
           user.occupation || "-",
           user.lineProfilePic || ""
-        ),
+        , user.lineUserId),
       ]);
       return true;
     }
