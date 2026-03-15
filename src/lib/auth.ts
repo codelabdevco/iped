@@ -60,7 +60,7 @@ export function clearTokenCookie() {
 
 // LINE Login helpers
 export function getLineLoginUrl(state: string): string {
-  const clientId = process.env.LINE_CHANNEL_ID || "";
+  const clientId = process.env.LINE_LOGIN_CHANNEL_ID || process.env.LINE_CHANNEL_ID || "";
   const redirectUri = encodeURIComponent(`${process.env.NEXT_PUBLIC_APP_URL}/api/auth/line/callback`);
   return `https://access.line.me/oauth2/v2.1/authorize?response_type=code&client_id=${clientId}&redirect_uri=${redirectUri}&state=${state}&scope=profile%20openid%20email`;
 }
@@ -73,8 +73,8 @@ export async function exchangeLineCode(code: string) {
       grant_type: "authorization_code",
       code,
       redirect_uri: `${process.env.NEXT_PUBLIC_APP_URL}/api/auth/line/callback`,
-      client_id: process.env.LINE_CHANNEL_ID || "",
-      client_secret: process.env.LINE_CHANNEL_SECRET || "",
+      client_id: process.env.LINE_LOGIN_CHANNEL_ID || process.env.LINE_CHANNEL_ID || "",
+      client_secret: process.env.LINE_LOGIN_CHANNEL_SECRET || process.env.LINE_CHANNEL_SECRET || "",
     }),
   });
   return res.json();
