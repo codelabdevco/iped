@@ -407,6 +407,8 @@ export async function handleOnboarding(
 
   if (!user) return false;
   if (user.onboardingComplete) return false;
+
+  const t = text.trim();
   // Step 0: Waiting for user to accept registration
   if (user.onboardingStep === 0) {
     if (t === "ตกลง") {
@@ -417,14 +419,13 @@ export async function handleOnboarding(
     }
     if (t === "ยังก่อน") {
       await replyMessage(replyToken, [
-        { type: "text", text: "  " },
+        { type: "text", text: "ไม่เป็นไรครับ เมื่อพร้อมลงทะเบียนสามารถส่งสลิปมาได้เลยนะครับ 😊" },
       ]);
       return true;
     }
     return false;
   }
 
-  const t = text.trim();
 
   switch (user.onboardingStep) {
     // Step 1: Waiting for birthday
