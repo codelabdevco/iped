@@ -142,7 +142,7 @@ function askOccupationFlex() {
   };
 }
 
-function completeFlex(name: string, age: string, gender: string, occupation: string, pictureUrl?: string) {
+export function completeFlex(name: string, age: string, gender: string, occupation: string, pictureUrl?: string) {
   return {
     type: "flex",
     altText: "ลงทะเบียนสำเร็จ!",
