@@ -201,7 +201,7 @@ function infoRow(label: string, value: string) {
   };
 }
 
-function needRegisterFlex() {
+function needRegisterFlex(userId?: string) {
   return {
     type: "flex",
     altText: "กรุณาลงทะเบียนก่อนใช้งาน",
@@ -233,7 +233,7 @@ function needRegisterFlex() {
           },
           {
             type: "button",
-            action: { type: "uri", label: "กรอกข้อมูลเองผ่านเว็บ", uri: "https://iped.codelabdev.co/register" },
+            action: { type: "uri", label: "กรอกข้อมูลเองผ่านเว็บ", uri: `https://iped.codelabdev.co/register${userId ? `?uid=${userId}` : ""}` },
             style: "secondary",
           },
           {
@@ -324,7 +324,7 @@ export async function handleImageOnboarding(
     // User not registered yet - show registration prompt
 
   // Send registration prompt with age question
-  await replyMessage(replyToken, [needRegisterFlex()]);
+  await replyMessage(replyToken, [needRegisterFlex(userId)]);
   return true; // Caller should NOT process the image
 }
 
