@@ -1,11 +1,17 @@
 'use client';
+
 import { useState, Suspense } from 'react';
 import { useSearchParams } from 'next/navigation';
+import { Calendar } from '@/components/ui/calendar';
+import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
+import { format } from 'date-fns';
+import { th } from 'date-fns/locale';
 
 function RegisterForm() {
   const searchParams = useSearchParams();
-  const lineUserId = searchParams.get('uid') || '';
-  const [birthDate, setBirthDate] = useState('');
+  const lineUserId = searchParams.get('lineUserId') || '';
+  const [birthDate, setBirthDate] = useState<Date | undefined>(undefined);
+  const [calendarOpen, setCalendarOpen] = useState(false);
   const [gender, setGender] = useState('');
   const [occupation, setOccupation] = useState('');
   const [loading, setLoading] = useState(false);
@@ -15,26 +21,26 @@ function RegisterForm() {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (!birthDate) return;
     setLoading(true);
     setError('');
     try {
       const res = await fetch('/api/register', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ lineUserId, birthDate, gender, occupation }),
+        body: JSON.stringify({ lineUserId, birthDate: birthDate.toISOString(), gender, occupation }),
       });
       const data = await res.json();
-      if (data.success) {
-        setResultData(data);
-        setSuccess(true);
-      } else {
-        setError(data.message || 'Error');
-      }
-    } catch {
-      setError('Network error');
-    } finally {
-      setLoading(false);
-    }
+      if (data.success) { setResultData(data); setSuccess(true); }
+      else { setError(data.message || 'Registration failed'); }
+    } catch (err) { setError('Network error'); }
+    finally { setLoading(false); }
+  };
+
+  const handleBackToLine = () => {
+    try { window.close(); } catch (e) {}
+    try { if ((window as any).liff) { (window as any).liff.closeWindow(); } } catch (e) {}
+    setTimeout(() => { window.location.href = 'https://line.me/R/'; }, 500);
   };
 
   if (success) {
@@ -43,39 +49,14 @@ function RegisterForm() {
         <div className="bg-white rounded-2xl shadow-lg max-w-md w-full overflow-hidden">
           <div className="h-2" style={{ backgroundColor: '#FA3633' }}></div>
           <div className="p-8 text-center">
-            <div className="w-20 h-20 rounded-full mx-auto mb-4 flex items-center justify-center" style={{ backgroundColor: '#F0FFF0' }}>
-              <span className="text-4xl">✅</span>
+            <div className="w-16 h-16 rounded-full mx-auto mb-3 flex items-center justify-center" style={{ backgroundColor: '#06C755' }}>
+              <svg className="w-8 h-8 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M5 13l4 4L19 7" /></svg>
             </div>
-            <h1 className="text-2xl font-bold mb-2" style={{ color: '#FA3633' }}>ลงทะเบียนสำเร็จแล้ว!</h1>
-            <p className="text-gray-500 text-sm mb-6">ขอบคุณที่ลงทะเบียนครับ</p>
-            {resultData && (
-              <div className="bg-gray-50 rounded-xl p-4 mb-6 text-left">
-                <div className="flex justify-between py-2 border-b border-gray-100">
-                  <span className="text-gray-400 text-sm">ชื่อ</span>
-                  <span className="text-gray-700 text-sm font-medium">{resultData.name || '-'}</span>
-                </div>
-                <div className="flex justify-between py-2 border-b border-gray-100">
-                  <span className="text-gray-400 text-sm">อายุ</span>
-                  <span className="text-gray-700 text-sm font-medium">{resultData.age} ปี</span>
-                </div>
-                <div className="flex justify-between py-2 border-b border-gray-100">
-                  <span className="text-gray-400 text-sm">เพศ</span>
-                  <span className="text-gray-700 text-sm font-medium">{resultData.gender}</span>
-                </div>
-                <div className="flex justify-between py-2">
-                  <span className="text-gray-400 text-sm">อาชีพ</span>
-                  <span className="text-gray-700 text-sm font-medium">{resultData.occupation}</span>
-                </div>
-              </div>
-            )}
-            <a
-              href="https://line.me/R/"
-              className="block w-full py-3.5 rounded-xl text-white font-semibold text-base transition-all"
-              style={{ backgroundColor: '#06C755' }}
-            >
-              กลับไป LINE
-            </a>
-            <p className="text-gray-400 text-xs mt-4">ตอนนี้คุณสามารถส่งสลิปมาใช้งานได้เลยครับ 😊</p>
+            <h1 className="text-xl font-bold text-gray-800">ลงทะเปียนสำเร็จ!</h1>
+            <p className="text-gray-500 text-sm mt-2">ยินดีต้อนรัป, {resultData?.name || ''}!</p>
+            <p className="text-gray-400 text-sm mt-1">คุณสามารถเริ่มใช้งานผ่าน LINE ได้แล้ว</p>
+            <button onClick={handleBackToLine} className="block w-full py-3.5 rounded-xl text-white font-semibold text-base transition-all mt-6" style={{ backgroundColor: '#06C755' }}>กลัปไป LINE</button>
+            <p className="text-gray-400 text-xs mt-4">ตอนนี้คุณสามารถปิดหน้าต่างนี้และกลัปไปใช้งาน LINE ได้เลย</p>
           </div>
         </div>
       </div>
@@ -97,13 +78,22 @@ function RegisterForm() {
           <form onSubmit={handleSubmit} className="space-y-4">
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-1">วันเกิด</label>
-              <input type="date" value={birthDate} onChange={e => setBirthDate(e.target.value)}
-                className="w-full border border-gray-300 rounded-xl px-4 py-3 focus:ring-2 focus:ring-red-400 focus:border-transparent outline-none text-base" required />
+              <Popover open={calendarOpen} onOpenChange={setCalendarOpen}>
+                <PopoverTrigger asChild>
+                  <button type="button" className={"w-full border border-gray-300 rounded-xl px-4 py-3 text-left focus:ring-2 focus:ring-red-400 focus:border-transparent outline-none text-base " + (birthDate ? "text-gray-900" : "text-gray-400")}>
+                    {birthDate ? format(birthDate, 'dd MMMM yyyy', { locale: th }) : 'เลือกวันเกิด'}
+                    <svg className="w-5 h-5 float-right text-gray-400 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" /></svg>
+                  </button>
+                </PopoverTrigger>
+                <PopoverContent className="w-auto p-0" align="center">
+                  <Calendar mode="single" selected={birthDate} onSelect={(day) => { if (day) { setBirthDate(day); setCalendarOpen(false); } }} defaultMonth={new Date(2000, 0)} captionLayout="dropdown" fromYear={1940} toYear={new Date().getFullYear()} />
+                </PopoverContent>
+              </Popover>
             </div>
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-1">เพศ</label>
               <div className="flex gap-3">
-                {['ชาย','หญิง','อื่นๆ'].map(g => (
+                {['ชาย', 'หญิง', 'อื่นๆ'].map(g => (
                   <button key={g} type="button" onClick={() => setGender(g)}
                     className={'flex-1 py-3 rounded-xl border text-sm font-medium transition-all ' + (gender === g ? 'border-red-500 bg-red-50 text-red-600 shadow-sm' : 'border-gray-200 text-gray-600 hover:bg-gray-50')}
                   >{g}</button>
@@ -112,21 +102,16 @@ function RegisterForm() {
             </div>
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-1">อาชีพ</label>
-              <select value={occupation} onChange={e => setOccupation(e.target.value)}
-                className="w-full border border-gray-300 rounded-xl px-4 py-3 focus:ring-2 focus:ring-red-400 focus:border-transparent outline-none text-base" required>
+              <select value={occupation} onChange={e => setOccupation(e.target.value)} className="w-full border border-gray-300 rounded-xl px-4 py-3 focus:ring-2 focus:ring-red-400 focus:border-transparent outline-none text-base" required>
                 <option value="">เลือกอาชีพ</option>
                 <option value="พนักงานบริษัท">พนักงานบริษัท</option>
                 <option value="ธุรกิจส่วนตัว">ธุรกิจส่วนตัว</option>
-                <option value="นักเรียน/นักศึกษา">นักเรียน/นักศึกษา</option>
-                <option value="รับราชการ">รับราชการ</option>
                 <option value="ฟรีแลนซ์">ฟรีแลนซ์</option>
-                <option value="อื่นๆ">อื่นๆ</option>
+                <option value="นักศึกษา">นักศึกษา</option>
               </select>
             </div>
             {error && <p className="text-red-500 text-sm text-center">{error}</p>}
-            <button type="submit" disabled={loading || !gender}
-              className="w-full py-3.5 rounded-xl text-white font-semibold text-base transition-all disabled:opacity-50"
-              style={{ backgroundColor: '#FA3633' }}>
+            <button type="submit" disabled={loading || !gender || !birthDate} className="w-full py-3.5 rounded-xl text-white font-semibold text-base transition-all disabled:opacity-50" style={{ backgroundColor: '#FA3633' }}>
               {loading ? 'กำลังบันทึก...' : 'ลงทะเบียน'}
             </button>
           </form>
