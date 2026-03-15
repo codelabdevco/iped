@@ -5,7 +5,7 @@ import { connectDB } from "@/lib/mongodb";
 export async function POST(request: NextRequest) {
   try {
     await connectDB();
-    const { userId, name, goals, businessName, monthlyBudget } =
+    const { userId, name, goals, businessName, monthlyBudget, age, gender, occupation } =
       await request.json();
 
     if (!userId || !name) {
@@ -23,6 +23,9 @@ export async function POST(request: NextRequest) {
     };
     if (businessName) update.businessName = businessName;
     if (monthlyBudget) update.monthlyBudget = monthlyBudget;
+    if (age) update.age = age;
+    if (gender) update.gender = gender;
+    if (occupation) update.occupation = occupation;
 
     await User.findOneAndUpdate(
       { lineUserId: userId },

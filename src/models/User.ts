@@ -28,6 +28,13 @@ export interface IUser extends Document {
     pdpaConsentDate?: Date;
     dataRetentionDays: number;
   };
+  // Onboarding
+  onboardingStep: number;
+  onboardingComplete: boolean;
+  goals: string[];
+  businessName?: string;
+  monthlyBudget?: number;
+  
   status: "active" | "inactive" | "suspended" | "pending";
   lastLogin?: Date;
   loginCount: number;
@@ -69,6 +76,13 @@ const UserSchema = new Schema<IUser>(
       pdpaConsentDate: Date,
       dataRetentionDays: { type: Number, default: 365 },
     },
+    // Onboarding
+    onboardingStep: { type: Number, default: 0 },
+    onboardingComplete: { type: Boolean, default: false },
+    goals: [{ type: String }],
+    businessName: String,
+    monthlyBudget: Number,
+    
     status: { type: String, enum: ["active", "inactive", "suspended", "pending"], default: "active" },
     lastLogin: Date,
     loginCount: { type: Number, default: 0 },

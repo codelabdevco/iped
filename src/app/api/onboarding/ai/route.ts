@@ -11,16 +11,19 @@ const SYSTEM_PROMPT = `You are iped's AI onboarding assistant. Your job is to co
 
 You need to collect:
 1. Name (required)
-2. Goals - what they want to use iped for. Options: tracking expenses, business accounting, AI financial advisor, budget planning
-3. Business name (optional)
-4. Monthly budget (optional)
+2. Age (required)
+3. Gender - options: male, female, other (required)
+4. Occupation (optional)
+5. Goals - what they want to use iped for. Options: tracking expenses, business accounting, AI financial advisor, budget planning
+6. Business name (optional)
+7. Monthly budget (optional)
 
 Rules:
 - Always respond in Thai
 - Be friendly and conversational
 - Ask one thing at a time
-- When you have collected at least name and goals, summarize what you collected and confirm
-- After confirmation, respond with exactly this JSON at the END of your message: {"COMPLETE":true,"name":"...","goals":[...],"businessName":"...","monthlyBudget":0}
+- When you have collected at least name, age, gender and goals, summarize what you collected and confirm
+- After confirmation, respond with exactly this JSON at the END of your message: {"COMPLETE":true,"name":"...","age":0,"gender":"...","occupation":"...","goals":[...],"businessName":"...","monthlyBudget":0}
 - The JSON must be on its own line at the very end
 - Do not output the JSON until the user confirms the summary`;
 
@@ -62,6 +65,9 @@ export async function POST(request: NextRequest) {
           onboardingComplete: true,
           onboardingStep: 4,
         };
+        if (data.age) update.age = data.age;
+        if (data.gender) update.gender = data.gender;
+        if (data.occupation) update.occupation = data.occupation;
         if (data.businessName) update.businessName = data.businessName;
         if (data.monthlyBudget) update.monthlyBudget = data.monthlyBudget;
 
@@ -86,7 +92,7 @@ export async function POST(request: NextRequest) {
     return NextResponse.json(
       {
         message:
-          "\u0e02\u0e2d\u0e42\u0e17\u0e29\u0e04\u0e23\u0e31\u0e1a \u0e40\u0e01\u0e34\u0e14\u0e02\u0e49\u0e2d\u0e1c\u0e34\u0e14\u0e1e\u0e25\u0e32\u0e14 \u0e25\u0e2d\u0e07\u0e43\u0e2b\u0e21\u0e48\u0e2d\u0e35\u0e01\u0e04\u0e23\u0e31\u0e49\u0e07",
+          "\u0e02\u0e2d\u0e42\u0e17\u0e29\u0e04\u0e23\u0e31\u0e1b \u0e40\u0e01\u0e34\u0e14\u0e02\u0e49\u0e2d\u0e1c\u0e34\u0e14\u0e1e\u0e25\u0e32\u0e14 \u0e25\u0e2d\u0e07\u0e43\u0e2b\u0e21\u0e48\u0e2d\u0e35\u0e01\u0e04\u0e23\u0e31\u0e49\u0e07",
         complete: false,
       },
       { status: 200 }

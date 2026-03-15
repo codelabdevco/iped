@@ -5,6 +5,7 @@ import { connectDB } from "@/lib/mongodb";
 import Receipt from "@/models/Receipt";
 import Anthropic from "@anthropic-ai/sdk";
 import crypto from "crypto";
+import { handleOnboarding } from "@/lib/onboarding";
 
 const TOKEN = process.env.LINE_CHANNEL_ACCESS_TOKEN || "";
 const APP_URL = process.env.NEXT_PUBLIC_APP_URL || "";
@@ -164,12 +165,29 @@ export async function POST(request: NextRequest) {
     console.log("Events:", events.length);
 
     for (const ev of events) {
+      const uid = ev.source?.userId;
       console.log("Type:", ev.type, ev.message?.type);
 
-      // === IMAGE MESSAGE ===
+      // === ONBOARDING CHECK ===
+    if (uid && ev.type === "message" && ev.message?.type === "text") {
+      const handled = await handleOnboarding(ev.replyToken, uid, ev.message.text);
+      if (handled) {
+        console.log("Reply: onboarding step");
+        continue;
+      }
+    }
+//     if (uid && ev.type === "message" && ev.message?.type === "image") {
+//       // Check if user needs onboarding first
+//       const handled = await handleOnboarding(ev.replyToken, uid, "");
+//       if (handled) {
+//         console.log("Reply: onboarding (image trigger)");
+//         continue;
+//       }
+//     }
+
+    // === IMAGE MESSAGE ===
       if (ev.type === "message" && ev.message?.type === "image") {
         const rt = ev.replyToken;
-        const uid = ev.source?.userId;
         const qt = ev.message?.quoteToken || "";
 
         if (uid) { await showLoading(uid, 60); }
