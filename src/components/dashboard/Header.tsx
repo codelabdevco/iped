@@ -1,74 +1,34 @@
 "use client";
 
-import { Search, Bell } from "lucide-react";
-import { useState } from "react";
-import Image from "next/image";
+import { Search, Bell, User } from "lucide-react";
+import { useTheme } from "@/contexts/ThemeContext";
 
-interface HeaderProps {
-  displayName: string;
-  pictureUrl?: string;
-}
+interface HeaderProps { displayName: string; pictureUrl?: string; }
 
 export default function Header({ displayName, pictureUrl }: HeaderProps) {
-  const [searchQuery, setSearchQuery] = useState("");
-
-  const greeting = (() => {
-    const h = new Date().getHours();
-    if (h < 12) return "สวัสดีตอนเช้า";
-    if (h < 17) return "สวัสดีตอนบ่าย";
-    return "สวัสดีตอนเย็น";
-  })();
+  const { isDark } = useTheme();
+  const bg = isDark ? "bg-[#111111] border-white/10" : "bg-white border-gray-200";
+  const inputBg = isDark ? "bg-white/5 text-white placeholder-white/40 border-white/10" : "bg-gray-100 text-gray-900 placeholder-gray-400 border-gray-200";
+  const txt = isDark ? "text-white" : "text-gray-900";
+  const txtSub = isDark ? "text-white/50" : "text-gray-500";
+  const iconBg = isDark ? "bg-white/5 text-white/70 hover:bg-white/10" : "bg-gray-100 text-gray-600 hover:bg-gray-200";
 
   return (
-    <header className="h-16 bg-[#111111] border-b border-white/5 flex items-center justify-between px-6">
+    <header className={`h-16 ${bg} border-b flex items-center justify-between px-6`}>
       <div>
-        <h2 className="text-base font-medium">
-          {greeting}, {displayName}
-        </h2>
-        <p className="text-xs text-white/40">
-          {new Date().toLocaleDateString("th-TH", {
-            weekday: "long",
-            year: "numeric",
-            month: "long",
-            day: "numeric",
-          })}
-        </p>
+        <h2 className={`text-sm font-medium ${txt}`}>{"\u0e2a\u0e27\u0e31\u0e2a\u0e14\u0e35\u0e15\u0e2d\u0e19\u0e1a\u0e48\u0e32\u0e22"}, {displayName}</h2>
+        <p className={`text-xs ${txtSub}`}>{"\u0e27\u0e31\u0e19"}{new Date().toLocaleDateString("th-TH", { weekday: "long", year: "numeric", month: "long", day: "numeric" })}</p>
       </div>
-
-      <div className="flex items-center gap-4">
+      <div className="flex items-center gap-3">
         <div className="relative">
-          <Search
-            size={16}
-            className="absolute left-3 top-1/2 -translate-y-1/2 text-white/30"
-          />
-          <input
-            type="text"
-            placeholder="ค้นหา..."
-            value={searchQuery}
-            onChange={(e) => setSearchQuery(e.target.value)}
-            className="w-56 h-9 pl-9 pr-4 bg-white/5 border border-white/10 rounded-lg text-sm text-white placeholder-white/30 focus:outline-none focus:border-[#FA3633]/50 transition-colors"
-          />
+          <Search size={16} className={`absolute left-3 top-1/2 -translate-y-1/2 ${txtSub}`} />
+          <input type="text" placeholder={"\u0e04\u0e49\u0e19\u0e2b\u0e32..."} className={`pl-9 pr-4 py-2 ${inputBg} border rounded-lg text-sm w-[200px] focus:outline-none focus:ring-1 focus:ring-[#FA3633]/50`} />
         </div>
-
-        <button className="relative p-2 rounded-lg hover:bg-white/5 transition-colors">
-          <Bell size={20} className="text-white/60" />
-          <span className="absolute top-1.5 right-1.5 w-2 h-2 bg-[#FA3633] rounded-full" />
+        <button className={`w-9 h-9 ${iconBg} rounded-lg flex items-center justify-center transition-colors relative`}>
+          <Bell size={18} />
         </button>
-
-        <div className="flex items-center gap-3">
-          {pictureUrl ? (
-            <Image
-              src={pictureUrl}
-              alt={displayName}
-              width={32}
-              height={32}
-              className="rounded-full"
-            />
-          ) : (
-            <div className="w-8 h-8 rounded-full bg-[#FA3633]/20 text-[#FA3633] flex items-center justify-center text-sm font-medium">
-              {displayName.charAt(0)}
-            </div>
-          )}
+        <div className={`w-9 h-9 rounded-full ${isDark ? "bg-[#FA3633]/20" : "bg-[#FA3633]/10"} flex items-center justify-center`}>
+          {pictureUrl ? <img src={pictureUrl} alt="" className="w-full h-full rounded-full object-cover" /> : <User size={18} className="text-[#FA3633]" />}
         </div>
       </div>
     </header>
