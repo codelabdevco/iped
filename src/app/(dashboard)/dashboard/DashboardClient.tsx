@@ -136,7 +136,7 @@ function ChartSection({
                 const barH = niceMax > 0 ? ((m.total || 0) / niceMax) * 100 : 0;
                 const displayCats = activeFilter === "ทั้งหมด" ? sortedCats : [activeFilter];
                 return (
-                  <div key={idx} className="flex flex-col items-center" style={{ width: `${Math.max(100 / filteredMonthly.length - 1.5, 4)}%` }}>
+                  <div key={idx} className="flex flex-col items-center h-full justify-end" style={{ width: `${Math.max(100 / filteredMonthly.length - 1.5, 4)}%` }}>
                     <div className="w-full rounded-t-md overflow-hidden flex flex-col-reverse" style={{ height: `${barH}%`, minHeight: m.total > 0 ? "4px" : "0" }}>
                       {displayCats.map((cat) => {
                         const val = m.categories?.[cat] || 0;
