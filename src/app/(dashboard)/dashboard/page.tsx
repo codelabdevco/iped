@@ -1,6 +1,6 @@
 import { verifyToken } from "@/lib/auth";
 import { cookies } from "next/headers";
-
+import { redirect } from "next/navigation";
 import { connectDB } from "@/lib/mongodb";
 import Receipt from "@/models/Receipt";
 import DashboardClient from "./DashboardClient";
@@ -39,32 +39,36 @@ async function getDashboardData(userId: string) {
   );
   const changePercent =
     totalLastMonth > 0
-      ? Math.round(((totalThisMonth - totalLastMonth) / totalLastMonth) * 100)
+      ? Math.round(
+          ((totalThisMonth - totalLastMonth) / totalLastMonth) * 100
+        )
       : 0;
 
-  // Category breakdown
-  const categoryMap: Record<string, number> = {};
-  currentMonthReceipts.forEach((r) => {
-    const cat = r.category || "ไม่ระบุ";
-    categoryMap[cat] = (categoryMap[cat] || 0) + (r.amount || 0);
-  });
-  const categories = Object.entries(categoryMap)
-    .map(([name, amount]) => ({ name, amount }))
-    .sort((a, b) => b.amount - a.amount);
-
-  // Monthly trend (6 months)
+  // Monthly trend (12 months) with per-category breakdown
+  const allCategoryMap: Record<string, number> = {};
   const monthlyTrend = await Promise.all(
-    Array.from({ length: 6 }, (_, i) => 5 - i).map(async (i) => {
+    Array.from({ length: 12 }, (_, i) => 11 - i).map(async (i) => {
       const ms = new Date(now.getFullYear(), now.getMonth() - i, 1);
       const me = new Date(now.getFullYear(), now.getMonth() - i + 1, 0);
       const recs = await Receipt.find({
         userId,
         createdAt: { $gte: ms, $lte: me },
       }).lean();
+
+      const categories: Record<string, number> = {};
+      let total = 0;
+      recs.forEach((r) => {
+        const cat = r.category || "ไม่ระบุ";
+        const amt = r.amount || 0;
+        categories[cat] = (categories[cat] || 0) + amt;
+        allCategoryMap[cat] = (allCategoryMap[cat] || 0) + amt;
+        total += amt;
+      });
+
       return {
         month: ms.toLocaleDateString("th-TH", { month: "short" }),
-        amount: recs.reduce((s, r) => s + (r.amount || 0), 0),
-        count: recs.length,
+        categories,
+        total,
       };
     })
   );
@@ -86,21 +90,13 @@ async function getDashboardData(userId: string) {
     totalAmount: totalThisMonth,
     changePercent,
     receiptCount: currentMonthReceipts.length,
-    receiptCountChange:
-      lastMonthReceipts.length > 0
-        ? Math.round(
-            ((currentMonthReceipts.length - lastMonthReceipts.length) /
-              lastMonthReceipts.length) *
-              100
-          )
-        : 0,
     avgPerReceipt:
       currentMonthReceipts.length > 0
         ? Math.round(totalThisMonth / currentMonthReceipts.length)
         : 0,
-    categoryCount: categories.length,
+    categoryCount: Object.keys(allCategoryMap).length,
     recentReceipts: serialize(recentReceipts),
-    categoryData: categories,
+    categoryData: allCategoryMap,
     monthlyData: monthlyTrend,
   };
 }
