@@ -1,6 +1,6 @@
 import { cookies } from "next/headers";
 import jwt from "jsonwebtoken";
-import connectDB from "@/lib/mongodb";
+import { connectDB } from "@/lib/mongodb";
 import Receipt from "@/models/Receipt";
 import ReceiptsClient from "./ReceiptsClient";
 
