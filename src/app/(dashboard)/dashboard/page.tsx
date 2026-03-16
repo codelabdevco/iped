@@ -1,3 +1,4 @@
+import { verifyToken } from "@/lib/auth";
 import { cookies } from "next/headers";
 
 import { connectDB } from "@/lib/mongodb";
