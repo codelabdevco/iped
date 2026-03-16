@@ -85,7 +85,7 @@ export default function ReceiptsClient({
             placeholder="ค้นหาร้านค้า, หมวดหมู่..."
             value={search}
             onChange={(e) => setSearch(e.target.value)}
-            className="w-full h-10 pl-9 pr-4 bg-white/5 border border-white/10 rounded-lg text-sm text-white placeholder-white/30 focus:outline-none focus:border-[#FA3633]/50"
+            className={`w-full h-10 pl-9 pr-4 ${isDark ? "bg-white/5 border-white/10 text-white placeholder-white/30" : "bg-gray-50 border-gray-300 text-gray-900 placeholder-gray-400"} rounded-lg text-sm focus:outline-none focus:border-[#FA3633]/50`}
           />
         </div>
 
@@ -160,10 +160,10 @@ export default function ReceiptsClient({
                   className={`border-b ${isDark ? "border-white/5 hover:bg-white/[0.02]" : "border-gray-100 hover:bg-gray-50"} transition-colors cursor-pointer`}
                 >
                   <td className={`px-5 py-3.5 text-sm ${isDark ? "" : "text-gray-900"}`}>{r.storeName}</td>
-                  <td className="px-5 py-3.5 text-sm text-white/60">
+                  <td className={`px-5 py-3.5 text-sm ${isDark ? "text-white/60" : "text-gray-600"}`}>
                     {r.type}
                   </td>
-                  <td className="px-5 py-3.5 text-sm text-white/60">
+                  <td className={`px-5 py-3.5 text-sm ${isDark ? "text-white/60" : "text-gray-600"}`}>
                     {r.category}
                   </td>
                   <td className={`px-5 py-3.5 text-sm ${isDark ? "text-white/60" : "text-gray-600"} capitalize`}>
@@ -172,7 +172,7 @@ export default function ReceiptsClient({
                   <td className={`px-5 py-3.5 text-sm font-medium text-right ${isDark ? "" : "text-gray-900"}`}>
                     {fmt(r.amount)}
                   </td>
-                  <td className="px-5 py-3.5 text-sm text-white/60">
+                  <td className={`px-5 py-3.5 text-sm ${isDark ? "text-white/60" : "text-gray-600"}`}>
                     {r.date}
                   </td>
                   <td className="px-5 py-3.5">
