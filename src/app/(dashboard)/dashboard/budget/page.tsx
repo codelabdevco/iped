@@ -1,5 +1,4 @@
 "use client";
-
 import { Wallet, Plus } from "lucide-react";
 import { useTheme } from "@/contexts/ThemeContext";
 
@@ -10,7 +9,7 @@ export default function BudgetPage() {
       <div className="flex items-center justify-between">
         <div>
           <h1 className="text-2xl font-bold">งบประมาณ</h1>
-          <p className={`text-sm ${isDark ? "${isDark ? "text-white/40" : "text-gray-500"}" : "text-gray-500"} mt-1`}>
+          <p className={`text-sm ${isDark ? "text-white/40" : "text-gray-500"} mt-1`}>
             ตั้งงบประมาณและติดตามการใช้จ่าย
           </p>
         </div>
@@ -20,14 +19,14 @@ export default function BudgetPage() {
         </button>
       </div>
 
-      <div className="${isDark ? "bg-[#111111]" : "bg-white shadow-sm"} border ${isDark ? "border-white/5" : "border-gray-200"} rounded-xl p-12 text-center">
+      <div className={`${isDark ? "bg-[#111111] border-white/5" : "bg-white border-gray-200 shadow-sm"} border rounded-xl p-12 text-center`}>
         <Wallet size={48} className="mx-auto text-white/20 mb-4" />
-        <h3 className="text-lg font-medium ${isDark ? "text-white/60" : "text-gray-600"}">
+        <h3 className={`text-lg font-medium ${isDark ? "text-white/60" : "text-gray-600"}`}>
           ยังไม่ได้ตั้งงบประมาณ
         </h3>
-        <p className="text-sm ${isDark ? "text-white/30" : "text-gray-400"} mt-2 max-w-md mx-auto">
-          ตั้งงบประมาณรายเดือนแยกตามหมวดหมู่ เพื่อควบคุมการใช้จ่ายของคุณ
-          ระบบจะแจ้งเตือนเมื่อใกล้ถึงงบที่ตั้งไว้
+        <p className={`text-sm ${isDark ? "text-white/30" : "text-gray-400"} mt-2 max-w-md mx-auto`}>
+          ตั้งงบประมาณ เพิ่มแยกตามหมวดหมู่ เพื่อควบคุมการใช้จ่ายของคุณ
+          ระบบจะแจ้งเตือน เมื่อใกล้ถึงวงเงินที่ตั้งไว้
         </p>
       </div>
     </div>
