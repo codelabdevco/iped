@@ -1,8 +1,10 @@
 "use client";
 
 import { BarChart3 } from "lucide-react";
+import { useTheme } from "@/contexts/ThemeContext";
 
 export default function SummaryPage() {
+  const { isDark } = useTheme();
   return (
     <div className="space-y-6">
       <div>

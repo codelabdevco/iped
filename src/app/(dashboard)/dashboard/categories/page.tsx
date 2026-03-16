@@ -1,6 +1,7 @@
 "use client";
 
 import { FolderOpen, Plus } from "lucide-react";
+import { useTheme } from "@/contexts/ThemeContext";
 
 const defaultCategories = [
   { name: "อาหาร", emoji: "🍜", count: 0 },
@@ -14,6 +15,7 @@ const defaultCategories = [
 ];
 
 export default function CategoriesPage() {
+  const { isDark } = useTheme();
   return (
     <div className="space-y-6">
       <div className="flex items-center justify-between">

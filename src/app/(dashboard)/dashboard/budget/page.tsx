@@ -1,8 +1,10 @@
 "use client";
 
 import { Wallet, Plus } from "lucide-react";
+import { useTheme } from "@/contexts/ThemeContext";
 
 export default function BudgetPage() {
+  const { isDark } = useTheme();
   return (
     <div className="space-y-6">
       <div className="flex items-center justify-between">

@@ -1,8 +1,10 @@
 "use client";
 
 import { FileText } from "lucide-react";
+import { useTheme } from "@/contexts/ThemeContext";
 
 export default function DocumentsPage() {
+  const { isDark } = useTheme();
   return (
     <div className="space-y-6">
       <div>
