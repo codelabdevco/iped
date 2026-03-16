@@ -72,7 +72,7 @@ async function getDashboardData(userId: string) {
   const serialize = (recs: typeof recentReceipts) =>
     recs.map((r) => ({
       _id: String(r._id),
-      storeName: r.storeName || "ไม่ระบุร้าน",
+      storeName: r.merchant || "ไม่ระบุร้าน",
       amount: r.amount || 0,
       category: r.category || "ไม่ระบุ",
       date: r.date
@@ -83,26 +83,25 @@ async function getDashboardData(userId: string) {
     }));
 
   return {
-    stats: {
-      totalThisMonth,
-      changePercent,
-      receiptCount: currentMonthReceipts.length,
-      receiptCountChange:
-        lastMonthReceipts.length > 0
-          ? Math.round(
-              ((currentMonthReceipts.length - lastMonthReceipts.length) /
-                lastMonthReceipts.length) *
-                100
-            )
-          : 0,
-      averageAmount:
-        currentMonthReceipts.length > 0
-          ? Math.round(totalThisMonth / currentMonthReceipts.length)
-          : 0,
-    },
+    totalAmount: totalThisMonth,
+    changePercent,
+    receiptCount: currentMonthReceipts.length,
+    receiptCountChange:
+      lastMonthReceipts.length > 0
+        ? Math.round(
+            ((currentMonthReceipts.length - lastMonthReceipts.length) /
+              lastMonthReceipts.length) *
+              100
+          )
+        : 0,
+    avgPerReceipt:
+      currentMonthReceipts.length > 0
+        ? Math.round(totalThisMonth / currentMonthReceipts.length)
+        : 0,
+    categoryCount: categories.length,
     recentReceipts: serialize(recentReceipts),
-    categories,
-    monthlyTrend,
+    categoryData: categories,
+    monthlyData: monthlyTrend,
   };
 }
 
