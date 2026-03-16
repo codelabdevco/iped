@@ -15,12 +15,14 @@ export async function GET(req: NextRequest) {
 
     // Exchange code for tokens
     const tokenData = await exchangeLineCode(code);
+    console.log("LINE token response:", JSON.stringify(tokenData));
     if (!tokenData.access_token) {
       return NextResponse.redirect(new URL("/login?error=token_failed", req.url));
     }
 
     // Get LINE profile
     const profile = await getLineProfile(tokenData.access_token);
+    console.log("LINE profile response:", JSON.stringify(profile));
     if (!profile.userId) {
       return NextResponse.redirect(new URL("/login?error=profile_failed", req.url));
     }
@@ -63,7 +65,7 @@ export async function GET(req: NextRequest) {
     response.headers.set("Set-Cookie", cookie["Set-Cookie"]);
     return response;
   } catch (err) {
-    console.error("LINE callback error:", err);
+    console.error("LINE callback error:", err instanceof Error ? err.message : JSON.stringify(err));
     return NextResponse.redirect(new URL("/login?error=server_error", req.url));
   }
 }

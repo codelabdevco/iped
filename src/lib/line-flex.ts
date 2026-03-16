@@ -215,7 +215,7 @@ export function receiptConfirmFlex(data: ReceiptFlexData) {
         type: "box", layout: "vertical", paddingAll: "12px", spacing: "sm",
         contents: [
           { type: "box", layout: "horizontal", spacing: "sm", contents: [
-            btnBox("\u270f\ufe0f \u0e41\u0e01\u0e49\u0e44\u0e02", "secondary", C.sub, `action=edit&id=${data.receiptId}`),
+            btnBox("\u270f\ufe0f \u0e41\u0e01\u0e49\u0e44\u0e02", "secondary", C.sub, undefined, `${process.env.NEXT_PUBLIC_APP_URL || "https://iped.codelabdev.co"}/receipt/${data.receiptId}/edit`),
             btnBox("\u2705 \u0e22\u0e37\u0e19\u0e22\u0e31\u0e19", "primary", isWarn ? C.amber : C.green, `action=confirm&id=${data.receiptId}`),
           ]},
           { type: "text", text: "Powered by codelabs tech", size: "xxs", color: "#BBBBBB", align: "center", margin: "md" },
