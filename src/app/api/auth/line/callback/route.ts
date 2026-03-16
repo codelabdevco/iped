@@ -68,7 +68,8 @@ export async function GET(req: NextRequest) {
     const cookie = setTokenCookie(token);
     response.headers.set("Set-Cookie", cookie["Set-Cookie"]);
     return response;
-  } catch (err) {
+  } catch (err: any) {
+    const baseUrl = process.env.NEXT_PUBLIC_APP_URL || req.url;
     console.error("LINE callback error:", err instanceof Error ? err.message : JSON.stringify(err));
     return NextResponse.redirect(new URL("/login?error=server_error", baseUrl));
   }
