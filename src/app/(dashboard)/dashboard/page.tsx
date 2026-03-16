@@ -110,8 +110,8 @@ export default async function DashboardPage() {
   const token = cookieStore.get("iped-token")?.value;
   if (!token) return null;
 
-  const user = await verifyToken(token);
-  if (!user) redirect("/login");
+  const decoded = await verifyToken(token);
+  if (!decoded) redirect("/login");
 
   const data = await getDashboardData(decoded.userId);
   return <DashboardClient data={data} />;

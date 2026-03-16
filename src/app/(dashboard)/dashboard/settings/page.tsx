@@ -13,8 +13,8 @@ export default async function SettingsPage() {
   const token = cookieStore.get("iped-token")?.value;
   if (!token) return null;
 
-  const user = await verifyToken(token);
-  if (!user) redirect("/login");
+  const decoded = await verifyToken(token);
+  if (!decoded) redirect("/login");
 
   await connectDB();
   const user = await User.findById(decoded.userId).lean();
