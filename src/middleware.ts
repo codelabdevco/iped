@@ -21,7 +21,7 @@ export function middleware(request: NextRequest) {
   }
 
   // เช็ค auth token
-  const token = request.cookies.get("auth-token")?.value;
+  const token = request.cookies.get("iped-token")?.value;
   if (!token) {
     const loginUrl = new URL("/login", request.url);
     loginUrl.searchParams.set("from", pathname);
