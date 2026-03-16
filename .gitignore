@@ -37,3 +37,9 @@ exec-server.py
 open-port.sh
 .env
 /tmp/
+
+# Local
+mongo-backup/
+docker/
+*.bak
+.env

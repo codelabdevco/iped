@@ -63,6 +63,26 @@ function RegisterForm() {
     );
   }
 
+  if (!lineUserId) {
+    return (
+      <div className="min-h-screen flex items-center justify-center p-4" style={{ background: 'linear-gradient(135deg, #FFF5F5 0%, #FFFFFF 50%, #FFF0F0 100%)' }}>
+        <div className="bg-white rounded-2xl shadow-lg max-w-md w-full overflow-hidden">
+          <div className="h-2" style={{ backgroundColor: '#FA3633' }}></div>
+          <div className="p-8">
+            <div className="text-center mb-6">
+              <div className="w-16 h-16 rounded-full mx-auto mb-3 flex items-center justify-center" style={{ backgroundColor: '#FFF0F0' }}>
+                <span className="text-3xl">📲</span>
+              </div>
+              <h1 className="text-xl font-bold text-gray-800">ลงทะเบียนผ่าน LINE</h1>
+              <p className="text-gray-400 text-sm mt-1">กรุณาลงทะเบียนผ่านแอป LINE เพื่อเริ่มใช้งาน</p>
+            </div>
+            <a href="/api/auth/line/login" className="block w-full py-3.5 rounded-xl text-white font-semibold text-base text-center transition-all mt-6" style={{ backgroundColor: '#06C755' }}>เข้าสู่ระบบผ่าน LINE</a>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div className="min-h-screen flex items-center justify-center p-4" style={{ background: 'linear-gradient(135deg, #FFF5F5 0%, #FFFFFF 50%, #FFF0F0 100%)' }}>
       <div className="bg-white rounded-2xl shadow-lg max-w-md w-full overflow-hidden">

@@ -6,25 +6,26 @@ import User from "@/models/User";
 export async function GET(req: NextRequest) {
   try {
     const { searchParams } = new URL(req.url);
+    const baseUrl = process.env.NEXT_PUBLIC_APP_URL || req.url;
     const code = searchParams.get("code");
     const error = searchParams.get("error");
 
     if (error || !code) {
-      return NextResponse.redirect(new URL("/login?error=auth_failed", req.url));
+      return NextResponse.redirect(new URL("/login?error=auth_failed", baseUrl));
     }
 
     // Exchange code for tokens
     const tokenData = await exchangeLineCode(code);
     console.log("LINE token response:", JSON.stringify(tokenData));
     if (!tokenData.access_token) {
-      return NextResponse.redirect(new URL("/login?error=token_failed", req.url));
+      return NextResponse.redirect(new URL("/login?error=token_failed", baseUrl));
     }
 
     // Get LINE profile
     const profile = await getLineProfile(tokenData.access_token);
     console.log("LINE profile response:", JSON.stringify(profile));
     if (!profile.userId) {
-      return NextResponse.redirect(new URL("/login?error=profile_failed", req.url));
+      return NextResponse.redirect(new URL("/login?error=profile_failed", baseUrl));
     }
 
     await connectDB();
@@ -59,13 +60,16 @@ export async function GET(req: NextRequest) {
       orgId: user.orgId?.toString(),
     });
 
-    // Set cookie and redirect
-    const response = NextResponse.redirect(new URL("/", req.url));
+    // Set cookie and redirect - send to register if onboarding not complete
+      const redirectUrl = !user.onboardingComplete
+      ? new URL(`/register?lineUserId=${user.lineUserId}`, baseUrl)
+      : new URL("/", baseUrl);
+    const response = NextResponse.redirect(redirectUrl);
     const cookie = setTokenCookie(token);
     response.headers.set("Set-Cookie", cookie["Set-Cookie"]);
     return response;
   } catch (err) {
     console.error("LINE callback error:", err instanceof Error ? err.message : JSON.stringify(err));
-    return NextResponse.redirect(new URL("/login?error=server_error", req.url));
+    return NextResponse.redirect(new URL("/login?error=server_error", baseUrl));
   }
 }

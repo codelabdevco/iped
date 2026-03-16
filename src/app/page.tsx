@@ -1,11 +1,11 @@
 "use client";
 
 import { useState, useEffect, useCallback } from "react";
-import Navbar from "@/components/Navbar";
-import UploadZone from "@/components/UploadZone";
-import ReceiptForm, { ReceiptData } from "@/components/ReceiptForm";
-import ReceiptList from "@/components/ReceiptList";
-import StatsCards from "@/components/StatsCards";
+import Navbar from "@/components/shared/Navbar";
+import UploadZone from "@/components/shared/UploadZone";
+import ReceiptForm, { ReceiptData } from "@/components/shared/ReceiptForm";
+import ReceiptList from "@/components/shared/ReceiptList";
+import StatsCards from "@/components/shared/StatsCards";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
