@@ -35,7 +35,7 @@ export default function CategoriesPage() {
         {defaultCategories.map((cat) => (
           <div
             key={cat.name}
-            className={`${isDark ? "bg-[#111111] border-white/[0.015] hover:border-white/[0.04]" : "bg-white border-gray-200 hover:border-gray-300 shadow-sm"} border rounded-xl p-5 transition-colors cursor-pointer`}
+            className={`${isDark ? "bg-[#111111] border-[rgba(255,255,255,0.04)] hover:border-[rgba(255,255,255,0.08)]" : "bg-white border-gray-200 hover:border-gray-300 shadow-sm"} border rounded-xl p-5 transition-colors cursor-pointer`}
           >
             <div className="text-3xl mb-3">{cat.emoji}</div>
             <h3 className="font-medium">{cat.name}</h3>

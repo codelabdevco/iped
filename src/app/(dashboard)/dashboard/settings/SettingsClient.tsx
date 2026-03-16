@@ -40,7 +40,7 @@ export default function SettingsClient({ profile }: { profile: Profile }) {
       </div>
 
       {/* Tabs */}
-      <div className="flex gap-1 bg-[#111111] border border-white/[0.015] rounded-lg p-1 w-fit">
+      <div className="flex gap-1 bg-[#111111] border border-[rgba(255,255,255,0.04)] rounded-lg p-1 w-fit">
         {tabs.map((tab) => {
           const Icon = tab.icon;
           return (
@@ -61,7 +61,7 @@ export default function SettingsClient({ profile }: { profile: Profile }) {
       </div>
 
       {/* Content */}
-      <div className="bg-[#111111] border border-white/[0.015] rounded-xl p-6">
+      <div className="bg-[#111111] border border-[rgba(255,255,255,0.04)] rounded-xl p-6">
         {activeTab === "profile" && (
           <div className="space-y-6">
             <div className="flex items-center gap-4">
@@ -96,7 +96,7 @@ export default function SettingsClient({ profile }: { profile: Profile }) {
                 <input
                   type="date"
                   defaultValue={profile.birthDate}
-                  className="w-full h-10 px-3 bg-white/[0.02] border border-white/[0.025] rounded-lg text-sm text-white focus:outline-none focus:border-[#FA3633]/50"
+                  className="w-full h-10 px-3 bg-[rgba(255,255,255,0.03)] border border-[rgba(255,255,255,0.06)] rounded-lg text-sm text-white focus:outline-none focus:border-[#FA3633]/50"
                 />
               </div>
               <div>
@@ -105,7 +105,7 @@ export default function SettingsClient({ profile }: { profile: Profile }) {
                 </label>
                 <select
                   defaultValue={profile.gender}
-                  className="w-full h-10 px-3 bg-white/[0.02] border border-white/[0.025] rounded-lg text-sm text-white focus:outline-none"
+                  className="w-full h-10 px-3 bg-[rgba(255,255,255,0.03)] border border-[rgba(255,255,255,0.06)] rounded-lg text-sm text-white focus:outline-none"
                 >
                   <option value="male">ชาย</option>
                   <option value="female">หญิง</option>
@@ -119,7 +119,7 @@ export default function SettingsClient({ profile }: { profile: Profile }) {
                 <input
                   type="text"
                   defaultValue={profile.occupation}
-                  className="w-full h-10 px-3 bg-white/[0.02] border border-white/[0.025] rounded-lg text-sm text-white focus:outline-none focus:border-[#FA3633]/50"
+                  className="w-full h-10 px-3 bg-[rgba(255,255,255,0.03)] border border-[rgba(255,255,255,0.06)] rounded-lg text-sm text-white focus:outline-none focus:border-[#FA3633]/50"
                 />
               </div>
               <div>
@@ -128,7 +128,7 @@ export default function SettingsClient({ profile }: { profile: Profile }) {
                 </label>
                 <select
                   defaultValue={profile.accountType}
-                  className="w-full h-10 px-3 bg-white/[0.02] border border-white/[0.025] rounded-lg text-sm text-white focus:outline-none"
+                  className="w-full h-10 px-3 bg-[rgba(255,255,255,0.03)] border border-[rgba(255,255,255,0.06)] rounded-lg text-sm text-white focus:outline-none"
                 >
                   <option value="personal">ส่วนตัว</option>
                   <option value="business">ธุรกิจ</option>
@@ -172,7 +172,7 @@ export default function SettingsClient({ profile }: { profile: Profile }) {
             ].map((item) => (
               <label
                 key={item.label}
-                className="flex items-center justify-between p-4 rounded-lg border border-white/[0.015] hover:border-white/[0.04] transition-colors cursor-pointer"
+                className="flex items-center justify-between p-4 rounded-lg border border-[rgba(255,255,255,0.04)] hover:border-[rgba(255,255,255,0.08)] transition-colors cursor-pointer"
               >
                 <div>
                   <p className="text-sm font-medium">{item.label}</p>
@@ -194,7 +194,7 @@ export default function SettingsClient({ profile }: { profile: Profile }) {
               <label className="block text-sm text-white/60 mb-1.5">
                 สกุลเงินหลัก
               </label>
-              <select className="w-full h-10 px-3 bg-white/[0.02] border border-white/[0.025] rounded-lg text-sm text-white focus:outline-none">
+              <select className="w-full h-10 px-3 bg-[rgba(255,255,255,0.03)] border border-[rgba(255,255,255,0.06)] rounded-lg text-sm text-white focus:outline-none">
                 <option value="THB">THB — บาท</option>
                 <option value="USD">USD — ดอลลาร์</option>
               </select>
@@ -203,7 +203,7 @@ export default function SettingsClient({ profile }: { profile: Profile }) {
               <label className="block text-sm text-white/60 mb-1.5">
                 ภาษา OCR
               </label>
-              <select className="w-full h-10 px-3 bg-white/[0.02] border border-white/[0.025] rounded-lg text-sm text-white focus:outline-none">
+              <select className="w-full h-10 px-3 bg-[rgba(255,255,255,0.03)] border border-[rgba(255,255,255,0.06)] rounded-lg text-sm text-white focus:outline-none">
                 <option value="th">ไทย</option>
                 <option value="en">English</option>
                 <option value="auto">อัตโนมัติ</option>

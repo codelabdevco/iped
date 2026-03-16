@@ -31,10 +31,10 @@ export default function Sidebar() {
     router.push("/login");
   };
 
-  const bg = isDark ? "bg-[#111111] border-white/[0.025]" : "bg-white border-gray-200";
-  const txt = isDark ? "text-white/60 hover:text-white hover:bg-white/[0.02]" : "text-gray-500 hover:text-gray-900 hover:bg-gray-100";
+  const bg = isDark ? "bg-[#111111] border-[rgba(255,255,255,0.06)]" : "bg-white border-gray-200";
+  const txt = isDark ? "text-white/60 hover:text-white hover:bg-[rgba(255,255,255,0.03)]" : "text-gray-500 hover:text-gray-900 hover:bg-gray-100";
   const activeCls = "bg-[#FA3633]/10 text-[#FA3633]";
-  const borderCls = isDark ? "border-white/[0.015]" : "border-gray-200";
+  const borderCls = isDark ? "border-[rgba(255,255,255,0.04)]" : "border-gray-200";
 
   return (
     <aside className={`${collapsed ? "w-[70px]" : "w-[240px]"} ${bg} border-r flex flex-col transition-all duration-300`}>
@@ -74,7 +74,7 @@ export default function Sidebar() {
           {!collapsed && <span>{"ตั้งค่า"}</span>}
         </Link>
         <button onClick={handleLogout}
-          className={`flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium ${isDark ? "text-white/60 hover:text-red-400 hover:bg-white/[0.02]" : "text-gray-500 hover:text-red-500 hover:bg-gray-100"} transition-colors w-full`}>
+          className={`flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium ${isDark ? "text-white/60 hover:text-red-400 hover:bg-[rgba(255,255,255,0.03)]" : "text-gray-500 hover:text-red-500 hover:bg-gray-100"} transition-colors w-full`}>
           <LogOut size={20} className="shrink-0" />
           {!collapsed && <span>{"ออกจากระบบ"}</span>}
         </button>
