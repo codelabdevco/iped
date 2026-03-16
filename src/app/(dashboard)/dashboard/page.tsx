@@ -107,7 +107,7 @@ async function getDashboardData(userId: string) {
 
 export default async function DashboardPage() {
   const cookieStore = await cookies();
-  const token = cookieStore.get("auth-token")?.value;
+  const token = cookieStore.get("iped-token")?.value;
   if (!token) return null;
 
   const decoded = jwt.verify(

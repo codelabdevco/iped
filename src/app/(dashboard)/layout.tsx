@@ -17,7 +17,7 @@ export default async function DashboardLayout({
   children: React.ReactNode;
 }) {
   const cookieStore = await cookies();
-  const token = cookieStore.get("auth-token")?.value;
+  const token = cookieStore.get("iped-token")?.value;
 
   if (!token) {
     redirect("/login");

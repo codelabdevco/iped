@@ -35,7 +35,7 @@ export default function Sidebar() {
       : pathname.startsWith(href);
 
   const handleLogout = () => {
-    document.cookie = "auth-token=; path=/; max-age=0";
+    document.cookie = "iped-token=; path=/; max-age=0";
     window.location.href = "/login";
   };
 

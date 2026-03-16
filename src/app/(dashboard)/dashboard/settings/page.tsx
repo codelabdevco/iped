@@ -10,7 +10,7 @@ interface JwtPayload {
 
 export default async function SettingsPage() {
   const cookieStore = await cookies();
-  const token = cookieStore.get("auth-token")?.value;
+  const token = cookieStore.get("iped-token")?.value;
   if (!token) return null;
 
   const decoded = jwt.verify(
