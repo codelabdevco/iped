@@ -1,5 +1,5 @@
 import { cookies } from "next/headers";
-import jwt from "jsonwebtoken";
+
 import { connectDB } from "@/lib/mongodb";
 import User from "@/models/User";
 import SettingsClient from "./SettingsClient";
@@ -13,10 +13,8 @@ export default async function SettingsPage() {
   const token = cookieStore.get("iped-token")?.value;
   if (!token) return null;
 
-  const decoded = jwt.verify(
-    token,
-    process.env.JWT_SECRET || "fallback-secret"
-  ) as JwtPayload;
+  const user = await verifyToken(token);
+  if (!user) redirect("/login");
 
   await connectDB();
   const user = await User.findById(decoded.userId).lean();
