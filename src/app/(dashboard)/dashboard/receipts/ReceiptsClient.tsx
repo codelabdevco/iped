@@ -67,7 +67,7 @@ export default function ReceiptsClient({
             {filtered.length} รายการ — รวม {fmt(totalAmount)}
           </p>
         </div>
-        <button className={`flex items-center gap-2 px-4 py-2 ${isDark ? "bg-white/5 border-white/10 hover:bg-white/10" : "bg-white border-gray-200 hover:bg-gray-50"} border rounded-lg text-sm transition-colors`}>
+        <button className={`flex items-center gap-2 px-4 py-2 ${isDark ? "bg-white/[0.03] border-white/[0.05] hover:bg-white/10" : "bg-white border-gray-200 hover:bg-gray-50"} border rounded-lg text-sm transition-colors`}>
           <Download size={16} />
           ส่งออก
         </button>
@@ -85,7 +85,7 @@ export default function ReceiptsClient({
             placeholder="ค้นหาร้านค้า, หมวดหมู่..."
             value={search}
             onChange={(e) => setSearch(e.target.value)}
-            className={`w-full h-10 pl-9 pr-4 ${isDark ? "bg-white/5 border-white/10 text-white placeholder-white/30" : "bg-gray-50 border-gray-300 text-gray-900 placeholder-gray-400"} rounded-lg text-sm focus:outline-none focus:border-[#FA3633]/50`}
+            className={`w-full h-10 pl-9 pr-4 ${isDark ? "bg-white/[0.03] border-white/[0.05] text-white placeholder-white/30" : "bg-gray-50 border-gray-300 text-gray-900 placeholder-gray-400"} rounded-lg text-sm focus:outline-none focus:border-[#FA3633]/50`}
           />
         </div>
 
@@ -94,7 +94,7 @@ export default function ReceiptsClient({
           <select
             value={statusFilter}
             onChange={(e) => setStatusFilter(e.target.value)}
-            className={`h-10 px-3 ${isDark ? "bg-white/5 border-white/10 text-white" : "bg-white border-gray-300 text-gray-900"} border rounded-lg text-sm focus:outline-none`}
+            className={`h-10 px-3 ${isDark ? "bg-white/[0.03] border-white/[0.05] text-white" : "bg-white border-gray-300 text-gray-900"} border rounded-lg text-sm focus:outline-none`}
           >
             <option value="all">สถานะทั้งหมด</option>
             <option value="confirmed">ยืนยันแล้ว</option>
@@ -105,7 +105,7 @@ export default function ReceiptsClient({
           <select
             value={typeFilter}
             onChange={(e) => setTypeFilter(e.target.value)}
-            className={`h-10 px-3 ${isDark ? "bg-white/5 border-white/10 text-white" : "bg-white border-gray-300 text-gray-900"} border rounded-lg text-sm focus:outline-none`}
+            className={`h-10 px-3 ${isDark ? "bg-white/[0.03] border-white/[0.05] text-white" : "bg-white border-gray-300 text-gray-900"} border rounded-lg text-sm focus:outline-none`}
           >
             <option value="all">ประเภททั้งหมด</option>
             <option value="receipt">ใบเสร็จ</option>
@@ -118,11 +118,11 @@ export default function ReceiptsClient({
       </div>
 
       {/* Table */}
-      <div className={`${isDark ? "bg-[#111111] border-white/5" : "bg-white border-gray-200"} border rounded-xl overflow-hidden`}>
+      <div className={`${isDark ? "bg-[#111111] border-white/[0.03]" : "bg-white border-gray-200"} border rounded-xl overflow-hidden`}>
         <div className="overflow-x-auto">
           <table className="w-full">
             <thead>
-              <tr className={`border-b ${isDark ? "border-white/5" : "border-gray-200"}`}>
+              <tr className={`border-b ${isDark ? "border-white/[0.03]" : "border-gray-200"}`}>
                 {[
                   "ร้านค้า",
                   "ประเภท",
@@ -157,7 +157,7 @@ export default function ReceiptsClient({
               {filtered.map((r) => (
                 <tr
                   key={r._id}
-                  className={`border-b ${isDark ? "border-white/5 hover:bg-white/[0.02]" : "border-gray-100 hover:bg-gray-50"} transition-colors cursor-pointer`}
+                  className={`border-b ${isDark ? "border-white/[0.03] hover:bg-white/[0.02]" : "border-gray-100 hover:bg-gray-50"} transition-colors cursor-pointer`}
                 >
                   <td className={`px-5 py-3.5 text-sm ${isDark ? "" : "text-gray-900"}`}>{r.storeName}</td>
                   <td className={`px-5 py-3.5 text-sm ${isDark ? "text-white/60" : "text-gray-600"}`}>

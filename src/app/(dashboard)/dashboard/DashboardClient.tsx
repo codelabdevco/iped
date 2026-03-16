@@ -14,12 +14,12 @@ interface DashboardData {
 
 export default function DashboardClient({ data }: { data: DashboardData }) {
   const { isDark } = useTheme();
-  const card = isDark ? "bg-[#1a1a1a] border-white/10" : "bg-white border-gray-200 shadow-sm";
+  const card = isDark ? "bg-[#1a1a1a] border-white/[0.05]" : "bg-white border-gray-200 shadow-sm";
   const txt = isDark ? "text-white" : "text-gray-900";
   const txtSub = isDark ? "text-white/50" : "text-gray-500";
   const txtMuted = isDark ? "text-white/30" : "text-gray-400";
-  const tableBorder = isDark ? "border-white/10" : "border-gray-200";
-  const tableRowHover = isDark ? "hover:bg-white/5" : "hover:bg-gray-50";
+  const tableBorder = isDark ? "border-white/[0.05]" : "border-gray-200";
+  const tableRowHover = isDark ? "hover:bg-white/[0.03]" : "hover:bg-gray-50";
 
   const stats = [
     { label: "\u0e22\u0e2d\u0e14\u0e23\u0e27\u0e21\u0e40\u0e14\u0e37\u0e2d\u0e19\u0e19\u0e35\u0e49", value: `\u0e3f${(data.totalAmount || 0).toLocaleString()}`, change: "\u2197 0%", icon: "\ud83d\udcc8", color: "text-[#FA3633]" },
@@ -42,7 +42,7 @@ export default function DashboardClient({ data }: { data: DashboardData }) {
         {stats.map((s, i) => (
           <div key={i} className={`${card} border rounded-xl p-5`}>
             <div className="flex items-center justify-between mb-3">
-              <span className={`text-2xl p-2 rounded-lg ${isDark ? "bg-white/5" : "bg-gray-100"}`}>{s.icon}</span>
+              <span className={`text-2xl p-2 rounded-lg ${isDark ? "bg-white/[0.03]" : "bg-gray-100"}`}>{s.icon}</span>
               {s.change && <span className="text-xs text-green-400">{s.change}</span>}
             </div>
             <div className={`text-2xl font-bold ${txt}`}>{s.value}</div>

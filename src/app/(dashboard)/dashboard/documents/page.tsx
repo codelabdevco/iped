@@ -13,7 +13,7 @@ export default function DocumentsPage() {
         </p>
       </div>
 
-      <div className={`${isDark ? "bg-[#111111] border-white/5" : "bg-white border-gray-200 shadow-sm"} border rounded-xl p-12 text-center`}>
+      <div className={`${isDark ? "bg-[#111111] border-white/[0.03]" : "bg-white border-gray-200 shadow-sm"} border rounded-xl p-12 text-center`}>
         <FileText size={48} className={`mx-auto ${isDark ? "text-white/20" : "text-gray-300"} mb-4`} />
         <h3 className={`text-lg font-medium ${isDark ? "text-white/60" : "text-gray-600"}`}>
           ระบบจัดการเอกสารจะพร้อมใช้งานเร็วๆ นี้

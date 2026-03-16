@@ -19,7 +19,7 @@ export default function BudgetPage() {
         </button>
       </div>
 
-      <div className={`${isDark ? "bg-[#111111] border-white/5" : "bg-white border-gray-200 shadow-sm"} border rounded-xl p-12 text-center`}>
+      <div className={`${isDark ? "bg-[#111111] border-white/[0.03]" : "bg-white border-gray-200 shadow-sm"} border rounded-xl p-12 text-center`}>
         <Wallet size={48} className="mx-auto text-white/20 mb-4" />
         <h3 className={`text-lg font-medium ${isDark ? "text-white/60" : "text-gray-600"}`}>
           ยังไม่ได้ตั้งงบประมาณ
