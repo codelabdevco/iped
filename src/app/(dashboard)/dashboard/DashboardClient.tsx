@@ -8,6 +8,7 @@ import {
   Calculator,
   FolderOpen,
 } from "lucide-react";
+import GoalsSection from "./GoalsSection";
 
 interface DashboardData {
   totalAmount: number;
@@ -243,20 +244,10 @@ export default function DashboardClient({ data }: { data: DashboardData }) {
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
         <ChartSection monthlyData={data.monthlyData} categoryData={data.categoryData} />
 
-        <div className={`${card} border border-[var(--color-border)] rounded-2xl p-5`}>
-          <h3 className={`font-semibold mb-4 ${txt}`}>หมวดหมู่ยอดนิยม</h3>
-          {Object.keys(data.categoryData || {}).length > 0 ? (
-            <div className="space-y-3">
-              {Object.entries(data.categoryData || {}).sort(([, a], [, b]) => b - a).slice(0, 5).map(([name, amount], i) => (
-                <div key={i} className="flex items-center gap-3">
-                  <div className="w-3 h-3 rounded-full" style={{ backgroundColor: getCatColor(name) }} />
-                  <span className={`text-sm flex-1 ${txt}`}>{name}</span>
-                  <span className={`text-sm font-medium ${txt}`}>฿{amount.toLocaleString()}</span>
-                </div>
-              ))}
-            </div>
-          ) : <p className={`text-sm ${txtMuted} text-center py-8`}>ยังไม่มีข้อมูล</p>}
-        </div>
+      <div className={`${card} border border-[var(--color-border)] rounded-2xl p-5`}>
+        <h3 className={`font-semibold mb-3 ${txt}`}>เป้าหมาย</h3>
+        <GoalsSection categoryData={data.categoryData} />
+      </div>
       </div>
 
       <div className={`${card} border border-[var(--color-border)] rounded-xl overflow-hidden`}>
