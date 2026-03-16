@@ -22,6 +22,7 @@ export async function POST(request: NextRequest) {
       user = await User.create({
         email,
         displayName: email.split("@")[0],
+        name: email.split("@")[0],
         role: email.includes("admin") ? "admin" : "user",
         accountType: "personal",
         status: "active",
