@@ -9,17 +9,17 @@ export default function SummaryPage() {
     <div className="space-y-6">
       <div>
         <h1 className="text-2xl font-bold">สรุปรายงาน</h1>
-        <p className="text-sm text-white/40 mt-1">
+        <p className={`text-sm ${isDark ? "text-white/40" : "text-gray-500"} mt-1`}>
           วิเคราะห์และสรุปรายรับ-รายจ่ายของคุณ
         </p>
       </div>
 
-      <div className="bg-[#111111] border border-white/5 rounded-xl p-12 text-center">
+      <div className="${isDark ? "bg-[#111111]" : "bg-white shadow-sm"} border ${isDark ? "border-white/5" : "border-gray-200"} rounded-xl p-12 text-center">
         <BarChart3 size={48} className="mx-auto text-white/20 mb-4" />
         <h3 className="text-lg font-medium text-white/60">
           สรุปรายงานจะพร้อมใช้งานเร็วๆ นี้
         </h3>
-        <p className="text-sm text-white/30 mt-2 max-w-md mx-auto">
+        <p className="text-sm ${isDark ? "text-white/30" : "text-gray-400"} mt-2 max-w-md mx-auto">
           ดูสรุปรายรับ-รายจ่ายแบบรายวัน รายสัปดาห์ และรายเดือน
           พร้อมกราฟวิเคราะห์แนวโน้มและส่งออกรายงาน
         </p>

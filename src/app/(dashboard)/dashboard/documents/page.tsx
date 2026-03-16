@@ -9,7 +9,7 @@ export default function DocumentsPage() {
     <div className="space-y-6">
       <div>
         <h1 className="text-2xl font-bold">เอกสาร</h1>
-        <p className="text-sm text-white/40 mt-1">
+        <p className={`text-sm ${isDark ? "text-white/40" : "text-gray-500"} mt-1`}>
           จัดการเอกสารทางการเงินทั้งหมดของคุณ
         </p>
       </div>
@@ -19,7 +19,7 @@ export default function DocumentsPage() {
         <h3 className="text-lg font-medium text-white/60">
           ระบบจัดการเอกสารจะพร้อมใช้งานเร็วๆ นี้
         </h3>
-        <p className="text-sm text-white/30 mt-2 max-w-md mx-auto">
+        <p className="text-sm ${isDark ? "text-white/30" : "text-gray-400"} mt-2 max-w-md mx-auto">
           จัดเก็บใบกำกับภาษี ใบเสร็จรับเงิน ใบแจ้งหนี้ และเอกสารอื่นๆ
           อย่างเป็นระบบ พร้อมค้นหาและส่งออกได้ง่าย
         </p>

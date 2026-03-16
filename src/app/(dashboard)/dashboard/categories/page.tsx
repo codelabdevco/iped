@@ -21,7 +21,7 @@ export default function CategoriesPage() {
       <div className="flex items-center justify-between">
         <div>
           <h1 className="text-2xl font-bold">หมวดหมู่</h1>
-          <p className="text-sm text-white/40 mt-1">
+          <p className={`text-sm ${isDark ? "text-white/40" : "text-gray-500"} mt-1`}>
             จัดการหมวดหมู่ใบเสร็จของคุณ
           </p>
         </div>
@@ -35,11 +35,11 @@ export default function CategoriesPage() {
         {defaultCategories.map((cat) => (
           <div
             key={cat.name}
-            className="bg-[#111111] border border-white/5 rounded-xl p-5 hover:border-white/10 transition-colors cursor-pointer"
+            className={`${isDark ? "bg-[#111111] border-white/5 hover:border-white/10" : "bg-white border-gray-200 hover:border-gray-300 shadow-sm"} border rounded-xl p-5 transition-colors cursor-pointer`}
           >
             <div className="text-3xl mb-3">{cat.emoji}</div>
             <h3 className="font-medium">{cat.name}</h3>
-            <p className="text-sm text-white/40 mt-1">{cat.count} รายการ</p>
+            <p className={`text-sm ${isDark ? "text-white/40" : "text-gray-500"} mt-1`}>{cat.count} รายการ</p>
           </div>
         ))}
       </div>
