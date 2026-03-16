@@ -11,12 +11,12 @@ import {
 import { useTheme } from "@/contexts/ThemeContext";
 
 const navItems = [
-  { label: "\u0e20\u0e32\u0e1e\u0e23\u0e27\u0e21", href: "/dashboard", icon: LayoutDashboard },
-  { label: "\u0e43\u0e1a\u0e40\u0e2a\u0e23\u0e47\u0e08", href: "/dashboard/receipts", icon: Receipt },
-  { label: "\u0e2b\u0e21\u0e27\u0e14\u0e2b\u0e21\u0e39\u0e48", href: "/dashboard/categories", icon: FolderOpen },
-  { label: "\u0e07\u0e1a\u0e1b\u0e23\u0e30\u0e21\u0e32\u0e13", href: "/dashboard/budget", icon: PiggyBank },
-  { label: "\u0e2a\u0e23\u0e38\u0e1b\u0e23\u0e32\u0e22\u0e07\u0e32\u0e19", href: "/dashboard/reports", icon: BarChart3 },
-  { label: "\u0e40\u0e2d\u0e01\u0e2a\u0e32\u0e23", href: "/dashboard/documents", icon: FileText },
+  { label: "ภาพรวม", href: "/dashboard", icon: LayoutDashboard },
+  { label: "ใบเสร็จ", href: "/dashboard/receipts", icon: Receipt },
+  { label: "หมวดหมู่", href: "/dashboard/categories", icon: FolderOpen },
+  { label: "งบประมาณ", href: "/dashboard/budget", icon: PiggyBank },
+  { label: "สรุปรายงาน", href: "/dashboard/reports", icon: BarChart3 },
+  { label: "เอกสาร", href: "/dashboard/documents", icon: FileText },
 ];
 
 export default function Sidebar() {
@@ -66,21 +66,21 @@ export default function Sidebar() {
           className={`flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium ${txt} w-full`}
           title={collapsed ? (isDark ? "Light Mode" : "Dark Mode") : undefined}>
           {isDark ? <Sun size={20} className="shrink-0" /> : <Moon size={20} className="shrink-0" />}
-          {!collapsed && <span>{isDark ? "\u0e42\u0e2b\u0e21\u0e14\u0e2a\u0e27\u0e48\u0e32\u0e07" : "\u0e42\u0e2b\u0e21\u0e14\u0e21\u0e37\u0e14"}</span>}
+          {!collapsed && <span>{isDark ? "โหมดสว่าง" : "โหมดมืด"}</span>}
         </button>
         <Link href="/dashboard/settings"
           className={`flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-colors ${pathname.startsWith("/dashboard/settings") ? activeCls : txt}`}>
           <Settings size={20} className="shrink-0" />
-          {!collapsed && <span>\u0e15\u0e31\u0e49\u0e07\u0e04\u0e48\u0e32</span>}
+          {!collapsed && <span>{"ตั้งค่า"}</span>}
         </Link>
         <button onClick={handleLogout}
           className={`flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium ${isDark ? "text-white/60 hover:text-red-400 hover:bg-white/5" : "text-gray-500 hover:text-red-500 hover:bg-gray-100"} transition-colors w-full`}>
           <LogOut size={20} className="shrink-0" />
-          {!collapsed && <span>\u0e2d\u0e2d\u0e01\u0e08\u0e32\u0e01\u0e23\u0e30\u0e1a\u0e1a</span>}
+          {!collapsed && <span>{"ออกจากระบบ"}</span>}
         </button>
         <button onClick={() => setCollapsed(!collapsed)}
           className={`flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm ${txt} w-full`}>
-          {collapsed ? <ChevronRight size={20} className="shrink-0" /> : (<><ChevronLeft size={20} className="shrink-0" /><span>\u0e22\u0e48\u0e2d\u0e40\u0e21\u0e19\u0e39</span></>)}
+          {collapsed ? <ChevronRight size={20} className="shrink-0" /> : (<><ChevronLeft size={20} className="shrink-0" /><span>ย่อเมนู</span></>)}
         </button>
       </div>
     </aside>
