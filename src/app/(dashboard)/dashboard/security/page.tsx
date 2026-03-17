@@ -3,6 +3,7 @@ import { useState } from "react";
 import { useTheme } from "@/contexts/ThemeContext";
 import { Trash2, ShieldCheck, FileText, Database, UserX, Lock, Clock } from "lucide-react";
 import PageHeader from "@/components/dashboard/PageHeader";
+import DataTable, { Column } from "@/components/dashboard/DataTable";
 
 const initPdpa = [
   { label: "ความยินยอม", desc: "ผู้ใช้ยินยอม 1,180/1,247", icon: ShieldCheck, color: "text-green-400", pct: "94.6%" },
@@ -34,6 +35,14 @@ export default function Page() {
   const sub = isDark ? "text-white/50" : "text-gray-500";
 
   const clearDemo = () => { setPdpa([]); setLogs([]); };
+
+  const columns: Column<typeof logs[number]>[] = [
+    { key: "time", label: "เวลา" },
+    { key: "user", label: "ผู้ใช้" },
+    { key: "action", label: "การกระทำ" },
+    { key: "ip", label: "IP", render: (r) => <span className="font-mono text-xs">{r.ip}</span> },
+    { key: "status", label: "สถานะ", render: (r) => <span className={`px-2 py-1 rounded-full text-xs ${r.status === "สำเร็จ" ? "bg-green-500/10 text-green-400" : "bg-red-500/10 text-red-400"}`}>{r.status}</span> },
+  ];
 
   return (
     <div className={`p-6 space-y-6 ${txt}`}>
@@ -67,26 +76,7 @@ export default function Page() {
         </div>
       </div>
 
-      <div className={card}>
-        <h2 className="text-lg font-semibold mb-4 flex items-center gap-2"><Clock size={18} /> Audit Logs</h2>
-        <div className="overflow-x-auto">
-          <table className="w-full text-sm">
-            <thead><tr className={sub}>
-              <th className="text-left pb-3">เวลา</th><th className="text-left pb-3">ผู้ใช้</th>
-              <th className="text-left pb-3">การกระทำ</th><th className="text-left pb-3">IP</th><th className="text-left pb-3">สถานะ</th>
-            </tr></thead>
-            <tbody>
-              {logs.map((l) => (
-                <tr key={l.id} className={`border-t ${isDark ? "border-[rgba(255,255,255,0.06)]" : "border-gray-100"}`}>
-                  <td className="py-2 whitespace-nowrap">{l.time}</td><td>{l.user}</td><td>{l.action}</td><td className="font-mono text-xs">{l.ip}</td>
-                  <td><span className={`px-2 py-1 rounded-full text-xs ${l.status === "สำเร็จ" ? "bg-green-500/10 text-green-400" : "bg-red-500/10 text-red-400"}`}>{l.status}</span></td>
-                </tr>
-              ))}
-              {logs.length === 0 && <tr><td colSpan={5} className={`py-8 text-center ${sub}`}>ไม่มีข้อมูล</td></tr>}
-            </tbody>
-          </table>
-        </div>
-      </div>
+      <DataTable columns={columns} data={logs} rowKey={(r) => r.id} />
     </div>
   );
 }

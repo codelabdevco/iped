@@ -3,7 +3,13 @@ import { useState } from "react";
 import { useTheme } from "@/contexts/ThemeContext";
 import { Download, FileText, Table, FileSpreadsheet, Trash2 } from "lucide-react";
 import PageHeader from "@/components/dashboard/PageHeader";
-const INIT = [
+import DataTable, { Column } from "@/components/dashboard/DataTable";
+
+interface ExportEntry {
+  id: number; name: string; date: string; size: string; type: string;
+}
+
+const INIT: ExportEntry[] = [
   { id: 1, name: "iPED-report-2569-03.pdf", date: "15/03/2569", size: "2.4 MB", type: "PDF" },
   { id: 2, name: "receipts-march-2569.csv", date: "14/03/2569", size: "156 KB", type: "CSV" },
   { id: 3, name: "expenses-q1-2569.xlsx", date: "10/03/2569", size: "890 KB", type: "Excel" },
@@ -17,8 +23,16 @@ export default function ExportPage() {
   const t = isDark ? "text-white" : "text-gray-900";
   const s = isDark ? "text-white/50" : "text-gray-500";
   const btn = isDark ? "bg-white/5 text-white/60 hover:bg-white/10" : "bg-gray-100 text-gray-600 hover:bg-gray-200";
-  const icons: Record<string, typeof FileText> = { PDF: FileText, CSV: Table, Excel: FileSpreadsheet };
   const colors: Record<string, string> = { PDF: "text-red-500 bg-red-500/10", CSV: "text-green-500 bg-green-500/10", Excel: "text-blue-500 bg-blue-500/10" };
+
+  const columns: Column<ExportEntry>[] = [
+    { key: "name", label: "ชื่อไฟล์", render: (r, isDark) => <span className={`font-medium ${isDark ? "text-white" : "text-gray-900"}`}>{r.name}</span> },
+    { key: "date", label: "วันที่" },
+    { key: "size", label: "ขนาด" },
+    { key: "type", label: "ประเภท", render: (r) => <span className={`px-2.5 py-1 rounded-lg text-xs font-medium ${colors[r.type]}`}>{r.type}</span> },
+    { key: "actions", label: "", render: () => <button className={`p-2 rounded-lg ${btn}`}><Download size={14}/></button> },
+  ];
+
   return (
     <div className="space-y-6">
       <PageHeader title="ส่งออก PDF / CSV" description="ส่งออกข้อมูลในรูปแบบต่างๆ" onClear={() => setData([])} />
@@ -28,13 +42,7 @@ export default function ExportPage() {
           return <div key={i} className={`${c} border ${b} rounded-2xl p-5 cursor-pointer transition-all ${isDark ? "hover:bg-white/5" : "hover:bg-gray-50"}`}><div className={`w-10 h-10 rounded-xl flex items-center justify-center ${e.color} mb-3`}><Icon size={20} /></div><p className={`font-semibold ${t}`}>{e.label}</p><p className={`text-xs ${s} mt-1`}>{e.desc}</p><button className="mt-3 px-4 py-2 rounded-xl text-xs font-medium bg-[#FA3633] text-white hover:bg-[#e0302d] transition-colors">ส่งออก</button></div>;
         })}
       </div>
-      <div className={`${c} border ${b} rounded-2xl overflow-hidden`}>
-        <div className="p-5"><h3 className={`font-semibold ${t}`}>ประวัติการส่งออก</h3></div>
-        <table className="w-full"><thead><tr className={`text-left text-xs font-semibold ${s} ${isDark?"bg-white/3":"bg-gray-50"}`}><th className="px-5 py-3">ชื่อไฟล์</th><th className="px-5 py-3">วันที่</th><th className="px-5 py-3">ขนาด</th><th className="px-5 py-3">ประเภท</th><th className="px-5 py-3"></th></tr></thead>
-        <tbody>{data.length===0?<tr><td colSpan={5} className={`px-5 py-12 text-center ${s}`}>ไม่มีข้อมูล</td></tr>:data.map(r=>{const Icon=icons[r.type]||FileText;return(
-          <tr key={r.id} className={`border-t ${b} ${isDark?"hover:bg-white/3":"hover:bg-gray-50"} transition-colors`}><td className={`px-5 py-3 text-sm font-medium ${t}`}>{r.name}</td><td className={`px-5 py-3 text-sm ${s}`}>{r.date}</td><td className={`px-5 py-3 text-sm ${s}`}>{r.size}</td><td className="px-5 py-3"><span className={`px-2.5 py-1 rounded-lg text-xs font-medium ${colors[r.type]}`}>{r.type}</span></td><td className="px-5 py-3"><button className={`p-2 rounded-lg ${btn}`}><Download size={14}/></button></td></tr>
-        );})}</tbody></table>
-      </div>
+      <DataTable columns={columns} data={data} rowKey={(r) => r.id} />
     </div>
   );
 }

@@ -3,6 +3,7 @@ import { useState } from "react";
 import { useTheme } from "@/contexts/ThemeContext";
 import { Globe, Trash2 } from "lucide-react";
 import PageHeader from "@/components/dashboard/PageHeader";
+import DataTable, { Column } from "@/components/dashboard/DataTable";
 
 const RATES = [
   { code: "THB", name: "บาท", flag: "🇹🇭", rate: 1, isDefault: true },
@@ -12,7 +13,11 @@ const RATES = [
   { code: "CNY", name: "หยวน", flag: "🇨🇳", rate: 4.88 },
 ];
 
-const INIT_TX = [
+interface CurrencyTx {
+  id: number; date: string; desc: string; currency: string; amount: number; thb: number;
+}
+
+const INIT_TX: CurrencyTx[] = [
   { id: 1, date: "05/03/2569", desc: "Amazon.com", currency: "USD", amount: 49.99, thb: 1771 },
   { id: 2, date: "08/03/2569", desc: "Nintendo eShop Japan", currency: "JPY", amount: 7980, thb: 1891 },
   { id: 3, date: "10/03/2569", desc: "Booking.com (Paris)", currency: "EUR", amount: 125, thb: 4769 },
@@ -28,6 +33,14 @@ export default function CurrencyPage() {
   const txt = isDark ? "text-white" : "text-gray-900";
   const sub = isDark ? "text-white/50" : "text-gray-500";
 
+  const columns: Column<CurrencyTx>[] = [
+    { key: "date", label: "วันที่" },
+    { key: "desc", label: "รายการ", render: (r, isDark) => <span className={`font-medium ${isDark ? "text-white" : "text-gray-900"}`}>{r.desc}</span> },
+    { key: "currency", label: "สกุลเงิน", render: (r, isDark) => <span className={`font-medium ${isDark ? "text-white" : "text-gray-900"}`}>{r.currency}</span> },
+    { key: "amount", label: "จำนวนเงิน", align: "right" },
+    { key: "thb", label: "เทียบ THB", align: "right", render: (r) => <span className="font-semibold text-red-500">-฿{r.thb.toLocaleString()}</span> },
+  ];
+
   return (
     <div className="space-y-6">
       <PageHeader title="สกุลเงิน" description="อัตราแลกเปลี่ยนและรายการต่างสกุลเงิน" onClear={() => setTxData([])} />
@@ -41,23 +54,7 @@ export default function CurrencyPage() {
           </div>
         ))}
       </div>
-      <div className={`${card} border ${border} rounded-2xl overflow-hidden`}>
-        <div className="p-5"><h3 className={`font-semibold ${txt}`}>รายการต่างสกุลเงิน</h3></div>
-        <table className="w-full">
-          <thead><tr className={`text-left text-xs font-semibold ${sub} ${isDark ? "bg-white/3" : "bg-gray-50"}`}>
-            <th className="px-5 py-3">วันที่</th><th className="px-5 py-3">รายการ</th><th className="px-5 py-3">สกุลเงิน</th><th className="px-5 py-3 text-right">จำนวนเงิน</th><th className="px-5 py-3 text-right">เทียบ THB</th>
-          </tr></thead>
-          <tbody>{txData.length === 0 ? <tr><td colSpan={5} className={`px-5 py-12 text-center ${sub}`}>ไม่มีข้อมูล</td></tr> : txData.map(r => (
-            <tr key={r.id} className={`border-t ${border} ${isDark ? "hover:bg-white/3" : "hover:bg-gray-50"} transition-colors`}>
-              <td className={`px-5 py-3 text-sm ${sub}`}>{r.date}</td>
-              <td className={`px-5 py-3 text-sm font-medium ${txt}`}>{r.desc}</td>
-              <td className={`px-5 py-3 text-sm font-medium ${txt}`}>{r.currency}</td>
-              <td className={`px-5 py-3 text-sm text-right ${txt}`}>{r.amount.toLocaleString()}</td>
-              <td className="px-5 py-3 text-sm text-right font-semibold text-red-500">-฿{r.thb.toLocaleString()}</td>
-            </tr>
-          ))}</tbody>
-        </table>
-      </div>
+      <DataTable columns={columns} data={txData} rowKey={(r) => r.id} />
     </div>
   );
 }

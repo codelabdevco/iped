@@ -1,7 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
-import { usePathname } from "next/navigation";
+import { useState, useEffect, useRef } from "react";
 import Link from "next/link";
 import {
   MessageCircle, UserRoundCog, HardDrive, Mail, ScanLine,
@@ -47,90 +46,56 @@ const businessSteps: Step[] = [
   { id: "b-accounting", label: "เชื่อมโปรแกรมบัญชี", description: "เชื่อมกับซอฟต์แวร์บัญชีที่ใช้อยู่", icon: FileSpreadsheet, href: "/dashboard/accounting" },
 ];
 
-const stepTriggers: Record<string, string[]> = {
-  "line": ["/dashboard/line-bot"],
-  "mode": ["/dashboard/settings"],
-  "drive": ["/dashboard/sync"],
-  "gmail": ["/dashboard/email-scanner"],
-  "first-scan": ["/dashboard/scan"],
-  "signature": ["/dashboard/settings"],
-  "sheets-notion": ["/dashboard/sync"],
-  "p-categories": ["/dashboard/categories"],
-  "p-budget": ["/dashboard/budget"],
-  "p-savings": ["/dashboard/savings"],
-  "b-company": ["/dashboard/settings"],
-  "b-team": ["/dashboard/team"],
-  "b-approval": ["/dashboard/approvals"],
-  "b-categories": ["/dashboard/categories"],
-  "b-accounting": ["/dashboard/accounting"],
-};
-
 const STORAGE_KEY = "iped-onboarding";
+const COMMON_COUNT = 7;
 
 export default function OnboardingChecklist() {
   const { isDark } = useTheme();
-  const pathname = usePathname();
   const [completed, setCompleted] = useState<string[]>([]);
   const [dismissed, setDismissed] = useState(false);
   const [expanded, setExpanded] = useState(true);
   const [mounted, setMounted] = useState(false);
   const [mode, setMode] = useState<"personal" | "business">("personal");
+  const initRef = useRef(false);
 
-  // All localStorage reads happen inside useEffect only
+  // Single init effect — runs once on mount
   useEffect(() => {
+    if (initRef.current) return;
+    initRef.current = true;
     try {
       const savedMode = localStorage.getItem("iped-mode");
       if (savedMode === "business") setMode("business");
 
       const raw = localStorage.getItem(STORAGE_KEY);
-      if (raw) setCompleted(JSON.parse(raw));
+      const parsed: string[] = raw ? JSON.parse(raw) : [];
 
-      const dis = localStorage.getItem("iped-onboarding-dismissed");
-      if (dis === "true") setDismissed(true);
+      // Auto-complete "mode" if mode is set
+      if (savedMode && !parsed.includes("mode")) {
+        parsed.push("mode");
+        localStorage.setItem(STORAGE_KEY, JSON.stringify(parsed));
+      }
+
+      setCompleted(parsed);
+
+      if (localStorage.getItem("iped-onboarding-dismissed") === "true") {
+        setDismissed(true);
+      }
     } catch {}
     setMounted(true);
   }, []);
 
   const steps = mode === "business" ? businessSteps : personalSteps;
-
-  // Auto-complete: "เลือกโหมดใช้งาน" when mode is set
-  useEffect(() => {
-    if (!mounted) return;
-    try {
-      const stored = localStorage.getItem("iped-mode");
-      if (stored && !completed.includes("mode")) {
-        const next = [...completed, "mode"];
-        setCompleted(next);
-        localStorage.setItem(STORAGE_KEY, JSON.stringify(next));
-      }
-    } catch {}
-  }, [mounted, completed]);
-
-  // Auto-complete: when user visits a page that matches a step trigger
-  useEffect(() => {
-    if (!mounted || !pathname) return;
-    const newCompleted = [...completed];
-    let changed = false;
-
-    for (const step of steps) {
-      if (newCompleted.includes(step.id)) continue;
-      const triggers = stepTriggers[step.id] || [];
-      if (triggers.some((t) => pathname === t || pathname.startsWith(t + "/"))) {
-        newCompleted.push(step.id);
-        changed = true;
-      }
-    }
-
-    if (changed) {
-      setCompleted(newCompleted);
-      try { localStorage.setItem(STORAGE_KEY, JSON.stringify(newCompleted)); } catch {}
-    }
-  }, [pathname, mounted, steps, completed]);
-
   const completedCount = completed.filter((id) => steps.some((s) => s.id === id)).length;
   const totalCount = steps.length;
   const progress = totalCount > 0 ? Math.round((completedCount / totalCount) * 100) : 0;
   const allDone = completedCount === totalCount;
+
+  const markComplete = (stepId: string) => {
+    if (completed.includes(stepId)) return;
+    const next = [...completed, stepId];
+    setCompleted(next);
+    try { localStorage.setItem(STORAGE_KEY, JSON.stringify(next)); } catch {}
+  };
 
   const dismiss = () => {
     setDismissed(true);
@@ -146,14 +111,7 @@ export default function OnboardingChecklist() {
 
   if (dismissed) {
     return (
-      <button
-        onClick={restore}
-        className={`flex items-center gap-2 px-4 py-2.5 rounded-xl text-xs font-medium transition-all ${
-          isDark
-            ? "bg-white/5 text-white/40 hover:bg-white/8 hover:text-white/60"
-            : "bg-gray-100 text-gray-400 hover:bg-gray-200 hover:text-gray-600"
-        }`}
-      >
+      <button onClick={restore} className={`flex items-center gap-2 px-4 py-2.5 rounded-xl text-xs font-medium transition-all ${isDark ? "bg-white/5 text-white/40 hover:bg-white/8 hover:text-white/60" : "bg-gray-100 text-gray-400 hover:bg-gray-200 hover:text-gray-600"}`}>
         <Sparkles size={14} />
         แสดง Onboarding Checklist
       </button>
@@ -165,7 +123,6 @@ export default function OnboardingChecklist() {
   const txt = isDark ? "text-white" : "text-gray-900";
   const txtSub = isDark ? "text-white/50" : "text-gray-500";
   const txtMuted = isDark ? "text-white/30" : "text-gray-400";
-  const commonCount = 7;
 
   return (
     <div className={`${card} border ${border} rounded-2xl overflow-hidden`}>
@@ -212,13 +169,17 @@ export default function OnboardingChecklist() {
                     <div className={`flex-1 h-px ${isDark ? "bg-white/5" : "bg-gray-100"}`} />
                   </div>
                 )}
-                {i === commonCount && (
+                {i === COMMON_COUNT && (
                   <div className="flex items-center gap-2 px-3 pt-3 pb-1.5">
                     <span className={`text-[10px] font-bold uppercase tracking-widest ${txtMuted}`}>{mode === "business" ? "ตั้งค่าบริษัท" : "ตั้งค่าส่วนตัว"}</span>
                     <div className={`flex-1 h-px ${isDark ? "bg-white/5" : "bg-gray-100"}`} />
                   </div>
                 )}
-                <Link href={step.href} className={`flex items-center gap-3 px-3 py-2.5 rounded-xl transition-all group ${done ? isDark ? "bg-green-500/5" : "bg-green-50" : isDark ? "hover:bg-white/3" : "hover:bg-gray-50"}`}>
+                <Link
+                  href={step.href}
+                  onClick={() => markComplete(step.id)}
+                  className={`flex items-center gap-3 px-3 py-2.5 rounded-xl transition-all group ${done ? isDark ? "bg-green-500/5" : "bg-green-50" : isDark ? "hover:bg-white/3" : "hover:bg-gray-50"}`}
+                >
                   <div className={`w-5 h-5 rounded-md border-2 flex items-center justify-center shrink-0 transition-all ${done ? "bg-green-500 border-green-500" : isDark ? "border-white/20 group-hover:border-white/40" : "border-gray-300 group-hover:border-gray-400"}`}>
                     {done && <Check size={12} className="text-white" strokeWidth={3} />}
                   </div>
@@ -229,7 +190,6 @@ export default function OnboardingChecklist() {
                     <p className={`text-[13px] font-medium transition-all ${done ? isDark ? "text-green-400 line-through decoration-green-400/30" : "text-green-700 line-through decoration-green-300" : txt}`}>{step.label}</p>
                     <p className={`text-[11px] ${txtSub} mt-0.5 truncate`}>{step.description}</p>
                   </div>
-                  {done && <span className={`text-[10px] font-medium px-2 py-0.5 rounded-full ${isDark ? "bg-green-500/10 text-green-400" : "bg-green-100 text-green-600"}`}>auto</span>}
                 </Link>
               </div>
             );

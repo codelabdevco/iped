@@ -3,6 +3,7 @@ import { useState } from "react";
 import { useTheme } from "@/contexts/ThemeContext";
 import { Trash2, Users, UserPlus, Clock } from "lucide-react";
 import PageHeader from "@/components/dashboard/PageHeader";
+import DataTable, { Column } from "@/components/dashboard/DataTable";
 
 const deptData = [
   { name: "การเงิน", count: 3, icon: "💰" },
@@ -28,6 +29,15 @@ export default function Page() {
   const [data, setData] = useState(initData);
   const c = (d: string, l: string) => isDark ? d : l;
 
+  const columns: Column<typeof data[number]>[] = [
+    { key: "name", label: "ชื่อ" },
+    { key: "dept", label: "แผนก" },
+    { key: "position", label: "ตำแหน่ง" },
+    { key: "email", label: "อีเมล", render: (r) => <span className="font-mono text-xs">{r.email}</span> },
+    { key: "role", label: "สิทธิ์", render: (r) => <span className={`px-2 py-1 rounded-full text-xs ${roleColor[r.role]}`}>{r.role}</span> },
+    { key: "active", label: "สถานะ", render: (r) => <><span className={`inline-block w-2 h-2 rounded-full mr-1 ${r.active ? "bg-green-400" : "bg-gray-400"}`} /><span className="text-xs">{r.active ? "ใช้งาน" : "ปิดใช้งาน"}</span></> },
+  ];
+
   return (
     <div className="p-6 space-y-6">
       <PageHeader title="พนักงาน & แผนก" description="จัดการทีมและสิทธิ์การใช้งาน" onClear={() => setData([])} actionLabel="เชิญพนักงาน" />
@@ -44,28 +54,7 @@ export default function Page() {
         ))}
       </div>
 
-      <div className={`rounded-xl border overflow-hidden ${c("bg-[rgba(255,255,255,0.04)] border-[rgba(255,255,255,0.06)]", "bg-white border-gray-200")}`}>
-        <table className="w-full text-sm">
-          <thead><tr className={c("border-b border-[rgba(255,255,255,0.06)]", "border-b border-gray-200")}>
-            {["ชื่อ", "แผนก", "ตำแหน่ง", "อีเมล", "สิทธิ์", "สถานะ"].map(h => (
-              <th key={h} className={`px-4 py-3 text-left font-medium ${c("text-white/50", "text-gray-500")}`}>{h}</th>
-            ))}
-          </tr></thead>
-          <tbody>
-            {data.map(r => (
-              <tr key={r.email} className={`border-t ${c("border-[rgba(255,255,255,0.06)] hover:bg-white/5", "border-gray-100 hover:bg-gray-50")}`}>
-                <td className={`px-4 py-3 font-medium ${c("text-white", "text-gray-900")}`}>{r.name}</td>
-                <td className={`px-4 py-3 ${c("text-white/50", "text-gray-500")}`}>{r.dept}</td>
-                <td className={`px-4 py-3 ${c("text-white/50", "text-gray-500")}`}>{r.position}</td>
-                <td className={`px-4 py-3 font-mono text-xs ${c("text-white/50", "text-gray-500")}`}>{r.email}</td>
-                <td className="px-4 py-3"><span className={`px-2 py-1 rounded-full text-xs ${roleColor[r.role]}`}>{r.role}</span></td>
-                <td className="px-4 py-3"><span className={`inline-block w-2 h-2 rounded-full mr-1 ${r.active ? "bg-green-400" : "bg-gray-400"}`} /><span className={`text-xs ${c("text-white/50", "text-gray-500")}`}>{r.active ? "ใช้งาน" : "ปิดใช้งาน"}</span></td>
-              </tr>
-            ))}
-            {data.length === 0 && <tr><td colSpan={6} className={`px-4 py-12 text-center ${c("text-white/50", "text-gray-500")}`}><Clock className="w-8 h-8 mx-auto mb-2 opacity-50" />ไม่มีข้อมูล</td></tr>}
-          </tbody>
-        </table>
-      </div>
+      <DataTable columns={columns} data={data} rowKey={(r) => r.email} />
     </div>
   );
 }

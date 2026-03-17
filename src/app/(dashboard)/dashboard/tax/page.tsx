@@ -3,6 +3,7 @@ import { useState } from "react";
 import { useTheme } from "@/contexts/ThemeContext";
 import { Trash2, Receipt, Calculator, FileText } from "lucide-react";
 import PageHeader from "@/components/dashboard/PageHeader";
+import DataTable, { Column } from "@/components/dashboard/DataTable";
 
 const initVat = { sales: 45000, purchase: 28000, net: 17000 };
 const initWht = [
@@ -30,6 +31,15 @@ export default function Page() {
     { label: "VAT สุทธิ", value: vat.net, icon: Calculator, color: "text-green-400" },
   ];
 
+  const columns: Column<typeof wht[number]>[] = [
+    { key: "name", label: "ผู้ถูกหัก" },
+    { key: "type", label: "ประเภทเงินได้" },
+    { key: "rate", label: "อัตรา%", align: "right", render: (r) => <>{r.rate}%</> },
+    { key: "amount", label: "จำนวนเงิน", align: "right", render: (r) => <>฿{r.amount.toLocaleString()}</> },
+    { key: "date", label: "วันที่" },
+    { key: "status", label: "สถานะ", render: (r) => <span className={`px-2 py-1 rounded-full text-xs ${r.status === "ยื่นแล้ว" ? "bg-green-500/10 text-green-400" : "bg-yellow-500/10 text-yellow-400"}`}>{r.status}</span> },
+  ];
+
   return (
     <div className={`p-6 space-y-6 ${txt}`}>
       <PageHeader title="VAT / WHT" description="จัดการภาษีมูลค่าเพิ่มและภาษีหัก ณ ที่จ่าย" onClear={clearDemo} />
@@ -43,29 +53,7 @@ export default function Page() {
         ))}
       </div>
 
-      <div className={card}>
-        <h2 className="text-lg font-semibold mb-4">รายการหัก ณ ที่จ่าย</h2>
-        <div className="overflow-x-auto">
-          <table className="w-full text-sm">
-            <thead><tr className={sub}>
-              <th className="text-left pb-3">ผู้ถูกหัก</th><th className="text-left pb-3">ประเภทเงินได้</th>
-              <th className="text-right pb-3">อัตรา%</th><th className="text-right pb-3">จำนวนเงิน</th>
-              <th className="text-left pb-3">วันที่</th><th className="text-left pb-3">สถานะ</th>
-            </tr></thead>
-            <tbody>
-              {wht.map((r) => (
-                <tr key={r.id} className={`border-t ${isDark ? "border-[rgba(255,255,255,0.06)]" : "border-gray-100"}`}>
-                  <td className="py-3">{r.name}</td><td>{r.type}</td>
-                  <td className="text-right">{r.rate}%</td><td className="text-right">฿{r.amount.toLocaleString()}</td>
-                  <td>{r.date}</td>
-                  <td><span className={`px-2 py-1 rounded-full text-xs ${r.status === "ยื่นแล้ว" ? "bg-green-500/10 text-green-400" : "bg-yellow-500/10 text-yellow-400"}`}>{r.status}</span></td>
-                </tr>
-              ))}
-              {wht.length === 0 && <tr><td colSpan={6} className={`py-8 text-center ${sub}`}>ไม่มีข้อมูล</td></tr>}
-            </tbody>
-          </table>
-        </div>
-      </div>
+      <DataTable columns={columns} data={wht} rowKey={(r) => r.id} />
     </div>
   );
 }

@@ -4,6 +4,7 @@ import { useState } from "react";
 import { useTheme } from "@/contexts/ThemeContext";
 import { DollarSign, Clock, Users, AlertTriangle, Trash2, FileText } from "lucide-react";
 import PageHeader from "@/components/dashboard/PageHeader";
+import DataTable, { Column } from "@/components/dashboard/DataTable";
 
 interface ARItem {
   id: string;
@@ -47,6 +48,15 @@ export default function ReceivablesPage() {
   };
   const cardClass = `rounded-2xl border p-5 ${isDark ? "bg-[rgba(255,255,255,0.04)] border-[rgba(255,255,255,0.06)]" : "bg-white border-gray-200"}`;
 
+  const columns: Column<ARItem>[] = [
+    { key: "customer", label: "ลูกค้า" },
+    { key: "invoiceNo", label: "เลขที่ใบแจ้งหนี้", render: (r) => <span className="font-mono text-xs">{r.invoiceNo}</span> },
+    { key: "amount", label: "จำนวนเงิน", align: "right", render: (r) => <span className="font-medium">฿{fmt(r.amount)}</span> },
+    { key: "dueDate", label: "ครบกำหนด" },
+    { key: "overdueDays", label: "เกินกำหนด (วัน)", align: "right", render: (r) => <span className={r.overdueDays > 0 ? "font-semibold text-red-500" : ""}>{r.overdueDays > 0 ? r.overdueDays : "-"}</span> },
+    { key: "status", label: "สถานะ", render: (r) => <span className={statusColor(r.status)}>{r.status}</span> },
+  ];
+
   return (
     <div className="space-y-6">
       <PageHeader title="ยอดค้างชำระ" description="ติดตามยอดค้างชำระจากลูกค้า" onClear={clearDemo} />
@@ -88,44 +98,7 @@ export default function ReceivablesPage() {
           ))}
         </div>
       </div>
-      <div className={cardClass}>
-        <h2 className={`mb-4 text-lg font-semibold ${isDark ? "text-white" : "text-gray-900"}`}>
-          <FileText size={18} className="mr-2 inline" />รายการค้างชำระ
-        </h2>
-        <div className="overflow-x-auto">
-          <table className="w-full text-sm">
-            <thead>
-              <tr className={`border-b ${isDark ? "border-[rgba(255,255,255,0.06)] text-gray-400" : "border-gray-200 text-gray-500"}`}>
-                <th className="px-3 py-3 text-left font-medium">ลูกค้า</th>
-                <th className="px-3 py-3 text-left font-medium">เลขที่ใบแจ้งหนี้</th>
-                <th className="px-3 py-3 text-right font-medium">จำนวนเงิน</th>
-                <th className="px-3 py-3 text-left font-medium">ครบกำหนด</th>
-                <th className="px-3 py-3 text-right font-medium">เกินกำหนด (วัน)</th>
-                <th className="px-3 py-3 text-left font-medium">สถานะ</th>
-              </tr>
-            </thead>
-            <tbody>
-              {data.map((item) => (
-                <tr key={item.id} className={`border-b ${isDark ? "border-[rgba(255,255,255,0.04)]" : "border-gray-100"}`}>
-                  <td className={`px-3 py-3 ${isDark ? "text-white" : "text-gray-900"}`}>{item.customer}</td>
-                  <td className={`px-3 py-3 font-mono text-xs ${isDark ? "text-gray-300" : "text-gray-700"}`}>{item.invoiceNo}</td>
-                  <td className={`px-3 py-3 text-right font-medium ${isDark ? "text-white" : "text-gray-900"}`}>฿{fmt(item.amount)}</td>
-                  <td className={`px-3 py-3 ${isDark ? "text-gray-300" : "text-gray-600"}`}>{item.dueDate}</td>
-                  <td className={`px-3 py-3 text-right ${item.overdueDays > 0 ? "font-semibold text-red-500" : isDark ? "text-gray-400" : "text-gray-500"}`}>
-                    {item.overdueDays > 0 ? item.overdueDays : "-"}
-                  </td>
-                  <td className={`px-3 py-3 ${statusColor(item.status)}`}>{item.status}</td>
-                </tr>
-              ))}
-              {data.length === 0 && (
-                <tr>
-                  <td colSpan={6} className={`px-3 py-8 text-center ${isDark ? "text-gray-500" : "text-gray-400"}`}>ไม่มีข้อมูล</td>
-                </tr>
-              )}
-            </tbody>
-          </table>
-        </div>
-      </div>
+      <DataTable columns={columns} data={data} rowKey={(r) => r.id} />
     </div>
   );
 }

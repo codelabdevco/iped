@@ -4,6 +4,7 @@ import { useState } from "react";
 import { useTheme } from "@/contexts/ThemeContext";
 import { TrendingUp, Plus, Trash2, Wallet, ArrowUpRight, BarChart3 } from "lucide-react";
 import PageHeader from "@/components/dashboard/PageHeader";
+import DataTable, { Column } from "@/components/dashboard/DataTable";
 
 interface IncomeEntry {
   id: number; date: string; source: string; category: string; amount: number; note: string;
@@ -40,6 +41,14 @@ export default function IncomePage() {
     { label: "เฉลี่ย/เดือน", value: avg, icon: BarChart3, color: "text-purple-400" },
   ];
 
+  const columns: Column<IncomeEntry>[] = [
+    { key: "date", label: "วันที่", render: (r, isDark) => <span className={isDark ? "text-gray-300" : "text-gray-700"}>{r.date}</span> },
+    { key: "source", label: "แหล่งที่มา", render: (r, isDark) => <span className={`font-medium ${isDark ? "text-white" : "text-gray-900"}`}>{r.source}</span> },
+    { key: "category", label: "หมวดหมู่", render: (r, isDark) => <span className={`inline-block px-2.5 py-1 rounded-lg text-xs font-medium ${isDark ? catDark[r.category] : catLight[r.category]}`}>{r.category}</span> },
+    { key: "amount", label: "จำนวนเงิน", render: (r) => <span className="font-semibold text-green-500">+{fmt(r.amount)}</span> },
+    { key: "note", label: "หมายเหตุ" },
+  ];
+
   return (
     <div className="space-y-6">
       <PageHeader title="รายรับ" description="จัดการรายรับทั้งหมดของคุณ" onClear={clearDemo} actionLabel="เพิ่มรายรับ" />
@@ -54,32 +63,7 @@ export default function IncomePage() {
           </div>
         ))}
       </div>
-      <div className={`rounded-2xl border overflow-hidden ${card}`}>
-        <div className="overflow-x-auto">
-          <table className="w-full">
-            <thead>
-              <tr className={isDark ? "bg-white/5" : "bg-gray-50"}>
-                {["วันที่", "แหล่งที่มา", "หมวดหมู่", "จำนวนเงิน", "หมายเหตุ"].map((h) => (
-                  <th key={h} className={`px-5 py-3 text-left text-sm font-medium ${sub}`}>{h}</th>
-                ))}
-              </tr>
-            </thead>
-            <tbody>
-              {demoData.length === 0 ? (
-                <tr><td colSpan={5} className={`px-5 py-10 text-center text-sm ${sub}`}>ไม่มีข้อมูล</td></tr>
-              ) : demoData.map((row) => (
-                <tr key={row.id} className={`border-t ${isDark ? "border-white/5 hover:bg-white/5" : "border-gray-100 hover:bg-gray-50"} transition-colors`}>
-                  <td className={`px-5 py-3 text-sm ${isDark ? "text-gray-300" : "text-gray-700"}`}>{row.date}</td>
-                  <td className={`px-5 py-3 text-sm font-medium ${txt}`}>{row.source}</td>
-                  <td className="px-5 py-3"><span className={`inline-block px-2.5 py-1 rounded-lg text-xs font-medium ${isDark ? catDark[row.category] : catLight[row.category]}`}>{row.category}</span></td>
-                  <td className="px-5 py-3 text-sm font-semibold text-green-500">+{fmt(row.amount)}</td>
-                  <td className={`px-5 py-3 text-sm ${sub}`}>{row.note}</td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
-      </div>
+      <DataTable columns={columns} data={demoData} rowKey={(r) => r.id} />
     </div>
   );
 }

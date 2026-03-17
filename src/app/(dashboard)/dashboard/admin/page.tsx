@@ -3,6 +3,7 @@ import { useState } from "react";
 import { useTheme } from "@/contexts/ThemeContext";
 import { Trash2, Users, UserPlus, Receipt, DollarSign, Activity } from "lucide-react";
 import PageHeader from "@/components/dashboard/PageHeader";
+import DataTable, { Column } from "@/components/dashboard/DataTable";
 
 const initStats = { totalUsers: 1247, newMonth: 89, totalReceipts: 15834, revenue: 285000 };
 const initUsers = [
@@ -40,6 +41,14 @@ export default function Page() {
 
   const planColor: Record<string, string> = { Free: "bg-gray-500/10 text-gray-400", Pro: "bg-blue-500/10 text-blue-400", Business: "bg-purple-500/10 text-purple-400" };
 
+  const columns: Column<typeof users[number]>[] = [
+    { key: "name", label: "ชื่อ" },
+    { key: "email", label: "อีเมล" },
+    { key: "plan", label: "แพ็กเกจ", render: (r) => <span className={`px-2 py-1 rounded-full text-xs ${planColor[r.plan] || ""}`}>{r.plan}</span> },
+    { key: "date", label: "วันสมัคร" },
+    { key: "status", label: "สถานะ", render: (r) => <span className={`px-2 py-1 rounded-full text-xs ${r.status === "ใช้งาน" ? "bg-green-500/10 text-green-400" : "bg-red-500/10 text-red-400"}`}>{r.status}</span> },
+  ];
+
   return (
     <div className={`p-6 space-y-6 ${txt}`}>
       <PageHeader title="Admin Dashboard" description="ภาพรวมระบบและผู้ใช้ทั้งหมด" onClear={clearDemo} />
@@ -53,28 +62,7 @@ export default function Page() {
         ))}
       </div>
 
-      <div className={card}>
-        <h2 className="text-lg font-semibold mb-4">ผู้ใช้งาน</h2>
-        <div className="overflow-x-auto">
-          <table className="w-full text-sm">
-            <thead><tr className={sub}>
-              <th className="text-left pb-3">ชื่อ</th><th className="text-left pb-3">อีเมล</th>
-              <th className="text-left pb-3">แพ็กเกจ</th><th className="text-left pb-3">วันสมัคร</th><th className="text-left pb-3">สถานะ</th>
-            </tr></thead>
-            <tbody>
-              {users.map((u) => (
-                <tr key={u.id} className={`border-t ${isDark ? "border-[rgba(255,255,255,0.06)]" : "border-gray-100"}`}>
-                  <td className="py-3">{u.name}</td><td>{u.email}</td>
-                  <td><span className={`px-2 py-1 rounded-full text-xs ${planColor[u.plan] || ""}`}>{u.plan}</span></td>
-                  <td>{u.date}</td>
-                  <td><span className={`px-2 py-1 rounded-full text-xs ${u.status === "ใช้งาน" ? "bg-green-500/10 text-green-400" : "bg-red-500/10 text-red-400"}`}>{u.status}</span></td>
-                </tr>
-              ))}
-              {users.length === 0 && <tr><td colSpan={5} className={`py-8 text-center ${sub}`}>ไม่มีข้อมูล</td></tr>}
-            </tbody>
-          </table>
-        </div>
-      </div>
+      <DataTable columns={columns} data={users} rowKey={(r) => r.id} />
 
       <div className={card}>
         <h2 className="text-lg font-semibold mb-4 flex items-center gap-2"><Activity size={18} /> System Health</h2>

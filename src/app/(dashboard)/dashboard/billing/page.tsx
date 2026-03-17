@@ -3,6 +3,7 @@ import { useState } from "react";
 import { useTheme } from "@/contexts/ThemeContext";
 import { Trash2, CreditCard, Check, Star, Zap } from "lucide-react";
 import PageHeader from "@/components/dashboard/PageHeader";
+import DataTable, { Column } from "@/components/dashboard/DataTable";
 
 const initPlans = [
   { id: 1, name: "Free", price: 0, features: ["ใบเสร็จ 50 ใบ/เดือน", "OCR พื้นฐาน", "รายงานสรุป", "ผู้ใช้ 1 คน"], current: false },
@@ -26,6 +27,13 @@ export default function Page() {
   const sub = isDark ? "text-white/50" : "text-gray-500";
 
   const clearDemo = () => { setPlans([]); setInvoices([]); };
+
+  const columns: Column<typeof invoices[number]>[] = [
+    { key: "date", label: "วันที่" },
+    { key: "desc", label: "รายละเอียด" },
+    { key: "amount", label: "จำนวน", align: "right", render: (r) => <>฿{r.amount}</> },
+    { key: "status", label: "สถานะ", render: (r) => <span className="px-2 py-1 rounded-full text-xs bg-green-500/10 text-green-400">{r.status}</span> },
+  ];
 
   return (
     <div className={`p-6 space-y-6 ${txt}`}>
@@ -64,27 +72,7 @@ export default function Page() {
         </div>
       </div>
 
-      <div className={card}>
-        <h2 className="text-lg font-semibold mb-4 flex items-center gap-2"><Zap size={18} /> ประวัติการชำระเงิน</h2>
-        <div className="overflow-x-auto">
-          <table className="w-full text-sm">
-            <thead><tr className={sub}>
-              <th className="text-left pb-3">วันที่</th><th className="text-left pb-3">รายละเอียด</th>
-              <th className="text-right pb-3">จำนวน</th><th className="text-left pb-3">สถานะ</th>
-            </tr></thead>
-            <tbody>
-              {invoices.map((inv) => (
-                <tr key={inv.id} className={`border-t ${isDark ? "border-[rgba(255,255,255,0.06)]" : "border-gray-100"}`}>
-                  <td className="py-3">{inv.date}</td><td>{inv.desc}</td>
-                  <td className="text-right">฿{inv.amount}</td>
-                  <td><span className="px-2 py-1 rounded-full text-xs bg-green-500/10 text-green-400">{inv.status}</span></td>
-                </tr>
-              ))}
-              {invoices.length === 0 && <tr><td colSpan={4} className={`py-8 text-center ${sub}`}>ไม่มีข้อมูล</td></tr>}
-            </tbody>
-          </table>
-        </div>
-      </div>
+      <DataTable columns={columns} data={invoices} rowKey={(r) => r.id} />
     </div>
   );
 }

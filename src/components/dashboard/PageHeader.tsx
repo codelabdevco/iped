@@ -39,7 +39,7 @@ export default function PageHeader({ title, description, onClear, actionLabel, o
         {actionLabel && (
           <button
             onClick={onAction}
-            className="flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-medium bg-[#FA3633] text-white hover:bg-[#e0302d] transition-colors"
+            className="flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-medium bg-green-600 text-white hover:bg-green-700 transition-colors"
           >
             <Plus size={16} />
             {actionLabel}

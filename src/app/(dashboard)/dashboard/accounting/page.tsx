@@ -3,6 +3,7 @@ import { useState } from "react";
 import { useTheme } from "@/contexts/ThemeContext";
 import { Trash2, Link2, RefreshCw, CheckCircle, XCircle, Clock } from "lucide-react";
 import PageHeader from "@/components/dashboard/PageHeader";
+import DataTable, { Column } from "@/components/dashboard/DataTable";
 
 const initIntegrations = [
   { id: 1, name: "PEAK", status: "connected", lastSync: "2026-03-17 09:30", records: 1245 },
@@ -28,6 +29,13 @@ export default function Page() {
 
   const clearDemo = () => { setIntegrations([]); setLogs([]); };
 
+  const columns: Column<typeof logs[number]>[] = [
+    { key: "time", label: "เวลา" },
+    { key: "system", label: "ระบบ" },
+    { key: "event", label: "เหตุการณ์" },
+    { key: "status", label: "สถานะ", render: (r) => <span className={`px-2 py-1 rounded-full text-xs ${r.status === "สำเร็จ" ? "bg-green-500/10 text-green-400" : "bg-red-500/10 text-red-400"}`}>{r.status}</span> },
+  ];
+
   return (
     <div className={`p-6 space-y-6 ${txt}`}>
       <PageHeader title="เชื่อมโปรแกรมบัญชี" description="เชื่อมต่อกับซอฟต์แวร์บัญชี" onClear={clearDemo} />
@@ -49,26 +57,7 @@ export default function Page() {
         ))}
       </div>
 
-      <div className={card}>
-        <h2 className="text-lg font-semibold mb-4 flex items-center gap-2"><Clock size={18} /> ประวัติการซิงค์</h2>
-        <div className="overflow-x-auto">
-          <table className="w-full text-sm">
-            <thead><tr className={sub}>
-              <th className="text-left pb-3">เวลา</th><th className="text-left pb-3">ระบบ</th>
-              <th className="text-left pb-3">เหตุการณ์</th><th className="text-left pb-3">สถานะ</th>
-            </tr></thead>
-            <tbody>
-              {logs.map((l) => (
-                <tr key={l.id} className={`border-t ${isDark ? "border-[rgba(255,255,255,0.06)]" : "border-gray-100"}`}>
-                  <td className="py-3">{l.time}</td><td>{l.system}</td><td>{l.event}</td>
-                  <td><span className={`px-2 py-1 rounded-full text-xs ${l.status === "สำเร็จ" ? "bg-green-500/10 text-green-400" : "bg-red-500/10 text-red-400"}`}>{l.status}</span></td>
-                </tr>
-              ))}
-              {logs.length === 0 && <tr><td colSpan={4} className={`py-8 text-center ${sub}`}>ไม่มีข้อมูล</td></tr>}
-            </tbody>
-          </table>
-        </div>
-      </div>
+      <DataTable columns={columns} data={logs} rowKey={(r) => r.id} />
     </div>
   );
 }

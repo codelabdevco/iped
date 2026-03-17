@@ -3,8 +3,13 @@ import { useState } from "react";
 import { useTheme } from "@/contexts/ThemeContext";
 import { TrendingDown, Plus, Trash2 } from "lucide-react";
 import PageHeader from "@/components/dashboard/PageHeader";
+import DataTable, { Column } from "@/components/dashboard/DataTable";
 
-const INIT = [
+interface ExpenseEntry {
+  id: number; date: string; store: string; category: string; amount: number; payment: string; status: string;
+}
+
+const INIT: ExpenseEntry[] = [
   { id: 1, date: "01/03/2569", store: "Tops Market สาขาสีลม", category: "อาหาร", amount: 1250, payment: "พร้อมเพย์", status: "confirmed" },
   { id: 2, date: "02/03/2569", store: "BTS สายสีเขียว", category: "เดินทาง", amount: 350, payment: "Rabbit Card", status: "confirmed" },
   { id: 3, date: "03/03/2569", store: "Uniqlo เซ็นทรัลเวิลด์", category: "ช็อปปิ้ง", amount: 2490, payment: "บัตร SCB Visa", status: "confirmed" },
@@ -29,6 +34,15 @@ export default function ExpensesPage() {
   const sub = isDark ? "text-white/50" : "text-gray-500";
   const total = data.reduce((s, d) => s + d.amount, 0);
 
+  const columns: Column<ExpenseEntry>[] = [
+    { key: "date", label: "วันที่" },
+    { key: "store", label: "ร้านค้า", render: (r, isDark) => <span className={`font-medium ${isDark ? "text-white" : "text-gray-900"}`}>{r.store}</span> },
+    { key: "category", label: "หมวดหมู่", render: (r) => <span className={`px-2.5 py-1 rounded-lg text-xs font-medium ${catColors[r.category] || "bg-gray-500/10 text-gray-400"}`}>{r.category}</span> },
+    { key: "amount", label: "จำนวนเงิน", align: "right", render: (r) => <span className="font-semibold text-red-500">-฿{r.amount.toLocaleString()}</span> },
+    { key: "payment", label: "วิธีจ่าย" },
+    { key: "status", label: "สถานะ", render: (r) => { const st = statusMap[r.status] || statusMap.pending; return <span className={`px-2.5 py-1 rounded-lg text-xs font-medium ${st.cls}`}>{st.label}</span>; } },
+  ];
+
   return (
     <div className="space-y-6">
       <PageHeader title="รายจ่าย" description="จัดการรายจ่ายทั้งหมดของคุณ" onClear={() => setData([])} actionLabel="เพิ่มรายจ่าย" />
@@ -37,25 +51,7 @@ export default function ExpensesPage() {
           <div key={i} className={`${card} border ${border} rounded-2xl p-5`}><p className={`text-sm ${sub}`}>{s.label}</p><p className={`text-2xl font-bold mt-1 ${txt}`}>{s.value}</p></div>
         ))}
       </div>
-      <div className={`${card} border ${border} rounded-2xl overflow-hidden`}>
-        <table className="w-full">
-          <thead><tr className={`text-left text-xs font-semibold ${sub} ${isDark ? "bg-white/3" : "bg-gray-50"}`}>
-            <th className="px-5 py-3">วันที่</th><th className="px-5 py-3">ร้านค้า</th><th className="px-5 py-3">หมวดหมู่</th><th className="px-5 py-3 text-right">จำนวนเงิน</th><th className="px-5 py-3">วิธีจ่าย</th><th className="px-5 py-3">สถานะ</th>
-          </tr></thead>
-          <tbody>{data.length === 0 ? <tr><td colSpan={6} className={`px-5 py-12 text-center ${sub}`}>ไม่มีข้อมูล</td></tr> : data.map(r => {
-            const st = statusMap[r.status] || statusMap.pending;
-            return (
-            <tr key={r.id} className={`border-t ${border} ${isDark ? "hover:bg-white/3" : "hover:bg-gray-50"} transition-colors`}>
-              <td className={`px-5 py-3 text-sm ${sub}`}>{r.date}</td>
-              <td className={`px-5 py-3 text-sm font-medium ${txt}`}>{r.store}</td>
-              <td className="px-5 py-3"><span className={`px-2.5 py-1 rounded-lg text-xs font-medium ${catColors[r.category] || "bg-gray-500/10 text-gray-400"}`}>{r.category}</span></td>
-              <td className="px-5 py-3 text-sm font-semibold text-right text-red-500">-฿{r.amount.toLocaleString()}</td>
-              <td className={`px-5 py-3 text-sm ${sub}`}>{r.payment}</td>
-              <td className="px-5 py-3"><span className={`px-2.5 py-1 rounded-lg text-xs font-medium ${st.cls}`}>{st.label}</span></td>
-            </tr>);
-          })}</tbody>
-        </table>
-      </div>
+      <DataTable columns={columns} data={data} rowKey={(r) => r.id} />
     </div>
   );
 }

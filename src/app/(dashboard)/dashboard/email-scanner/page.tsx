@@ -3,7 +3,13 @@ import { useState } from "react";
 import { useTheme } from "@/contexts/ThemeContext";
 import { Mail, Trash2, Paperclip } from "lucide-react";
 import PageHeader from "@/components/dashboard/PageHeader";
-const INIT = [
+import DataTable, { Column } from "@/components/dashboard/DataTable";
+
+interface EmailEntry {
+  id: number; subject: string; sender: string; date: string; attachments: number; status: string;
+}
+
+const INIT: EmailEntry[] = [
   { id: 1, subject: "ใบเสร็จค่าบริการ Cloud - มี.ค. 2569", sender: "billing@aws.amazon.com", date: "15/03/2569", attachments: 1, status: "scanned" },
   { id: 2, subject: "ใบแจ้งหนี้ค่าโทรศัพท์", sender: "billing@truemoveh.com", date: "14/03/2569", attachments: 1, status: "scanned" },
   { id: 3, subject: "Payment Receipt - Figma Pro", sender: "receipts@figma.com", date: "12/03/2569", attachments: 2, status: "scanned" },
@@ -18,6 +24,15 @@ export default function EmailScannerPage() {
   const b = isDark ? "border-[rgba(255,255,255,0.06)]" : "border-gray-200";
   const t = isDark ? "text-white" : "text-gray-900";
   const s = isDark ? "text-white/50" : "text-gray-500";
+
+  const columns: Column<EmailEntry>[] = [
+    { key: "subject", label: "หัวข้อ", render: (r, isDark) => <span className={`font-medium ${isDark ? "text-white" : "text-gray-900"}`}>{r.subject}</span> },
+    { key: "sender", label: "ผู้ส่ง" },
+    { key: "date", label: "วันที่" },
+    { key: "attachments", label: "แนบ", render: (r, isDark) => <span className="flex items-center gap-1"><Paperclip size={12} className={isDark ? "text-white/50" : "text-gray-500"} /><span className={isDark ? "text-white/50" : "text-gray-500"}>{r.attachments}</span></span> },
+    { key: "status", label: "สถานะ", render: (r) => { const st = stMap[r.status]; return <span className={`px-2.5 py-1 rounded-lg text-xs font-medium ${st.cls}`}>{st.label}</span>; } },
+  ];
+
   return (
     <div className="space-y-6">
       <PageHeader title="Email Scanner" description="สแกนเอกสารจากอีเมลอัตโนมัติ" onClear={() => setData([])} />
@@ -30,12 +45,7 @@ export default function EmailScannerPage() {
           <div key={i} className={`${c} border ${b} rounded-2xl p-5`}><p className={`text-sm ${s}`}>{x.l}</p><p className={`text-2xl font-bold mt-1 ${t}`}>{x.v}</p></div>
         ))}
       </div>
-      <div className={`${c} border ${b} rounded-2xl overflow-hidden`}>
-        <table className="w-full"><thead><tr className={`text-left text-xs font-semibold ${s} ${isDark?"bg-white/3":"bg-gray-50"}`}><th className="px-5 py-3">หัวข้อ</th><th className="px-5 py-3">ผู้ส่ง</th><th className="px-5 py-3">วันที่</th><th className="px-5 py-3">แนบ</th><th className="px-5 py-3">สถานะ</th></tr></thead>
-        <tbody>{data.length===0?<tr><td colSpan={5} className={`px-5 py-12 text-center ${s}`}>ไม่มีข้อมูล</td></tr>:data.map(r=>{const st=stMap[r.status];return(
-          <tr key={r.id} className={`border-t ${b} ${isDark?"hover:bg-white/3":"hover:bg-gray-50"} transition-colors`}><td className={`px-5 py-3 text-sm font-medium ${t}`}>{r.subject}</td><td className={`px-5 py-3 text-sm ${s}`}>{r.sender}</td><td className={`px-5 py-3 text-sm ${s}`}>{r.date}</td><td className="px-5 py-3 text-sm"><span className="flex items-center gap-1"><Paperclip size={12} className={s}/><span className={s}>{r.attachments}</span></span></td><td className="px-5 py-3"><span className={`px-2.5 py-1 rounded-lg text-xs font-medium ${st.cls}`}>{st.label}</span></td></tr>
-        );})}</tbody></table>
-      </div>
+      <DataTable columns={columns} data={data} rowKey={(r) => r.id} />
     </div>
   );
 }
