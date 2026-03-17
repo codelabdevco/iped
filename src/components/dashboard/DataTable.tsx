@@ -66,6 +66,8 @@ export default function DataTable<T>({ columns, data, rowKey, emptyText = "ไ�
   const [perPage, setPerPage] = useState(10);
   const [page, setPage] = useState(1);
   const [datePreset, setDatePreset] = useState("all");
+  const [customFrom, setCustomFrom] = useState("");
+  const [customTo, setCustomTo] = useState("");
   const [expandedRow, setExpandedRow] = useState<string | number | null>(null);
   const [colOrder, setColOrder] = useState<number[]>(() => columns.map((_, i) => i));
   const dragFrom = useRef<number | null>(null);
@@ -85,14 +87,23 @@ export default function DataTable<T>({ columns, data, rowKey, emptyText = "ไ�
 
   const filteredData = useMemo(() => {
     if (!dateField || datePreset === "all") return data;
-    const range = getPresetRange(datePreset);
+    let range: { from: Date; to: Date } | null = null;
+    if (datePreset === "custom") {
+      if (customFrom && customTo) {
+        range = { from: new Date(customFrom), to: new Date(customTo + "T23:59:59") };
+      } else {
+        return data;
+      }
+    } else {
+      range = getPresetRange(datePreset);
+    }
     if (!range) return data;
     return data.filter((row) => {
       const d = parseDate((row as any)[dateField]);
       if (!d) return true;
-      return d >= range.from && d <= range.to;
+      return d >= range!.from && d <= range!.to;
     });
-  }, [data, dateField, datePreset]);
+  }, [data, dateField, datePreset, customFrom, customTo]);
 
   const totalPages = Math.max(1, Math.ceil(filteredData.length / perPage));
   const safePage = Math.min(page, totalPages);
@@ -132,7 +143,15 @@ export default function DataTable<T>({ columns, data, rowKey, emptyText = "ไ�
               <button key={p.key} onClick={() => { setDatePreset(p.key); setPage(1); }} className={`px-3 py-1.5 rounded-full text-xs font-medium transition-all ${datePreset === p.key ? "bg-[#FA3633] text-white shadow-sm shadow-[#FA3633]/25" : isDark ? "bg-white/5 text-white/50 hover:bg-white/10" : "bg-gray-100 text-gray-500 hover:bg-gray-200"}`}>{p.label}</button>
             ))}
           </div>
+          <button onClick={() => { setDatePreset("custom"); setPage(1); }} className={`px-3 py-1.5 rounded-full text-xs font-medium transition-all ${datePreset === "custom" ? "bg-[#FA3633] text-white shadow-sm shadow-[#FA3633]/25" : isDark ? "bg-white/5 text-white/50 hover:bg-white/10" : "bg-gray-100 text-gray-500 hover:bg-gray-200"}`}>กำหนดเอง</button>
           {datePreset !== "all" && <span className={`text-xs ${sub}`}>{filteredData.length} รายการ</span>}
+          {datePreset === "custom" && (
+            <div className="flex items-center gap-2 ml-2">
+              <input type="date" value={customFrom} onChange={(e) => { setCustomFrom(e.target.value); setPage(1); }} className={`h-8 px-2 rounded-lg text-xs ${isDark ? "bg-white/5 border-white/10 text-white" : "bg-gray-50 border-gray-200 text-gray-900"} border focus:outline-none focus:border-[#FA3633]/50`} />
+              <span className={`text-xs ${sub}`}>—</span>
+              <input type="date" value={customTo} onChange={(e) => { setCustomTo(e.target.value); setPage(1); }} className={`h-8 px-2 rounded-lg text-xs ${isDark ? "bg-white/5 border-white/10 text-white" : "bg-gray-50 border-gray-200 text-gray-900"} border focus:outline-none focus:border-[#FA3633]/50`} />
+            </div>
+          )}
         </div>
       )}
 

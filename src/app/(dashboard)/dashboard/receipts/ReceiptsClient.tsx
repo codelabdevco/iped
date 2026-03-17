@@ -1,8 +1,7 @@
 "use client";
 
 import { useState, useMemo } from "react";
-import { Search, Filter, Receipt, FileText, CheckCircle, Clock, Pencil, ImageIcon, Cloud, CloudOff, HardDrive } from "lucide-react";
-import Link from "next/link";
+import { Search, Filter, Receipt, FileText, CheckCircle, Clock, Pencil, Trash2, ImageIcon, Cloud, CloudOff, HardDrive } from "lucide-react";
 import { useTheme } from "@/contexts/ThemeContext";
 import PageHeader from "@/components/dashboard/PageHeader";
 import StatsCard from "@/components/dashboard/StatsCard";
@@ -47,12 +46,15 @@ const typeLabel: Record<string, string> = {
   credit_note: "ใบลดหนี้",
 };
 
-export default function ReceiptsClient({ receipts }: { receipts: ReceiptRow[] }) {
+export default function ReceiptsClient({ receipts: initialReceipts }: { receipts: ReceiptRow[] }) {
   const { isDark } = useTheme();
+  const [receipts, setReceipts] = useState(initialReceipts);
   const [search, setSearch] = useState("");
   const [statusFilter, setStatusFilter] = useState("all");
   const [typeFilter, setTypeFilter] = useState("all");
   const [driveFilter, setDriveFilter] = useState("all");
+  const [editingId, setEditingId] = useState<string | null>(null);
+  const [editForm, setEditForm] = useState<Partial<ReceiptRow>>({});
 
   const filtered = useMemo(() => {
     return receipts.filter((r) => {
@@ -68,7 +70,6 @@ export default function ReceiptsClient({ receipts }: { receipts: ReceiptRow[] })
   const confirmed = filtered.filter((r) => r.status === "confirmed").length;
   const pending = filtered.filter((r) => r.status === "pending").length;
   const driveUploaded = filtered.filter((r) => r.driveUploaded).length;
-  const driveNotUploaded = filtered.filter((r) => !r.driveUploaded).length;
 
   const card = isDark ? "bg-[rgba(255,255,255,0.04)]" : "bg-white";
   const border = isDark ? "border-[rgba(255,255,255,0.06)]" : "border-gray-200";
@@ -78,6 +79,29 @@ export default function ReceiptsClient({ receipts }: { receipts: ReceiptRow[] })
   const inputCls = isDark
     ? "bg-[rgba(255,255,255,0.03)] border-[rgba(255,255,255,0.06)] text-white placeholder-white/30"
     : "bg-gray-50 border-gray-200 text-gray-900 placeholder-gray-400";
+
+  const handleDelete = (id: string) => {
+    if (confirm("ต้องการลบใบเสร็จนี้?")) {
+      setReceipts((prev) => prev.filter((r) => r._id !== id));
+    }
+  };
+
+  const handleEdit = (r: ReceiptRow) => {
+    setEditingId(r._id);
+    setEditForm({ storeName: r.storeName, amount: r.amount, category: r.category, status: r.status, type: r.type });
+  };
+
+  const handleSaveEdit = () => {
+    if (!editingId) return;
+    setReceipts((prev) => prev.map((r) => r._id === editingId ? { ...r, ...editForm } : r));
+    setEditingId(null);
+    setEditForm({});
+  };
+
+  const handleCancelEdit = () => {
+    setEditingId(null);
+    setEditForm({});
+  };
 
   const columns: Column<ReceiptRow>[] = [
     {
@@ -117,17 +141,65 @@ export default function ReceiptsClient({ receipts }: { receipts: ReceiptRow[] })
       key: "actions",
       label: "",
       render: (r, dark) => (
-        <Link href={`/receipt/${r._id}/edit`} onClick={(e) => e.stopPropagation()} className={`p-2 rounded-lg transition-colors ${dark ? "hover:bg-white/5 text-white/40 hover:text-white/70" : "hover:bg-gray-100 text-gray-400 hover:text-gray-600"}`}>
-          <Pencil size={14} />
-        </Link>
+        <div className="flex items-center gap-1" onClick={(e) => e.stopPropagation()}>
+          <button onClick={() => handleEdit(r)} className={`p-2 rounded-lg transition-colors ${dark ? "hover:bg-white/5 text-white/40 hover:text-blue-400" : "hover:bg-gray-100 text-gray-400 hover:text-blue-500"}`} title="แก้ไข">
+            <Pencil size={14} />
+          </button>
+          <button onClick={() => handleDelete(r._id)} className={`p-2 rounded-lg transition-colors ${dark ? "hover:bg-white/5 text-white/40 hover:text-red-400" : "hover:bg-gray-100 text-gray-400 hover:text-red-500"}`} title="ลบ">
+            <Trash2 size={14} />
+          </button>
+        </div>
       ),
     },
   ];
 
-  // Expandable row — show line items
   const expandRender = (r: ReceiptRow, dark: boolean) => {
     const items = r.items && r.items.length > 0 ? r.items : [{ name: r.storeName, qty: 1, price: r.amount }];
-    const border = dark ? "border-[rgba(255,255,255,0.06)]" : "border-gray-200";
+    const b = dark ? "border-[rgba(255,255,255,0.06)]" : "border-gray-200";
+    const inputC = dark ? "bg-[rgba(255,255,255,0.05)] border-[rgba(255,255,255,0.08)] text-white" : "bg-white border-gray-200 text-gray-900";
+
+    // If editing this row
+    if (editingId === r._id) {
+      return (
+        <div className="space-y-4">
+          <p className={`text-xs font-semibold ${dark ? "text-white/60" : "text-gray-600"}`}>แก้ไขข้อมูลใบเสร็จ</p>
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+            <div>
+              <label className={`block text-xs ${dark ? "text-white/50" : "text-gray-500"} mb-1`}>ร้านค้า</label>
+              <input value={editForm.storeName || ""} onChange={(e) => setEditForm({ ...editForm, storeName: e.target.value })} className={`w-full h-9 px-3 ${inputC} border rounded-lg text-sm focus:outline-none focus:border-[#FA3633]/50`} />
+            </div>
+            <div>
+              <label className={`block text-xs ${dark ? "text-white/50" : "text-gray-500"} mb-1`}>จำนวนเงิน</label>
+              <input type="number" value={editForm.amount || 0} onChange={(e) => setEditForm({ ...editForm, amount: Number(e.target.value) })} className={`w-full h-9 px-3 ${inputC} border rounded-lg text-sm focus:outline-none focus:border-[#FA3633]/50`} />
+            </div>
+            <div>
+              <label className={`block text-xs ${dark ? "text-white/50" : "text-gray-500"} mb-1`}>หมวดหมู่</label>
+              <input value={editForm.category || ""} onChange={(e) => setEditForm({ ...editForm, category: e.target.value })} className={`w-full h-9 px-3 ${inputC} border rounded-lg text-sm focus:outline-none focus:border-[#FA3633]/50`} />
+            </div>
+            <div>
+              <label className={`block text-xs ${dark ? "text-white/50" : "text-gray-500"} mb-1`}>สถานะ</label>
+              <select value={editForm.status || "pending"} onChange={(e) => setEditForm({ ...editForm, status: e.target.value })} className={`w-full h-9 px-3 ${inputC} border rounded-lg text-sm focus:outline-none`}>
+                <option value="confirmed">ยืนยันแล้ว</option>
+                <option value="pending">รอตรวจสอบ</option>
+                <option value="rejected">ปฏิเสธ</option>
+              </select>
+            </div>
+            <div>
+              <label className={`block text-xs ${dark ? "text-white/50" : "text-gray-500"} mb-1`}>ประเภท</label>
+              <select value={editForm.type || "receipt"} onChange={(e) => setEditForm({ ...editForm, type: e.target.value })} className={`w-full h-9 px-3 ${inputC} border rounded-lg text-sm focus:outline-none`}>
+                {Object.entries(typeLabel).map(([k, v]) => <option key={k} value={k}>{v}</option>)}
+              </select>
+            </div>
+          </div>
+          <div className="flex gap-2 pt-2">
+            <button onClick={handleSaveEdit} className="px-4 py-2 rounded-xl text-sm font-medium bg-[#FA3633] text-white hover:bg-[#e0302d] transition-colors">บันทึก</button>
+            <button onClick={handleCancelEdit} className={`px-4 py-2 rounded-xl text-sm font-medium transition-colors ${dark ? "bg-white/5 text-white/60 hover:bg-white/10" : "bg-gray-100 text-gray-600 hover:bg-gray-200"}`}>ยกเลิก</button>
+          </div>
+        </div>
+      );
+    }
+
+    // Default: show line items
     return (
       <div className="space-y-2">
         <p className={`text-xs font-semibold ${dark ? "text-white/60" : "text-gray-600"}`}>รายละเอียดสินค้า/บริการ ({items.length} รายการ)</p>
@@ -145,7 +217,7 @@ export default function ReceiptsClient({ receipts }: { receipts: ReceiptRow[] })
             </div>
           ))}
         </div>
-        <div className={`flex justify-end pt-2 border-t ${border}`}>
+        <div className={`flex justify-end pt-2 border-t ${b}`}>
           <span className={`text-sm font-semibold ${dark ? "text-white" : "text-gray-900"}`}>รวม ฿{r.amount.toLocaleString()}</span>
         </div>
       </div>
@@ -163,40 +235,29 @@ export default function ReceiptsClient({ receipts }: { receipts: ReceiptRow[] })
         <StatsCard label="อัปโหลด Drive" value={`${driveUploaded} / ${filtered.length}`} icon={<HardDrive size={20} />} color="text-blue-400" />
       </div>
 
-      {/* Search */}
-      <div className="relative">
-        <Search size={16} className={`absolute left-3 top-1/2 -translate-y-1/2 ${sub}`} />
-        <input type="text" placeholder="ค้นหาร้านค้า, หมวดหมู่..." value={search} onChange={(e) => setSearch(e.target.value)} className={`w-full h-10 pl-9 pr-4 ${inputCls} border rounded-lg text-sm focus:outline-none focus:border-[#FA3633]/50`} />
-      </div>
-
-      {/* Filters — pill style like Dashboard DateRangePicker */}
-      <div className={`${card} border ${border} rounded-xl px-5 py-3 space-y-3`}>
-        {/* Status filter */}
-        <div className="flex items-center gap-3 flex-wrap">
-          <span className={`text-xs font-medium ${sub} w-16`}>สถานะ</span>
-          <div className="flex gap-1.5 flex-wrap">
-            {[{ key: "all", label: "ทั้งหมด" }, { key: "confirmed", label: "ยืนยันแล้ว" }, { key: "pending", label: "รอตรวจสอบ" }, { key: "rejected", label: "ปฏิเสธ" }].map((o) => (
-              <button key={o.key} onClick={() => setStatusFilter(o.key)} className={`px-3 py-1.5 rounded-full text-xs font-medium transition-all ${statusFilter === o.key ? "bg-[#FA3633] text-white shadow-sm shadow-[#FA3633]/25" : isDark ? "bg-white/5 text-white/50 hover:bg-white/10" : "bg-gray-100 text-gray-500 hover:bg-gray-200"}`}>{o.label}</button>
-            ))}
+      {/* Filters — select dropdowns */}
+      <div className={`${card} border ${border} rounded-xl px-5 py-3`}>
+        <div className="flex flex-wrap items-center gap-3">
+          <div className="relative flex-1 min-w-[200px]">
+            <Search size={16} className={`absolute left-3 top-1/2 -translate-y-1/2 ${sub}`} />
+            <input type="text" placeholder="ค้นหาร้านค้า, หมวดหมู่..." value={search} onChange={(e) => setSearch(e.target.value)} className={`w-full h-10 pl-9 pr-4 ${inputCls} border rounded-lg text-sm focus:outline-none focus:border-[#FA3633]/50`} />
           </div>
-        </div>
-        {/* Type filter */}
-        <div className="flex items-center gap-3 flex-wrap">
-          <span className={`text-xs font-medium ${sub} w-16`}>ประเภท</span>
-          <div className="flex gap-1.5 flex-wrap">
-            {[{ key: "all", label: "ทั้งหมด" }, { key: "receipt", label: "ใบเสร็จ" }, { key: "invoice", label: "ใบแจ้งหนี้" }, { key: "billing", label: "บิลเรียกเก็บ" }, { key: "debit_note", label: "ใบเพิ่มหนี้" }, { key: "credit_note", label: "ใบลดหนี้" }].map((o) => (
-              <button key={o.key} onClick={() => setTypeFilter(o.key)} className={`px-3 py-1.5 rounded-full text-xs font-medium transition-all ${typeFilter === o.key ? "bg-[#FA3633] text-white shadow-sm shadow-[#FA3633]/25" : isDark ? "bg-white/5 text-white/50 hover:bg-white/10" : "bg-gray-100 text-gray-500 hover:bg-gray-200"}`}>{o.label}</button>
-            ))}
-          </div>
-        </div>
-        {/* Drive filter */}
-        <div className="flex items-center gap-3 flex-wrap">
-          <span className={`text-xs font-medium ${sub} w-16`}>Drive</span>
-          <div className="flex gap-1.5 flex-wrap">
-            {[{ key: "all", label: "ทั้งหมด" }, { key: "uploaded", label: "อัปโหลดแล้ว" }, { key: "not_uploaded", label: "ยังไม่อัปโหลด" }].map((o) => (
-              <button key={o.key} onClick={() => setDriveFilter(o.key)} className={`px-3 py-1.5 rounded-full text-xs font-medium transition-all ${driveFilter === o.key ? "bg-[#FA3633] text-white shadow-sm shadow-[#FA3633]/25" : isDark ? "bg-white/5 text-white/50 hover:bg-white/10" : "bg-gray-100 text-gray-500 hover:bg-gray-200"}`}>{o.label}</button>
-            ))}
-          </div>
+          <Filter size={16} className={sub} />
+          <select value={statusFilter} onChange={(e) => setStatusFilter(e.target.value)} className={`h-10 px-3 ${inputCls} border rounded-lg text-sm focus:outline-none`}>
+            <option value="all">สถานะทั้งหมด</option>
+            <option value="confirmed">ยืนยันแล้ว</option>
+            <option value="pending">รอตรวจสอบ</option>
+            <option value="rejected">ปฏิเสธ</option>
+          </select>
+          <select value={typeFilter} onChange={(e) => setTypeFilter(e.target.value)} className={`h-10 px-3 ${inputCls} border rounded-lg text-sm focus:outline-none`}>
+            <option value="all">ประเภททั้งหมด</option>
+            {Object.entries(typeLabel).map(([k, v]) => <option key={k} value={k}>{v}</option>)}
+          </select>
+          <select value={driveFilter} onChange={(e) => setDriveFilter(e.target.value)} className={`h-10 px-3 ${inputCls} border rounded-lg text-sm focus:outline-none`}>
+            <option value="all">Drive ทั้งหมด</option>
+            <option value="uploaded">อัปโหลดแล้ว</option>
+            <option value="not_uploaded">ยังไม่อัปโหลด</option>
+          </select>
         </div>
       </div>
 
