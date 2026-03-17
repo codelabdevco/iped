@@ -1,9 +1,10 @@
 "use client";
 import { useState } from "react";
 import { useTheme } from "@/contexts/ThemeContext";
-import { Trash2, ShieldCheck, Check, X, Clock } from "lucide-react";
+import { Trash2, ShieldCheck, Check, X, Clock, CheckCircle, AlertTriangle } from "lucide-react";
 import PageHeader from "@/components/dashboard/PageHeader";
 import DataTable, { Column } from "@/components/dashboard/DataTable";
+import StatsCard from "@/components/dashboard/StatsCard";
 
 const initData = [
   { id: 1, requester: "นภา ศรีสุข", item: "ค่าเดินทางไปพบลูกค้า จ.ชลบุรี", amount: 4500, category: "ค่าเดินทาง", date: "2026-03-15", status: "รออนุมัติ" },
@@ -49,13 +50,10 @@ export default function Page() {
     <div className="space-y-6">
       <PageHeader title="อนุมัติรายจ่าย" description="จัดการ workflow อนุมัติรายจ่าย" onClear={() => setData([])} />
 
-      <div className="grid grid-cols-3 gap-4">
-        {[["รออนุมัติ", pending + " รายการ"], ["อนุมัติแล้ว", approved + " รายการ"], ["ปฏิเสธ", rejected + " รายการ"]].map(([label, val]) => (
-          <div key={label} className={`p-4 rounded-xl border ${c("bg-[rgba(255,255,255,0.04)] border-[rgba(255,255,255,0.06)]", "bg-white border-gray-200")}`}>
-            <p className={`text-sm ${c("text-white/50", "text-gray-500")}`}>{label}</p>
-            <p className={`text-xl font-bold mt-1 ${c("text-white", "text-gray-900")}`}>{val}</p>
-          </div>
-        ))}
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+        <StatsCard label="รออนุมัติ" value={pending + " รายการ"} icon={<Clock size={20} />} color="text-yellow-500" />
+        <StatsCard label="อนุมัติแล้ว" value={approved + " รายการ"} icon={<CheckCircle size={20} />} color="text-green-500" />
+        <StatsCard label="ปฏิเสธ" value={rejected + " รายการ"} icon={<AlertTriangle size={20} />} color="text-red-500" />
       </div>
 
       <DataTable columns={columns} data={data} rowKey={(r) => r.id} />

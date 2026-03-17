@@ -1,8 +1,9 @@
 "use client";
 import { useState } from "react";
 import { useTheme } from "@/contexts/ThemeContext";
-import { PiggyBank, Plus, Trash2 } from "lucide-react";
+import { PiggyBank, Plus, Trash2, Target, Wallet } from "lucide-react";
 import PageHeader from "@/components/dashboard/PageHeader";
+import StatsCard from "@/components/dashboard/StatsCard";
 
 const INIT = [
   { id: 1, name: "ท่องเที่ยวญี่ปุ่น", target: 50000, current: 32000, deadline: "30/09/2569", color: "#818CF8" },
@@ -24,10 +25,10 @@ export default function SavingsPage() {
   return (
     <div className="space-y-6">
       <PageHeader title="เงินออม" description="เป้าหมายการออมเงินของคุณ" onClear={() => setData([])} actionLabel="เพิ่มเป้าหมาย" />
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-        {[{ label: "เงินออมทั้งหมด", value: `฿${totalSaved.toLocaleString()}` }, { label: "เป้าหมายที่สำเร็จ", value: `${done} / ${data.length}` }, { label: "ออมเดือนนี้", value: "฿12,500" }].map((s, i) => (
-          <div key={i} className={`${card} border ${border} rounded-2xl p-5`}><p className={`text-sm ${sub}`}>{s.label}</p><p className={`text-2xl font-bold mt-1 ${txt}`}>{s.value}</p></div>
-        ))}
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+        <StatsCard label="เงินออมทั้งหมด" value={`฿${totalSaved.toLocaleString()}`} icon={<PiggyBank size={20} />} color="text-green-500" />
+        <StatsCard label="เป้าหมายที่สำเร็จ" value={`${done} / ${data.length}`} icon={<Target size={20} />} color="text-blue-500" />
+        <StatsCard label="ออมเดือนนี้" value="฿12,500" icon={<Wallet size={20} />} color="text-green-500" />
       </div>
       {data.length === 0 ? <div className={`${card} border ${border} rounded-2xl p-12 text-center ${sub}`}>ไม่มีข้อมูล</div> :
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">

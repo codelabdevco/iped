@@ -4,6 +4,7 @@ import { useTheme } from "@/contexts/ThemeContext";
 import { Trash2, Users, UserPlus, Receipt, DollarSign, Activity } from "lucide-react";
 import PageHeader from "@/components/dashboard/PageHeader";
 import DataTable, { Column } from "@/components/dashboard/DataTable";
+import StatsCard from "@/components/dashboard/StatsCard";
 
 const initStats = { totalUsers: 1247, newMonth: 89, totalReceipts: 15834, revenue: 285000 };
 const initUsers = [
@@ -32,13 +33,6 @@ export default function Page() {
 
   const clearDemo = () => { setStats({ totalUsers: 0, newMonth: 0, totalReceipts: 0, revenue: 0 }); setUsers([]); setHealth([]); };
 
-  const statCards = [
-    { label: "ผู้ใช้ทั้งหมด", value: stats.totalUsers.toLocaleString(), icon: Users, color: "text-blue-400" },
-    { label: "ใหม่เดือนนี้", value: stats.newMonth.toLocaleString(), icon: UserPlus, color: "text-green-400" },
-    { label: "ใบเสร็จทั้งระบบ", value: stats.totalReceipts.toLocaleString(), icon: Receipt, color: "text-purple-400" },
-    { label: "รายได้แพ็กเกจ", value: `฿${stats.revenue.toLocaleString()}`, icon: DollarSign, color: "text-orange-400" },
-  ];
-
   const planColor: Record<string, string> = { Free: "bg-gray-500/10 text-gray-400", Pro: "bg-blue-500/10 text-blue-400", Business: "bg-purple-500/10 text-purple-400" };
 
   const columns: Column<typeof users[number]>[] = [
@@ -54,12 +48,10 @@ export default function Page() {
       <PageHeader title="Admin Dashboard" description="ภาพรวมระบบและผู้ใช้ทั้งหมด" onClear={clearDemo} />
 
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-        {statCards.map((s) => (
-          <div key={s.label} className={card}>
-            <div className="flex items-center gap-3 mb-2"><s.icon size={20} className={s.color} /><span className={sub}>{s.label}</span></div>
-            <p className="text-2xl font-bold">{s.value}</p>
-          </div>
-        ))}
+        <StatsCard label="ผู้ใช้ทั้งหมด" value={stats.totalUsers.toLocaleString()} icon={<Users size={20} />} color="text-blue-500" />
+        <StatsCard label="ใหม่เดือนนี้" value={stats.newMonth.toLocaleString()} icon={<UserPlus size={20} />} color="text-green-500" />
+        <StatsCard label="ใบเสร็จทั้งระบบ" value={stats.totalReceipts.toLocaleString()} icon={<Receipt size={20} />} color="text-purple-500" />
+        <StatsCard label="รายได้แพ็กเกจ" value={`฿${stats.revenue.toLocaleString()}`} icon={<DollarSign size={20} />} color="text-orange-500" />
       </div>
 
       <DataTable columns={columns} data={users} rowKey={(r) => r.id} />

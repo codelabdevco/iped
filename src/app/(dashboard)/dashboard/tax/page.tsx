@@ -4,6 +4,7 @@ import { useTheme } from "@/contexts/ThemeContext";
 import { Trash2, Receipt, Calculator, FileText } from "lucide-react";
 import PageHeader from "@/components/dashboard/PageHeader";
 import DataTable, { Column } from "@/components/dashboard/DataTable";
+import StatsCard from "@/components/dashboard/StatsCard";
 
 const initVat = { sales: 45000, purchase: 28000, net: 17000 };
 const initWht = [
@@ -19,17 +20,10 @@ export default function Page() {
   const { isDark } = useTheme();
   const [vat, setVat] = useState(initVat);
   const [wht, setWht] = useState(initWht);
-  const card = `rounded-xl border p-5 ${isDark ? "bg-[rgba(255,255,255,0.04)] border-[rgba(255,255,255,0.06)]" : "bg-white border-gray-200"}`;
   const txt = isDark ? "text-white" : "text-gray-900";
   const sub = isDark ? "text-white/50" : "text-gray-500";
 
   const clearDemo = () => { setVat({ sales: 0, purchase: 0, net: 0 }); setWht([]); };
-
-  const vatCards = [
-    { label: "ภาษีขาย", value: vat.sales, icon: Receipt, color: "text-blue-400" },
-    { label: "ภาษีซื้อ", value: vat.purchase, icon: FileText, color: "text-orange-400" },
-    { label: "VAT สุทธิ", value: vat.net, icon: Calculator, color: "text-green-400" },
-  ];
 
   const columns: Column<typeof wht[number]>[] = [
     { key: "name", label: "ผู้ถูกหัก" },
@@ -44,13 +38,10 @@ export default function Page() {
     <div className="space-y-6">
       <PageHeader title="VAT / WHT" description="จัดการภาษีมูลค่าเพิ่มและภาษีหัก ณ ที่จ่าย" onClear={clearDemo} />
 
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-        {vatCards.map((c) => (
-          <div key={c.label} className={card}>
-            <div className="flex items-center gap-3 mb-2"><c.icon size={20} className={c.color} /><span className={sub}>{c.label}</span></div>
-            <p className="text-2xl font-bold">฿{c.value.toLocaleString()}</p>
-          </div>
-        ))}
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+        <StatsCard label="ภาษีขาย" value={`฿${vat.sales.toLocaleString()}`} icon={<Receipt size={20} />} color="text-blue-500" />
+        <StatsCard label="ภาษีซื้อ" value={`฿${vat.purchase.toLocaleString()}`} icon={<FileText size={20} />} color="text-orange-500" />
+        <StatsCard label="VAT สุทธิ" value={`฿${vat.net.toLocaleString()}`} icon={<Calculator size={20} />} color="text-green-500" />
       </div>
 
       <DataTable columns={columns} data={wht} rowKey={(r) => r.id} />
