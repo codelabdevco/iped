@@ -41,22 +41,27 @@ export default function GoalsSection({ categoryData }: Props) {
     return { ...b, spent };
   });
 
-  const renderDonut = (
-    segments: { pct: number; color: string }[],
-    centerVal: string,
-    centerSub: string
-  ) => {
-    const size = 140;
-    const sw = 16;
+  const renderDonut = ({
+    segments,
+    centerVal,
+    centerSub,
+  }: {
+    segments: { pct: number; color: string }[];
+    centerVal: string;
+    centerSub: string;
+  }) => {
+    const size = 220;
+    const sw = 22;
     const r = (size - sw) / 2;
     const circ = 2 * Math.PI * r;
     let off = 0;
+
     return (
-      <div className="flex justify-center my-2">
+      <div className="flex items-center justify-center py-2">
         <svg width={size} height={size} viewBox={`0 0 ${size} ${size}`}>
           <circle
             cx={size / 2} cy={size / 2} r={r} fill="none"
-            stroke={isDark ? "rgba(255,255,255,0.06)" : "rgba(0,0,0,0.06)"}
+            stroke={isDark ? "rgba(255,255,255,0.06)" : "#f3f4f6"}
             strokeWidth={sw}
           />
           {segments.map((seg, i) => {
@@ -76,12 +81,12 @@ export default function GoalsSection({ categoryData }: Props) {
               />
             );
           })}
-          <text x={size / 2} y={size / 2 - 6} textAnchor="middle"
-            className={`text-lg font-bold ${isDark ? "fill-white" : "fill-gray-900"}`}>
+          <text x={size / 2} y={size / 2 - 8} textAnchor="middle"
+            className={`text-2xl font-bold ${isDark ? "fill-white" : "fill-gray-900"}`}>
             {centerVal}
           </text>
-          <text x={size / 2} y={size / 2 + 12} textAnchor="middle"
-            className={`text-[10px] ${isDark ? "fill-white/50" : "fill-gray-400"}`}>
+          <text x={size / 2} y={size / 2 + 14} textAnchor="middle"
+            className={`text-[11px] ${isDark ? "fill-white/50" : "fill-gray-400"}`}>
             {centerSub}
           </text>
         </svg>
@@ -112,14 +117,14 @@ export default function GoalsSection({ categoryData }: Props) {
 
       {tab === "budget" ? (
         <>
-          {renderDonut(
-            budgetSegs.map((b) => ({
+          {renderDonut({
+            segments: budgetSegs.map((b) => ({
               pct: (b.budget / totalBudget) * budgetPct,
               color: b.color,
             })),
-            `${Math.round(budgetPct)}%`,
-            `฿${monthlySpent.toLocaleString()} / ฿${totalBudget.toLocaleString()}`
-          )}
+            centerVal: `${Math.round(budgetPct)}%`,
+            centerSub: `฿${monthlySpent.toLocaleString()} / ฿${totalBudget.toLocaleString()}`
+          })}
 
           <div className="space-y-2.5 mt-1">
             {budgetSegs.map((b) => {
@@ -128,7 +133,7 @@ export default function GoalsSection({ categoryData }: Props) {
                 <div key={b.name}>
                   <div className="flex items-center justify-between mb-1">
                     <div className="flex items-center gap-1.5">
-                      <div className="w-2 h-2 rounded-full shrink-0" style={{ backgroundColor: b.color }} />
+                      <span className="w-2 h-2 rounded-full shrink-0" style={{ backgroundColor: b.color }} />
                       <span className={`text-xs ${subtext}`}>{b.name}</span>
                     </div>
                     <span className={`text-xs font-medium ${
@@ -144,7 +149,7 @@ export default function GoalsSection({ categoryData }: Props) {
                       className="h-full rounded-full transition-all duration-700"
                       style={{
                         width: `${usagePct}%`,
-                        backgroundColor: b.spent > b.budget ? "#F87171" : b.spent > b.budget * 0.8 ? "#FBBF24" : b.color,
+                        backgroundColor: b.spent > b.budget ? "#f87171" : b.spent > b.budget * 0.8 ? "#F9DF24" : b.color,
                       }}
                     />
                   </div>
@@ -156,11 +161,11 @@ export default function GoalsSection({ categoryData }: Props) {
           <div className={`mt-3 pt-3 border-t ${isDark ? "border-white/10" : "border-gray-100"}`}>
             <div className="flex justify-between mb-2">
               <span className={`text-xs ${subtext}`}>งบรวม/เดือน</span>
-              <span className={`text-sm font-semibold ${txt}`}>฿{totalBudget.toLocaleString()}</span>
+              <span className={`text-xs font-semibold ${txt}`}>฿{totalBudget.toLocaleString()}</span>
             </div>
             <div className="flex justify-between">
               <span className={`text-xs ${subtext}`}>คงเหลือ</span>
-              <span className={`text-sm font-semibold ${remaining >= 0 ? "text-green-400" : "text-red-400"}`}>
+              <span className={`text-xs font-semibold ${remaining >= 0 ? "text-green-400" : "text-red-400"}`}>
                 ฿{Math.abs(remaining).toLocaleString()}
               </span>
             </div>
@@ -168,14 +173,14 @@ export default function GoalsSection({ categoryData }: Props) {
         </>
       ) : (
         <>
-          {renderDonut(
-            SAVINGS_DATA.map((g) => ({
-              pct: (g.saved / totalTarget) * 100,
-              color: g.color,
+          {renderDonut({
+            segments: SAVINGS_DATA.map((s) => ({
+              pct: (s.saved / totalTarget) * 100,
+              color: s.color,
             })),
-            `${Math.round(savingsPct)}%`,
-            `฿${totalSaved.toLocaleString()} / ฿${totalTarget.toLocaleString()}`
-          )}
+            centerVal: `${Math.round(savingsPct)}%`,
+            centerSub: `฿${totalSaved.toLocaleString()} / ฿${totalTarget.toLocaleString()}`
+          })}
 
           <div className="space-y-3">
             {SAVINGS_DATA.map((g) => {
@@ -204,15 +209,15 @@ export default function GoalsSection({ categoryData }: Props) {
           <div className={`mt-3 pt-3 border-t ${isDark ? "border-white/10" : "border-gray-100"}`}>
             <div className="flex justify-between mb-2">
               <span className={`text-xs ${subtext}`}>เป้าหมายรวม</span>
-              <span className={`text-sm font-semibold ${txt}`}>฿{totalTarget.toLocaleString()}</span>
+              <span className={`text-xs font-semibold ${txt}`}>฿{totalTarget.toLocaleString()}</span>
             </div>
             <div className="flex justify-between">
               <span className={`text-xs ${subtext}`}>ออมแล้ว</span>
-              <span className="text-sm font-semibold text-green-400">฿{totalSaved.toLocaleString()}</span>
+              <span className="text-xs font-semibold text-green-400">฿{totalSaved.toLocaleString()}</span>
             </div>
             <div className="flex justify-between mt-1">
-              <span className={`text-xs ${subtext}`}>ยังขาดอีก</span>
-              <span className={`text-sm font-semibold ${isDark ? "text-white/70" : "text-gray-600"}`}>
+              <span className={`text-xs ${subtext}`}>ยังขาด</span>
+              <span className={`text-xs font-semibold ${isDark ? "text-white/70" : "text-gray-600"}`}>
                 ฿{(totalTarget - totalSaved).toLocaleString()}
               </span>
             </div>
