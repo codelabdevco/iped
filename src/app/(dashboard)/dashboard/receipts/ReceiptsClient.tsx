@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useMemo } from "react";
-import { Search, Filter, Receipt, FileText, CheckCircle, Clock, Pencil, ImageIcon } from "lucide-react";
+import { Search, Filter, Receipt, FileText, CheckCircle, Clock, Pencil, ImageIcon, Cloud, CloudOff } from "lucide-react";
 import Link from "next/link";
 import { useTheme } from "@/contexts/ThemeContext";
 import PageHeader from "@/components/dashboard/PageHeader";
@@ -18,6 +18,7 @@ interface ReceiptRow {
   type: string;
   source: string;
   imageUrl?: string;
+  driveUploaded?: boolean;
 }
 
 const statusStyle: Record<string, string> = {
@@ -82,6 +83,16 @@ export default function ReceiptsClient({ receipts }: { receipts: ReceiptRow[] })
     { key: "category", label: "หมวดหมู่" },
     { key: "amount", label: "จำนวนเงิน", align: "right", render: (r) => <span className="font-semibold">฿{r.amount.toLocaleString()}</span> },
     { key: "date", label: "วันที่" },
+    {
+      key: "drive",
+      label: "Drive",
+      align: "center",
+      render: (r, isDark) => r.driveUploaded ? (
+        <Cloud size={16} className="text-green-500 mx-auto" />
+      ) : (
+        <CloudOff size={16} className={isDark ? "text-white/20 mx-auto" : "text-gray-300 mx-auto"} />
+      ),
+    },
     {
       key: "status",
       label: "สถานะ",
