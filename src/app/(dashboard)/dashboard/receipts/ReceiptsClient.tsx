@@ -68,6 +68,9 @@ export default function ReceiptsClient({ receipts: initialReceipts }: { receipts
   const [driveFilter, setDriveFilter] = useState("all");
   const [editingId, setEditingId] = useState<string | null>(null);
   const [editForm, setEditForm] = useState<Partial<ReceiptRow>>({});
+  const [editItems, setEditItems] = useState<LineItem[]>([]);
+  const [vatEnabled, setVatEnabled] = useState(false);
+  const [whtEnabled, setWhtEnabled] = useState(false);
 
   const filtered = useMemo(() => {
     return receipts.filter((r) => {
@@ -102,6 +105,9 @@ export default function ReceiptsClient({ receipts: initialReceipts }: { receipts
   const handleEdit = (r: ReceiptRow) => {
     setEditingId(r._id);
     setEditForm({ storeName: r.storeName, amount: r.amount, category: r.category, status: r.status, type: r.type, date: r.rawDate || r.date, source: r.source });
+    setEditItems(r.items && r.items.length > 0 ? [...r.items] : [{ name: r.storeName, qty: 1, price: r.amount }]);
+    setVatEnabled(false);
+    setWhtEnabled(false);
   };
 
   const handleSaveEdit = () => {
@@ -206,122 +212,124 @@ export default function ReceiptsClient({ receipts: initialReceipts }: { receipts
     <div className="space-y-6">
       {/* Slide-in edit panel from right */}
       {editingId && <div className="fixed inset-0 z-40 bg-black/60 backdrop-blur-sm transition-opacity" onClick={handleCancelEdit} />}
-      <div className={`fixed inset-y-0 right-0 z-50 w-[460px] max-w-[95vw] bg-[#0d0d0d] border-l border-white/10 shadow-2xl overflow-y-auto transition-transform duration-300 ease-out ${editingId ? "translate-x-0" : "translate-x-full"}`}>
-        {editingReceipt && (
+      <div className={`fixed inset-y-0 right-0 z-50 w-[540px] max-w-[95vw] bg-[#0a0a0a] border-l border-white/10 shadow-2xl overflow-y-auto transition-transform duration-300 ease-out ${editingId ? "translate-x-0" : "translate-x-full"}`}>
+        {editingReceipt && (() => {
+          const itemsTotal = editItems.reduce((s, it) => s + it.qty * it.price, 0);
+          const vatAmount = vatEnabled ? Math.round(itemsTotal * 0.07) : 0;
+          const whtAmount = whtEnabled ? Math.round(itemsTotal * 0.03) : 0;
+          const grandTotal = itemsTotal + vatAmount - whtAmount;
+          const inp = "w-full h-9 px-3 bg-white/5 border border-white/10 text-white rounded-lg text-sm focus:outline-none focus:border-[#FA3633]/50";
+          const lbl = "block text-xs text-white/40 mb-1";
+
+          return (
           <div className="p-6 space-y-5">
-            {/* Header */}
             <div className="flex items-center justify-between">
               <h2 className="text-lg font-bold text-white">แก้ไขใบเสร็จ</h2>
               <button onClick={handleCancelEdit} className="w-8 h-8 rounded-lg hover:bg-white/5 text-white/40 hover:text-white flex items-center justify-center text-xl transition-colors">&times;</button>
             </div>
 
-            {/* Receipt image / slip */}
-            <div className="w-full h-56 rounded-xl overflow-hidden bg-white/5 border border-white/10 flex items-center justify-center">
+            {/* Slip image */}
+            <div className="w-full h-52 rounded-xl overflow-hidden bg-white/5 border border-white/10 flex items-center justify-center">
               {editingReceipt.imageUrl ? (
                 <img src={editingReceipt.imageUrl} alt="" className="w-full h-full object-contain" />
               ) : (
-                <div className="text-center">
-                  <ImageIcon size={40} className="text-white/15 mx-auto mb-2" />
-                  <p className="text-xs text-white/30">ไม่มีรูปสลิป</p>
-                </div>
+                <div className="text-center"><ImageIcon size={36} className="text-white/15 mx-auto mb-2" /><p className="text-xs text-white/30">ไม่มีรูปสลิป</p></div>
               )}
             </div>
 
-            {/* Financial summary */}
-            <div className="rounded-xl bg-white/5 border border-white/10 p-4 space-y-3">
-              <p className="text-xs font-semibold text-white/60">ข้อมูลการเงิน</p>
-              <div className="flex items-center justify-between">
-                <span className="text-sm text-white/50">ยอดรวม</span>
-                <span className="text-xl font-bold text-white">฿{(editForm.amount || 0).toLocaleString()}</span>
-              </div>
-              <div className="flex items-center justify-between">
-                <span className="text-sm text-white/50">วิธีจ่าย</span>
-                <span className="text-sm text-white">{editingReceipt.source || "-"}</span>
-              </div>
-              <div className="flex items-center justify-between">
-                <span className="text-sm text-white/50">สถานะ</span>
-                <span className={`px-2.5 py-1 rounded-lg text-xs font-medium ${statusStyle[editingReceipt.status] || statusStyle.pending}`}>{statusLabel[editingReceipt.status] || editingReceipt.status}</span>
-              </div>
-              <div className="flex items-center justify-between">
-                <span className="text-sm text-white/50">Drive</span>
-                <span className="flex items-center gap-1.5 text-sm">{editingReceipt.driveUploaded ? <><Cloud size={14} className="text-green-500" /> <span className="text-green-400">อัปโหลดแล้ว</span></> : <><CloudOff size={14} className="text-white/20" /> <span className="text-white/30">ยังไม่อัปโหลด</span></>}</span>
-              </div>
-            </div>
-
-            {/* Line items — split payment */}
-            <div className="rounded-xl bg-white/5 border border-white/10 p-4 space-y-3">
-              <div className="flex items-center justify-between">
-                <p className="text-xs font-semibold text-white/60">รายการในใบเสร็จ</p>
-                <span className="text-[10px] text-white/30">{(editingReceipt.items || [{ name: editingReceipt.storeName, qty: 1, price: editingReceipt.amount }]).length} รายการ</span>
-              </div>
-              {(editingReceipt.items && editingReceipt.items.length > 0 ? editingReceipt.items : [{ name: editingReceipt.storeName, qty: 1, price: editingReceipt.amount }]).map((item, i) => (
-                <div key={i} className="flex items-center justify-between py-1.5">
-                  <div className="flex items-center gap-2">
-                    <span className="w-5 h-5 rounded text-[10px] font-medium bg-white/5 text-white/40 flex items-center justify-center">{i + 1}</span>
-                    <span className="text-sm text-white/80">{item.name}</span>
-                  </div>
-                  <div className="flex items-center gap-3">
-                    <span className="text-xs text-white/30">x{item.qty}</span>
-                    <span className="text-sm font-medium text-white">฿{item.price.toLocaleString()}</span>
-                  </div>
-                </div>
-              ))}
-              <div className="flex justify-between pt-2 border-t border-white/10">
-                <span className="text-sm font-semibold text-white/60">รวม</span>
-                <span className="text-sm font-bold text-white">฿{editingReceipt.amount.toLocaleString()}</span>
-              </div>
-            </div>
-
             {/* Edit form */}
-            <div className="space-y-4">
-              <p className="text-xs font-semibold text-white/60">แก้ไขข้อมูล</p>
-              <div>
-                <label className="block text-xs text-white/40 mb-1.5">ร้านค้า</label>
-                <input value={editForm.storeName || ""} onChange={(e) => setEditForm({ ...editForm, storeName: e.target.value })} className="w-full h-10 px-3 bg-white/5 border border-white/10 text-white rounded-lg text-sm focus:outline-none focus:border-[#FA3633]/50" />
+            <div className="rounded-xl bg-white/[0.03] border border-white/10 p-4 space-y-3">
+              <p className="text-xs font-semibold text-white/50">ข้อมูลใบเสร็จ</p>
+              <div><label className={lbl}>ร้านค้า</label><input value={editForm.storeName || ""} onChange={(e) => setEditForm({ ...editForm, storeName: e.target.value })} className={inp} /></div>
+              <div><label className={lbl}>รายละเอียด</label><textarea rows={2} defaultValue="" placeholder="หมายเหตุ, รายละเอียดเพิ่มเติม..." className={`${inp} h-auto py-2`} /></div>
+              <div className="grid grid-cols-2 gap-3">
+                <div><label className={lbl}>วันที่</label><input type="date" value={editForm.date || ""} onChange={(e) => setEditForm({ ...editForm, date: e.target.value })} className={inp} /></div>
+                <div><label className={lbl}>แหล่งที่มา</label><input value={editForm.source || ""} onChange={(e) => setEditForm({ ...editForm, source: e.target.value })} className={inp} /></div>
               </div>
               <div className="grid grid-cols-2 gap-3">
-                <div>
-                  <label className="block text-xs text-white/40 mb-1.5">จำนวนเงิน</label>
-                  <input type="number" value={editForm.amount || 0} onChange={(e) => setEditForm({ ...editForm, amount: Number(e.target.value) })} className="w-full h-10 px-3 bg-white/5 border border-white/10 text-white rounded-lg text-sm focus:outline-none focus:border-[#FA3633]/50" />
-                </div>
-                <div>
-                  <label className="block text-xs text-white/40 mb-1.5">วันที่</label>
-                  <input type="date" value={editForm.date || ""} onChange={(e) => setEditForm({ ...editForm, date: e.target.value })} className="w-full h-10 px-3 bg-white/5 border border-white/10 text-white rounded-lg text-sm focus:outline-none focus:border-[#FA3633]/50" />
-                </div>
-              </div>
-              <div>
-                <label className="block text-xs text-white/40 mb-1.5">หมวดหมู่</label>
-                <input value={editForm.category || ""} onChange={(e) => setEditForm({ ...editForm, category: e.target.value })} className="w-full h-10 px-3 bg-white/5 border border-white/10 text-white rounded-lg text-sm focus:outline-none focus:border-[#FA3633]/50" />
-              </div>
-              <div className="grid grid-cols-2 gap-3">
-                <div>
-                  <label className="block text-xs text-white/40 mb-1.5">สถานะ</label>
-                  <select value={editForm.status || "pending"} onChange={(e) => setEditForm({ ...editForm, status: e.target.value })} className="w-full h-10 px-3 bg-white/5 border border-white/10 text-white rounded-lg text-sm focus:outline-none">
-                    <option value="confirmed">ยืนยันแล้ว</option>
-                    <option value="pending">รอตรวจสอบ</option>
-                    <option value="rejected">ปฏิเสธ</option>
-                  </select>
-                </div>
-                <div>
-                  <label className="block text-xs text-white/40 mb-1.5">ประเภท</label>
-                  <select value={editForm.type || "receipt"} onChange={(e) => setEditForm({ ...editForm, type: e.target.value })} className="w-full h-10 px-3 bg-white/5 border border-white/10 text-white rounded-lg text-sm focus:outline-none">
-                    {Object.entries(typeLabel).map(([k, v]) => <option key={k} value={k}>{v}</option>)}
+                <div><label className={lbl}>หมวดหมู่</label><input value={editForm.category || ""} onChange={(e) => setEditForm({ ...editForm, category: e.target.value })} className={inp} /></div>
+                <div><label className={lbl}>สถานะ</label>
+                  <select value={editForm.status || "pending"} onChange={(e) => setEditForm({ ...editForm, status: e.target.value })} className={inp}>
+                    <option value="confirmed">ยืนยันแล้ว</option><option value="pending">รอตรวจสอบ</option><option value="rejected">ปฏิเสธ</option>
                   </select>
                 </div>
               </div>
-              <div>
-                <label className="block text-xs text-white/40 mb-1.5">แหล่งที่มา</label>
-                <input value={editForm.source || ""} onChange={(e) => setEditForm({ ...editForm, source: e.target.value })} className="w-full h-10 px-3 bg-white/5 border border-white/10 text-white rounded-lg text-sm focus:outline-none focus:border-[#FA3633]/50" />
+              <div><label className={lbl}>ประเภท</label>
+                <select value={editForm.type || "receipt"} onChange={(e) => setEditForm({ ...editForm, type: e.target.value })} className={inp}>
+                  {Object.entries(typeLabel).map(([k, v]) => <option key={k} value={k}>{v}</option>)}
+                </select>
               </div>
+            </div>
+
+            {/* Line items — add/remove */}
+            <div className="rounded-xl bg-white/[0.03] border border-white/10 p-4 space-y-3">
+              <div className="flex items-center justify-between">
+                <p className="text-xs font-semibold text-white/50">รายการสินค้า/บริการ</p>
+                <button onClick={() => setEditItems([...editItems, { name: "", qty: 1, price: 0 }])} className="px-2.5 py-1 rounded-lg text-[11px] font-medium bg-green-500/10 text-green-400 hover:bg-green-500/20 transition-colors">+ เพิ่มรายการ</button>
+              </div>
+              <div className="space-y-2">
+                {editItems.map((item, i) => (
+                  <div key={i} className="flex items-center gap-2">
+                    <span className="w-5 h-5 rounded text-[10px] font-medium bg-white/5 text-white/30 flex items-center justify-center shrink-0">{i + 1}</span>
+                    <input value={item.name} onChange={(e) => { const n = [...editItems]; n[i] = { ...n[i], name: e.target.value }; setEditItems(n); }} placeholder="ชื่อรายการ" className="flex-1 h-8 px-2 bg-white/5 border border-white/10 text-white rounded text-xs focus:outline-none focus:border-[#FA3633]/50" />
+                    <input type="number" value={item.qty} onChange={(e) => { const n = [...editItems]; n[i] = { ...n[i], qty: Number(e.target.value) }; setEditItems(n); }} className="w-12 h-8 px-2 bg-white/5 border border-white/10 text-white rounded text-xs text-center focus:outline-none" />
+                    <input type="number" value={item.price} onChange={(e) => { const n = [...editItems]; n[i] = { ...n[i], price: Number(e.target.value) }; setEditItems(n); }} placeholder="ราคา" className="w-20 h-8 px-2 bg-white/5 border border-white/10 text-white rounded text-xs text-right focus:outline-none" />
+                    {editItems.length > 1 && (
+                      <button onClick={() => setEditItems(editItems.filter((_, j) => j !== i))} className="w-7 h-7 rounded hover:bg-red-500/10 text-white/20 hover:text-red-400 flex items-center justify-center transition-colors shrink-0"><Trash2 size={12} /></button>
+                    )}
+                  </div>
+                ))}
+              </div>
+              <div className="border-t border-white/10 pt-3 space-y-2">
+                <div className="flex justify-between text-sm"><span className="text-white/40">รวมสินค้า</span><span className="text-white font-medium">฿{itemsTotal.toLocaleString()}</span></div>
+              </div>
+            </div>
+
+            {/* VAT / WHT */}
+            <div className="rounded-xl bg-white/[0.03] border border-white/10 p-4 space-y-3">
+              <p className="text-xs font-semibold text-white/50">ภาษี</p>
+              <label className="flex items-center justify-between cursor-pointer py-1">
+                <div><p className="text-sm text-white">ภาษีมูลค่าเพิ่ม (VAT 7%)</p><p className="text-xs text-white/30">คำนวณ VAT จากยอดรวมสินค้า</p></div>
+                <button onClick={() => setVatEnabled(!vatEnabled)} className={`w-11 h-6 rounded-full transition-colors relative ${vatEnabled ? "bg-[#FA3633]" : "bg-white/10"}`}><div className={`w-5 h-5 rounded-full bg-white absolute top-0.5 transition-transform ${vatEnabled ? "translate-x-[22px]" : "translate-x-0.5"}`} /></button>
+              </label>
+              {vatEnabled && (
+                <div className="flex justify-between text-sm pl-1"><span className="text-white/40">VAT 7%</span><span className="text-blue-400 font-medium">+฿{vatAmount.toLocaleString()}</span></div>
+              )}
+              <label className="flex items-center justify-between cursor-pointer py-1">
+                <div><p className="text-sm text-white">ภาษีหัก ณ ที่จ่าย (WHT 3%)</p><p className="text-xs text-white/30">หักภาษี ณ ที่จ่ายจากยอดรวม</p></div>
+                <button onClick={() => setWhtEnabled(!whtEnabled)} className={`w-11 h-6 rounded-full transition-colors relative ${whtEnabled ? "bg-[#FA3633]" : "bg-white/10"}`}><div className={`w-5 h-5 rounded-full bg-white absolute top-0.5 transition-transform ${whtEnabled ? "translate-x-[22px]" : "translate-x-0.5"}`} /></button>
+              </label>
+              {whtEnabled && (
+                <div className="flex justify-between text-sm pl-1"><span className="text-white/40">WHT 3%</span><span className="text-orange-400 font-medium">-฿{whtAmount.toLocaleString()}</span></div>
+              )}
+            </div>
+
+            {/* Grand total */}
+            <div className="rounded-xl bg-[#FA3633]/10 border border-[#FA3633]/20 p-4">
+              <div className="flex items-center justify-between">
+                <span className="text-sm font-semibold text-white/70">ยอดสุทธิ</span>
+                <span className="text-2xl font-bold text-white">฿{grandTotal.toLocaleString()}</span>
+              </div>
+              {(vatEnabled || whtEnabled) && (
+                <p className="text-[11px] text-white/30 mt-1">สินค้า ฿{itemsTotal.toLocaleString()}{vatEnabled ? ` + VAT ฿${vatAmount.toLocaleString()}` : ""}{whtEnabled ? ` - WHT ฿${whtAmount.toLocaleString()}` : ""}</p>
+              )}
+            </div>
+
+            {/* Financial info */}
+            <div className="rounded-xl bg-white/[0.03] border border-white/10 p-4 space-y-2">
+              <p className="text-xs font-semibold text-white/50">ข้อมูลเพิ่มเติม</p>
+              <div className="flex justify-between text-sm"><span className="text-white/40">วิธีจ่าย</span><span className="text-white">{editingReceipt.source || "-"}</span></div>
+              <div className="flex justify-between text-sm"><span className="text-white/40">Drive</span><span className="flex items-center gap-1.5">{editingReceipt.driveUploaded ? <><Cloud size={14} className="text-green-500" /><span className="text-green-400 text-xs">อัปโหลดแล้ว</span></> : <><CloudOff size={14} className="text-white/20" /><span className="text-white/30 text-xs">ยังไม่อัปโหลด</span></>}</span></div>
             </div>
 
             {/* Actions */}
-            <div className="flex gap-2 pt-2 sticky bottom-0 pb-6">
-              <button onClick={handleSaveEdit} className="flex-1 py-2.5 rounded-xl text-sm font-medium bg-[#FA3633] text-white hover:bg-[#e0302d] transition-colors">บันทึก</button>
+            <div className="flex gap-2 pt-2 sticky bottom-0 pb-6 bg-[#0a0a0a]">
+              <button onClick={() => { setEditForm({ ...editForm, amount: grandTotal }); handleSaveEdit(); }} className="flex-1 py-2.5 rounded-xl text-sm font-medium bg-[#FA3633] text-white hover:bg-[#e0302d] transition-colors">บันทึก</button>
               <button onClick={handleCancelEdit} className="flex-1 py-2.5 rounded-xl text-sm font-medium bg-white/5 text-white/60 hover:bg-white/10 transition-colors">ยกเลิก</button>
             </div>
           </div>
-        )}
+          );
+        })()}
       </div>
 
       <PageHeader title="ใบเสร็จทั้งหมด" description={`${filtered.length} รายการ — รวม ฿${totalAmount.toLocaleString()}`} />
