@@ -2,6 +2,7 @@
 import { useState } from "react";
 import { useTheme } from "@/contexts/ThemeContext";
 import { Trash2, Receipt, Calculator, FileText } from "lucide-react";
+import StatsCard from "@/components/dashboard/StatsCard";
 import PageHeader from "@/components/dashboard/PageHeader";
 import DataTable, { Column } from "@/components/dashboard/DataTable";
 
@@ -44,13 +45,10 @@ export default function Page() {
     <div className="space-y-6">
       <PageHeader title="VAT / WHT" description="จัดการภาษีมูลค่าเพิ่มและภาษีหัก ณ ที่จ่าย" onClear={clearDemo} />
 
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-        {vatCards.map((c) => (
-          <div key={c.label} className={card}>
-            <div className="flex items-center gap-3 mb-2"><c.icon size={20} className={c.color} /><span className={sub}>{c.label}</span></div>
-            <p className="text-2xl font-bold">฿{c.value.toLocaleString()}</p>
-          </div>
-        ))}
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+        <StatsCard label="ภาษีขาย" value={`฿${vat.sales.toLocaleString()}`} icon={<Receipt size={20} />} color="text-blue-500" />
+        <StatsCard label="ภาษีซื้อ" value={`฿${vat.purchase.toLocaleString()}`} icon={<FileText size={20} />} color="text-orange-500" />
+        <StatsCard label="VAT สุทธิ" value={`฿${vat.net.toLocaleString()}`} icon={<Calculator size={20} />} color="text-green-500" />
       </div>
 
       <DataTable columns={columns} data={wht} rowKey={(r) => r.id} />
