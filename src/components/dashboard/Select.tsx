@@ -27,7 +27,7 @@ export default function Select({ value, onChange, options, placeholder = "เล
   const inputRef = useRef<HTMLInputElement>(null);
 
   // Auto-enable search when > 6 options
-  const showSearch = searchable ?? options.length > 6;
+  const showSearch = searchable ?? true;
 
   useEffect(() => {
     function handleClick(e: MouseEvent) {
