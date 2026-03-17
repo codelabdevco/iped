@@ -339,8 +339,8 @@ export default function DashboardClient({ data: initialData }: { data: Dashboard
 
   return (
     <div className="space-y-6">
-      {/* Onboarding */}
       <OnboardingChecklist />
+      {/* Onboarding */}
 
       {/* Header + Date Filter + Export */}
       <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">

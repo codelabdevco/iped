@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect } from "react";
 import { usePathname } from "next/navigation";
 import Link from "next/link";
 import {
@@ -19,9 +19,6 @@ interface Step {
   href: string;
 }
 
-/* ──────────────────────────────
-   Steps per mode
-   ────────────────────────────── */
 const personalSteps: Step[] = [
   { id: "line", label: "เชื่อมต่อ LINE", description: "Login + รับแจ้งเตือนผ่าน LINE", icon: MessageCircle, href: "/dashboard/line-bot" },
   { id: "mode", label: "เลือกโหมดใช้งาน", description: "เลือกโหมดส่วนตัว", icon: UserRoundCog, href: "/dashboard/settings" },
@@ -50,7 +47,6 @@ const businessSteps: Step[] = [
   { id: "b-accounting", label: "เชื่อมโปรแกรมบัญชี", description: "เชื่อมกับซอฟต์แวร์บัญชีที่ใช้อยู่", icon: FileSpreadsheet, href: "/dashboard/accounting" },
 ];
 
-/* Map step → auto-complete trigger (href that completes the step) */
 const stepTriggers: Record<string, string[]> = {
   "line": ["/dashboard/line-bot"],
   "mode": ["/dashboard/settings"],
@@ -71,24 +67,6 @@ const stepTriggers: Record<string, string[]> = {
 
 const STORAGE_KEY = "iped-onboarding";
 
-function loadCompleted(): string[] {
-  if (typeof window === "undefined") return [];
-  try {
-    const raw = localStorage.getItem(STORAGE_KEY);
-    if (raw) return JSON.parse(raw);
-  } catch {}
-  return [];
-}
-
-function saveCompleted(ids: string[]) {
-  localStorage.setItem(STORAGE_KEY, JSON.stringify(ids));
-}
-
-function isDismissed(): boolean {
-  if (typeof window === "undefined") return false;
-  return localStorage.getItem("iped-onboarding-dismissed") === "true";
-}
-
 export default function OnboardingChecklist() {
   const { isDark } = useTheme();
   const pathname = usePathname();
@@ -96,28 +74,39 @@ export default function OnboardingChecklist() {
   const [dismissed, setDismissed] = useState(false);
   const [expanded, setExpanded] = useState(true);
   const [mounted, setMounted] = useState(false);
+  const [mode, setMode] = useState<"personal" | "business">("personal");
 
-  const mode = (typeof window !== "undefined" ? localStorage.getItem("iped-mode") : null) || "personal";
-  const steps = mode === "business" ? businessSteps : personalSteps;
-
+  // All localStorage reads happen inside useEffect only
   useEffect(() => {
-    setCompleted(loadCompleted());
-    setDismissed(isDismissed());
+    try {
+      const savedMode = localStorage.getItem("iped-mode");
+      if (savedMode === "business") setMode("business");
+
+      const raw = localStorage.getItem(STORAGE_KEY);
+      if (raw) setCompleted(JSON.parse(raw));
+
+      const dis = localStorage.getItem("iped-onboarding-dismissed");
+      if (dis === "true") setDismissed(true);
+    } catch {}
     setMounted(true);
   }, []);
 
-  /* Auto-complete: "เลือกโหมดใช้งาน" when mode is set */
+  const steps = mode === "business" ? businessSteps : personalSteps;
+
+  // Auto-complete: "เลือกโหมดใช้งาน" when mode is set
   useEffect(() => {
     if (!mounted) return;
-    const stored = localStorage.getItem("iped-mode");
-    if (stored && !completed.includes("mode")) {
-      const next = [...completed, "mode"];
-      setCompleted(next);
-      saveCompleted(next);
-    }
+    try {
+      const stored = localStorage.getItem("iped-mode");
+      if (stored && !completed.includes("mode")) {
+        const next = [...completed, "mode"];
+        setCompleted(next);
+        localStorage.setItem(STORAGE_KEY, JSON.stringify(next));
+      }
+    } catch {}
   }, [mounted, completed]);
 
-  /* Auto-complete: when user visits a page that matches a step trigger */
+  // Auto-complete: when user visits a page that matches a step trigger
   useEffect(() => {
     if (!mounted || !pathname) return;
     const newCompleted = [...completed];
@@ -134,7 +123,7 @@ export default function OnboardingChecklist() {
 
     if (changed) {
       setCompleted(newCompleted);
-      saveCompleted(newCompleted);
+      try { localStorage.setItem(STORAGE_KEY, JSON.stringify(newCompleted)); } catch {}
     }
   }, [pathname, mounted, steps, completed]);
 
@@ -145,12 +134,12 @@ export default function OnboardingChecklist() {
 
   const dismiss = () => {
     setDismissed(true);
-    localStorage.setItem("iped-onboarding-dismissed", "true");
+    try { localStorage.setItem("iped-onboarding-dismissed", "true"); } catch {}
   };
 
   const restore = () => {
     setDismissed(false);
-    localStorage.removeItem("iped-onboarding-dismissed");
+    try { localStorage.removeItem("iped-onboarding-dismissed"); } catch {}
   };
 
   if (!mounted) return null;
@@ -176,13 +165,10 @@ export default function OnboardingChecklist() {
   const txt = isDark ? "text-white" : "text-gray-900";
   const txtSub = isDark ? "text-white/50" : "text-gray-500";
   const txtMuted = isDark ? "text-white/30" : "text-gray-400";
-
-  /* Split steps into common (first 7) and mode-specific (rest) */
   const commonCount = 7;
 
   return (
     <div className={`${card} border ${border} rounded-2xl overflow-hidden`}>
-      {/* Header */}
       <div className="p-5 flex items-center justify-between">
         <div className="flex items-center gap-3 flex-1 min-w-0">
           <div className="w-9 h-9 rounded-xl bg-[#FA3633]/10 flex items-center justify-center shrink-0">
@@ -198,125 +184,52 @@ export default function OnboardingChecklist() {
           </div>
         </div>
         <div className="flex items-center gap-2">
-          <button
-            onClick={() => setExpanded(!expanded)}
-            className={`p-1.5 rounded-lg transition-colors ${
-              isDark ? "hover:bg-white/5 text-white/40" : "hover:bg-gray-100 text-gray-400"
-            }`}
-          >
+          <button onClick={() => setExpanded(!expanded)} className={`p-1.5 rounded-lg transition-colors ${isDark ? "hover:bg-white/5 text-white/40" : "hover:bg-gray-100 text-gray-400"}`}>
             {expanded ? <ChevronUp size={16} /> : <ChevronDown size={16} />}
           </button>
-          <button
-            onClick={dismiss}
-            className={`p-1.5 rounded-lg transition-colors ${
-              isDark ? "hover:bg-white/5 text-white/40" : "hover:bg-gray-100 text-gray-400"
-            }`}
-          >
+          <button onClick={dismiss} className={`p-1.5 rounded-lg transition-colors ${isDark ? "hover:bg-white/5 text-white/40" : "hover:bg-gray-100 text-gray-400"}`}>
             <X size={16} />
           </button>
         </div>
       </div>
 
-      {/* Progress bar */}
       <div className="px-5 pb-3">
-        <div
-          className="h-1.5 rounded-full overflow-hidden"
-          style={{ background: isDark ? "rgba(255,255,255,0.06)" : "rgba(0,0,0,0.06)" }}
-        >
-          <div
-            className="h-full rounded-full transition-all duration-500 ease-out"
-            style={{
-              width: `${progress}%`,
-              background: allDone
-                ? "linear-gradient(90deg, #22c55e, #16a34a)"
-                : "linear-gradient(90deg, #FA3633, #f97316)",
-            }}
-          />
+        <div className="h-1.5 rounded-full overflow-hidden" style={{ background: isDark ? "rgba(255,255,255,0.06)" : "rgba(0,0,0,0.06)" }}>
+          <div className="h-full rounded-full transition-all duration-500 ease-out" style={{ width: `${progress}%`, background: allDone ? "linear-gradient(90deg, #22c55e, #16a34a)" : "linear-gradient(90deg, #FA3633, #f97316)" }} />
         </div>
       </div>
 
-      {/* Steps */}
       {expanded && (
         <div className="px-3 pb-4 space-y-0.5">
           {steps.map((step, i) => {
             const Icon = step.icon;
             const done = completed.includes(step.id);
-            const isModeHeader = i === commonCount;
-
             return (
               <div key={step.id}>
-                {/* Section divider */}
                 {i === 0 && (
                   <div className="flex items-center gap-2 px-3 pt-1 pb-1.5">
-                    <span className={`text-[10px] font-bold uppercase tracking-widest ${txtMuted}`}>
-                      ตั้งค่าพื้นฐาน
-                    </span>
+                    <span className={`text-[10px] font-bold uppercase tracking-widest ${txtMuted}`}>ตั้งค่าพื้นฐาน</span>
                     <div className={`flex-1 h-px ${isDark ? "bg-white/5" : "bg-gray-100"}`} />
                   </div>
                 )}
-                {isModeHeader && (
+                {i === commonCount && (
                   <div className="flex items-center gap-2 px-3 pt-3 pb-1.5">
-                    <span className={`text-[10px] font-bold uppercase tracking-widest ${txtMuted}`}>
-                      {mode === "business" ? "ตั้งค่าบริษัท" : "ตั้งค่าส่วนตัว"}
-                    </span>
+                    <span className={`text-[10px] font-bold uppercase tracking-widest ${txtMuted}`}>{mode === "business" ? "ตั้งค่าบริษัท" : "ตั้งค่าส่วนตัว"}</span>
                     <div className={`flex-1 h-px ${isDark ? "bg-white/5" : "bg-gray-100"}`} />
                   </div>
                 )}
-
-                <Link
-                  href={step.href}
-                  className={`flex items-center gap-3 px-3 py-2.5 rounded-xl transition-all group ${
-                    done
-                      ? isDark ? "bg-green-500/5" : "bg-green-50"
-                      : isDark ? "hover:bg-white/3" : "hover:bg-gray-50"
-                  }`}
-                >
-                  {/* Auto-tick indicator */}
-                  <div
-                    className={`w-5 h-5 rounded-md border-2 flex items-center justify-center shrink-0 transition-all ${
-                      done
-                        ? "bg-green-500 border-green-500"
-                        : isDark
-                          ? "border-white/20 group-hover:border-white/40"
-                          : "border-gray-300 group-hover:border-gray-400"
-                    }`}
-                  >
+                <Link href={step.href} className={`flex items-center gap-3 px-3 py-2.5 rounded-xl transition-all group ${done ? isDark ? "bg-green-500/5" : "bg-green-50" : isDark ? "hover:bg-white/3" : "hover:bg-gray-50"}`}>
+                  <div className={`w-5 h-5 rounded-md border-2 flex items-center justify-center shrink-0 transition-all ${done ? "bg-green-500 border-green-500" : isDark ? "border-white/20 group-hover:border-white/40" : "border-gray-300 group-hover:border-gray-400"}`}>
                     {done && <Check size={12} className="text-white" strokeWidth={3} />}
                   </div>
-
-                  {/* Icon */}
-                  <div
-                    className={`w-8 h-8 rounded-lg flex items-center justify-center shrink-0 transition-all ${
-                      done
-                        ? isDark ? "bg-green-500/10 text-green-400" : "bg-green-100 text-green-600"
-                        : isDark ? "bg-white/5 text-white/40 group-hover:text-white/60" : "bg-gray-100 text-gray-400 group-hover:text-gray-600"
-                    }`}
-                  >
+                  <div className={`w-8 h-8 rounded-lg flex items-center justify-center shrink-0 transition-all ${done ? isDark ? "bg-green-500/10 text-green-400" : "bg-green-100 text-green-600" : isDark ? "bg-white/5 text-white/40 group-hover:text-white/60" : "bg-gray-100 text-gray-400 group-hover:text-gray-600"}`}>
                     <Icon size={16} />
                   </div>
-
-                  {/* Text */}
                   <div className="flex-1 min-w-0">
-                    <p
-                      className={`text-[13px] font-medium transition-all ${
-                        done
-                          ? isDark ? "text-green-400 line-through decoration-green-400/30" : "text-green-700 line-through decoration-green-300"
-                          : txt
-                      }`}
-                    >
-                      {step.label}
-                    </p>
-                    <p className={`text-[11px] ${txtSub} mt-0.5 truncate`}>
-                      {step.description}
-                    </p>
+                    <p className={`text-[13px] font-medium transition-all ${done ? isDark ? "text-green-400 line-through decoration-green-400/30" : "text-green-700 line-through decoration-green-300" : txt}`}>{step.label}</p>
+                    <p className={`text-[11px] ${txtSub} mt-0.5 truncate`}>{step.description}</p>
                   </div>
-
-                  {/* Auto badge */}
-                  {done && (
-                    <span className={`text-[10px] font-medium px-2 py-0.5 rounded-full ${isDark ? "bg-green-500/10 text-green-400" : "bg-green-100 text-green-600"}`}>
-                      auto
-                    </span>
-                  )}
+                  {done && <span className={`text-[10px] font-medium px-2 py-0.5 rounded-full ${isDark ? "bg-green-500/10 text-green-400" : "bg-green-100 text-green-600"}`}>auto</span>}
                 </Link>
               </div>
             );
