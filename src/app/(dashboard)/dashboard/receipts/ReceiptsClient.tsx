@@ -205,10 +205,8 @@ export default function ReceiptsClient({ receipts: initialReceipts }: { receipts
   return (
     <div className="space-y-6">
       {/* Slide-in edit panel from left */}
-      {editingId && (
-        <>
-          <div className="fixed inset-0 z-40 bg-black/50" onClick={handleCancelEdit} />
-          <div className={`fixed inset-y-0 left-0 z-50 w-[400px] max-w-[90vw] ${card} border-r ${border} shadow-2xl overflow-y-auto transition-transform`}>
+      {editingId && <div className="fixed inset-0 z-40 bg-black/50 transition-opacity" onClick={handleCancelEdit} />}
+      <div className={`fixed inset-y-0 right-0 z-50 w-[400px] max-w-[90vw] ${card} border-l ${border} shadow-2xl overflow-y-auto transition-transform duration-300 ease-out ${editingId ? "translate-x-0" : "translate-x-full"}`}>
             <div className="p-6 space-y-5">
               <div className="flex items-center justify-between">
                 <h2 className={`text-lg font-bold ${txt}`}>แก้ไขใบเสร็จ</h2>
@@ -268,8 +266,7 @@ export default function ReceiptsClient({ receipts: initialReceipts }: { receipts
               </div>
             </div>
           </div>
-        </>
-      )}
+      </div>
 
       <PageHeader title="ใบเสร็จทั้งหมด" description={`${filtered.length} รายการ — รวม ฿${totalAmount.toLocaleString()}`} />
 
