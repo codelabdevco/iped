@@ -1,14 +1,12 @@
 "use client";
-
-import { useState, useRef } from "react";
+import { useState, useRef, useCallback, useEffect } from "react";
 import { useTheme } from "@/contexts/ThemeContext";
 import {
-  TrendingUp,
-  Receipt,
-  Calculator,
-  FolderOpen,
+  TrendingUp, Receipt, Calculator, FolderOpen,
+  Download, AlertTriangle, X, FileText, Table,
 } from "lucide-react";
 import GoalsSection from "./GoalsSection";
+import DateRangePicker from "./DateRangePicker";
 
 interface DashboardData {
   totalAmount: number;
@@ -19,32 +17,22 @@ interface DashboardData {
   monthlyData: { month: string; categories: Record<string, number>; total: number }[];
   categoryData: Record<string, number>;
   recentReceipts: {
-    _id: string;
-    storeName: string;
-    type: string;
-    category: string;
-    amount: number;
-    date: string;
-    status: string;
+    _id: string; storeName: string; type: string; category: string;
+    amount: number; date: string; status: string;
   }[];
 }
 
 const CATEGORY_COLORS: Record<string, string> = {
-  "ช็อปปิ้ง": "#818CF8",
-  "อาหาร": "#FB923C",
-  "เดินทาง": "#60A5FA",
-  "สาธารณูปโภค": "#F472B6",
-  "ของใช้ในบ้าน": "#C084FC",
-  "สุขภาพ": "#34D399",
-  "การศึกษา": "#FBBF24",
-  "บันเทิง": "#F87171",
-  "ไม่ระบุ": "#9CA3AF",
+  "ช็อปปิ้ง": "#818CF8", "อาหาร": "#FB923C", "เดินทาง": "#60A5FA",
+  "สาธารณูปโภค": "#F472B6", "ของใช้ในบ้าน": "#C084FC", "สุขภาพ": "#34D399",
+  "การศึกษา": "#FBBF24", "บันเทิง": "#F87171", "ไม่ระบุ": "#9CA3AF",
 };
+const FALLBACK_COLORS = ["#818CF8","#FB923C","#60A5FA","#F472B6","#C084FC","#34D399","#FBBF24","#F87171","#2DD4BF","#A78BFA"];
 
-const FALLBACK_COLORS = [
-  "#818CF8", "#FB923C", "#60A5FA", "#F472B6", "#C084FC",
-  "#34D399", "#FBBF24", "#F87171", "#2DD4BF", "#A78BFA",
-];
+const BUDGET_LIMITS: Record<string, number> = {
+  "ช็อปปิ้ง": 20000, "อาหาร": 15000, "เดินทาง": 12000,
+  "สาธารณูปโภค": 10000, "ของใช้ในบ้าน": 8000,
+};
 
 function getCatColor(cat: string): string {
   if (CATEGORY_COLORS[cat]) return CATEGORY_COLORS[cat];
@@ -52,27 +40,82 @@ function getCatColor(cat: string): string {
   return FALLBACK_COLORS[idx];
 }
 
+/* ─── Export helpers ─── */
+function exportCSV(data: DashboardData) {
+  const BOM = "\uFEFF";
+  let csv = BOM + "ร้านค้า,ประเภท,หมวดหมู่,จำนวนเงิน,วันที่,สถานะ\n";
+  data.recentReceipts.forEach((r) => {
+    csv += `"${r.storeName}","${r.type}","${r.category}",${r.amount},"${r.date}","${r.status}"\n`;
+  });
+  csv += "\n\nสรุปหมวดหมู่\nหมวดหมู่,ยอดรวม\n";
+  Object.entries(data.categoryData).forEach(([cat, val]) => {
+    csv += `"${cat}",${val}\n`;
+  });
+  csv += `\nยอดรวม,${data.totalAmount}\nจำนวนใบเสร็จ,${data.receiptCount}\nเฉลี่ยต่อใบ,${data.avgPerReceipt}\n`;
+  const blob = new Blob([csv], { type: "text/csv;charset=utf-8;" });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement("a");
+  a.href = url;
+  a.download = `iPED-report-${new Date().toISOString().slice(0, 10)}.csv`;
+  a.click();
+  URL.revokeObjectURL(url);
+}
+
+function exportPDF(data: DashboardData) {
+  const cats = Object.entries(data.categoryData)
+    .sort((a, b) => b[1] - a[1])
+    .map(([cat, val]) => `<tr><td style="padding:8px 12px;border-bottom:1px solid #eee">${cat}</td><td style="padding:8px 12px;border-bottom:1px solid #eee;text-align:right">฿${val.toLocaleString()}</td></tr>`)
+    .join("");
+  const receipts = data.recentReceipts
+    .map((r) => `<tr><td style="padding:6px 10px;border-bottom:1px solid #eee">${r.storeName}</td><td style="padding:6px 10px;border-bottom:1px solid #eee">${r.category}</td><td style="padding:6px 10px;border-bottom:1px solid #eee;text-align:right">฿${r.amount.toLocaleString()}</td><td style="padding:6px 10px;border-bottom:1px solid #eee">${r.date}</td></tr>`)
+    .join("");
+  const html = `<!DOCTYPE html><html><head><meta charset="utf-8"><title>iPED Report</title>
+<style>body{font-family:'Sarabun',sans-serif;max-width:800px;margin:0 auto;padding:40px;color:#111}
+h1{color:#FA3633;margin-bottom:4px}h2{margin-top:32px;color:#333;border-bottom:2px solid #FA3633;padding-bottom:8px}
+table{width:100%;border-collapse:collapse;margin-top:12px}th{text-align:left;padding:8px 12px;background:#f8f8f8;font-weight:600}
+.stats{display:flex;gap:16px;margin:20px 0}.stat{flex:1;background:#f8f8f8;padding:16px;border-radius:12px;text-align:center}
+.stat-val{font-size:24px;font-weight:700;color:#FA3633}.stat-label{font-size:13px;color:#666;margin-top:4px}
+@media print{body{padding:20px}}</style></head><body>
+<h1>iPED</h1><p style="color:#666;margin-top:0">รายงานสรุปรายจ่าย — ${new Date().toLocaleDateString("th-TH",{day:"numeric",month:"long",year:"numeric"})}</p>
+<div class="stats"><div class="stat"><div class="stat-val">฿${data.totalAmount.toLocaleString()}</div><div class="stat-label">ยอดรวม</div></div>
+<div class="stat"><div class="stat-val">${data.receiptCount}</div><div class="stat-label">ใบเสร็จ</div></div>
+<div class="stat"><div class="stat-val">฿${data.avgPerReceipt.toLocaleString()}</div><div class="stat-label">เฉลี่ยต่อใบ</div></div>
+<div class="stat"><div class="stat-val">${data.categoryCount}</div><div class="stat-label">หมวดหมู่</div></div></div>
+<h2>สรุปตามหมวดหมู่</h2><table><tr><th>หมวดหมู่</th><th style="text-align:right">ยอดรวม</th></tr>${cats}</table>
+<h2>ใบเสร็จล่าสุด</h2><table><tr><th>ร้านค้า</th><th>หมวดหมู่</th><th style="text-align:right">จำนวนเงิน</th><th>วันที่</th></tr>${receipts}</table>
+<p style="text-align:center;color:#999;margin-top:40px;font-size:12px">สร้างโดย iPED — ระบบจัดการใบเสร็จอัจฉริยะ</p>
+</body></html>`;
+  const w = window.open("", "_blank");
+  if (w) { w.document.write(html); w.document.close(); setTimeout(() => w.print(), 500); }
+}
+
+/* ─── Budget Alert logic ─── */
+function getBudgetAlerts(categoryData: Record<string, number>): { cat: string; spent: number; budget: number; pct: number }[] {
+  const alerts: { cat: string; spent: number; budget: number; pct: number }[] = [];
+  Object.entries(BUDGET_LIMITS).forEach(([cat, budget]) => {
+    const spent = categoryData[cat] || 0;
+    const pct = (spent / budget) * 100;
+    if (pct >= 80) alerts.push({ cat, spent, budget, pct });
+  });
+  return alerts.sort((a, b) => b.pct - a.pct);
+}
+
+/* ─── Chart Section (unchanged logic) ─── */
 function ChartSection({
-  monthlyData,
-  categoryData,
+  monthlyData, categoryData,
 }: {
   monthlyData: DashboardData["monthlyData"];
   categoryData: Record<string, number>;
 }) {
   const { isDark } = useTheme();
   const [activeFilter, setActiveFilter] = useState("ทั้งหมด");
-  const [tooltip, setTooltip] = useState<{
-    category: string; amount: number; month: string; percent: string;
-  } | null>(null);
+  const [tooltip, setTooltip] = useState<{ category: string; amount: number; month: string; percent: string } | null>(null);
   const [tooltipPos, setTooltipPos] = useState({ x: 0, y: 0 });
   const chartRef = useRef<HTMLDivElement>(null);
 
   const CATEGORY_ORDER = ["ช็อปปิ้ง", "อาหาร", "เดินทาง", "สาธารณูปโภค", "ของใช้ในบ้าน"];
   const allCategories = Object.keys(categoryData || {});
-  const sortedCats = [
-    ...CATEGORY_ORDER.filter((c) => allCategories.includes(c)),
-    ...allCategories.filter((c) => !CATEGORY_ORDER.includes(c)),
-  ];
+  const sortedCats = [...CATEGORY_ORDER.filter((c) => allCategories.includes(c)), ...allCategories.filter((c) => !CATEGORY_ORDER.includes(c))];
 
   const filteredMonthly = monthlyData.map((m) => {
     if (activeFilter === "ทั้งหมด") return m;
@@ -82,7 +125,7 @@ function ChartSection({
   const maxVal = Math.max(...filteredMonthly.map((m) => m.total || 0), 1);
   const niceMax = Math.ceil(maxVal / 1000) * 1000 || 1000;
   const yTicks = [0, 0.25, 0.5, 0.75, 1].map((p) => Math.round(niceMax * p));
-  const fmt = (v: number) => v >= 1000 ? `฿${(v / 1000).toFixed(1)}k` : `฿${v}`;
+  const fmt = (v: number) => (v >= 1000 ? `฿${(v / 1000).toFixed(1)}k` : `฿${v}`);
   const yearTotal = Object.values(categoryData || {}).reduce((a: number, b: number) => a + b, 0);
 
   const handleMouseEnter = (e: React.MouseEvent, category: string, amount: number, month: string, total: number) => {
@@ -100,16 +143,13 @@ function ChartSection({
   return (
     <div className={`lg:col-span-2 ${card} rounded-2xl p-6 border border-[var(--color-border)]`}>
       <h3 className={`text-lg font-bold mb-5 ${maintext}`}>ภาพรวมค่าใช้จ่ายรายเดือน</h3>
-
       <div className="flex gap-2 mb-4 flex-wrap">
         {["ทั้งหมด", ...sortedCats].map((cat) => (
-          <button key={cat} onClick={() => setActiveFilter(cat)}
-            className={`px-3 py-1.5 rounded-full text-xs font-medium transition-all ${activeFilter === cat ? "bg-[#FA3633] text-white shadow-sm shadow-[#FA3633]/25" : isDark ? "bg-white/8 text-white/60 hover:bg-white/12" : "bg-gray-100 text-gray-500 hover:bg-gray-200"}`}>
+          <button key={cat} onClick={() => setActiveFilter(cat)} className={`px-3 py-1.5 rounded-full text-xs font-medium transition-all ${activeFilter === cat ? "bg-[#FA3633] text-white shadow-sm shadow-[#FA3633]/25" : isDark ? "bg-white/8 text-white/60 hover:bg-white/12" : "bg-gray-100 text-gray-500 hover:bg-gray-200"}`}>
             {cat}
           </button>
         ))}
       </div>
-
       <div className="flex gap-4 mb-5 flex-wrap">
         {(activeFilter === "ทั้งหมด" ? sortedCats : [activeFilter]).map((cat) => (
           <div key={cat} className="flex items-center gap-1.5">
@@ -118,20 +158,15 @@ function ChartSection({
           </div>
         ))}
       </div>
-
       <div ref={chartRef} className="relative" style={{ height: "380px" }}>
         <div className="absolute inset-0 flex">
           <div className="flex flex-col justify-between pr-3 py-0" style={{ width: "55px" }}>
-            {[...yTicks].reverse().map((v, i) => (
-              <span key={i} className={`text-[11px] text-right ${subtext}`}>{fmt(v)}</span>
-            ))}
+            {[...yTicks].reverse().map((v, i) => (<span key={i} className={`text-[11px] text-right ${subtext}`}>{fmt(v)}</span>))}
           </div>
-
           <div className="flex-1 relative">
             {[0, 0.25, 0.5, 0.75, 1].map((p, i) => (
               <div key={i} className={`absolute left-0 right-0 border-t ${isDark ? "border-white/5" : "border-gray-100"}`} style={{ top: `${(1 - p) * 100}%` }} />
             ))}
-
             <div className="absolute inset-0 flex items-end justify-around px-1 pb-7">
               {filteredMonthly.map((m, idx) => {
                 const barH = niceMax > 0 ? ((m.total || 0) / niceMax) * 100 : 0;
@@ -158,7 +193,6 @@ function ChartSection({
             </div>
           </div>
         </div>
-
         {tooltip && (
           <div className="absolute z-50 pointer-events-none" style={{ left: tooltipPos.x, top: tooltipPos.y, transform: "translate(-50%, -100%)" }}>
             <div className={`px-3 py-2.5 rounded-xl text-xs whitespace-nowrap backdrop-blur-sm ${isDark ? "bg-[#2a2a2a]/95 text-white border border-white/10 shadow-xl shadow-black/40" : "bg-white/95 text-gray-900 border border-gray-200 shadow-xl shadow-black/10"}`}>
@@ -175,7 +209,6 @@ function ChartSection({
           </div>
         )}
       </div>
-
       <div className="mt-6 pt-5 border-t border-[var(--color-border)]">
         <h4 className={`text-sm font-medium mb-3 ${subtext}`}>สัดส่วนหมวดหมู่ (ทั้งปี)</h4>
         <div className="space-y-2.5">
@@ -202,8 +235,48 @@ function ChartSection({
   );
 }
 
-export default function DashboardClient({ data }: { data: DashboardData }) {
+/* ─── Main Dashboard ─── */
+export default function DashboardClient({ data: initialData }: { data: DashboardData }) {
   const { isDark, mounted } = useTheme();
+  const now = new Date();
+  const [dateFrom, setDateFrom] = useState(new Date(now.getFullYear(), 0, 1));
+  const [dateTo, setDateTo] = useState(now);
+  const [data, setData] = useState<DashboardData>(initialData);
+  const [loading, setLoading] = useState(false);
+  const [alertsDismissed, setAlertsDismissed] = useState(false);
+  const [showExportMenu, setShowExportMenu] = useState(false);
+  const exportRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    function handleClick(e: MouseEvent) {
+      if (exportRef.current && !exportRef.current.contains(e.target as Node)) setShowExportMenu(false);
+    }
+    document.addEventListener("mousedown", handleClick);
+    return () => document.removeEventListener("mousedown", handleClick);
+  }, []);
+
+  const fetchData = useCallback(async (from: Date, to: Date) => {
+    setLoading(true);
+    try {
+      const params = new URLSearchParams({ from: from.toISOString(), to: to.toISOString() });
+      const res = await fetch(`/api/dashboard?${params}`);
+      if (res.ok) {
+        const json = await res.json();
+        setData(json);
+        setAlertsDismissed(false);
+      }
+    } catch (err) {
+      console.error("Failed to fetch dashboard data:", err);
+    } finally {
+      setLoading(false);
+    }
+  }, []);
+
+  const handleDateChange = (from: Date, to: Date) => {
+    setDateFrom(from);
+    setDateTo(to);
+    fetchData(from, to);
+  };
 
   if (!mounted) return <div className="min-h-screen bg-[#111]" />;
 
@@ -214,6 +287,8 @@ export default function DashboardClient({ data }: { data: DashboardData }) {
   const tableBorder = isDark ? "border-[rgba(255,255,255,0.06)]" : "border-gray-200";
   const tableRowHover = isDark ? "hover:bg-[rgba(255,255,255,0.03)]" : "hover:bg-gray-50";
 
+  const budgetAlerts = getBudgetAlerts(data.categoryData);
+
   const stats = [
     { label: "ยอดรวมเดือนนี้", value: `฿${(data.totalAmount || 0).toLocaleString()}`, change: data.changePercent !== undefined ? `${data.changePercent >= 0 ? "↗" : "↘"} ${Math.abs(data.changePercent)}%` : undefined, icon: <TrendingUp size={20} />, color: "text-[#FA3633]" },
     { label: "จำนวนใบเสร็จ", value: `${data.receiptCount || 0} ใบ`, icon: <Receipt size={20} />, color: "text-[#FA3633]" },
@@ -223,11 +298,80 @@ export default function DashboardClient({ data }: { data: DashboardData }) {
 
   return (
     <div className="space-y-6">
-      <div>
-        <h1 className={`text-2xl font-bold ${txt}`}>ภาพรวม</h1>
-        <p className={`text-sm ${txtSub}`}>สรุปข้อมูลรายจ่ายและใบเสร็จของคุณ</p>
+      {/* Header + Date Filter + Export */}
+      <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
+        <div>
+          <h1 className={`text-2xl font-bold ${txt}`}>ภาพรวม</h1>
+          <p className={`text-sm ${txtSub}`}>สรุปข้อมูลรายจ่ายและใบเสร็จของคุณ</p>
+        </div>
+        <div ref={exportRef} className="relative">
+          <button
+            onClick={() => setShowExportMenu(!showExportMenu)}
+            className={`flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-medium transition-all ${isDark ? "bg-white/8 text-white/70 hover:bg-white/12" : "bg-gray-100 text-gray-600 hover:bg-gray-200"}`}
+          >
+            <Download size={16} />
+            ส่งออกรายงาน
+          </button>
+          {showExportMenu && (
+            <div className={`absolute right-0 top-full mt-2 z-50 w-48 rounded-xl border shadow-xl overflow-hidden ${isDark ? "bg-[#1a1a1a] border-white/10" : "bg-white border-gray-200"}`}>
+              <button onClick={() => { exportCSV(data); setShowExportMenu(false); }} className={`w-full flex items-center gap-3 px-4 py-3 text-sm transition-colors ${isDark ? "text-white/70 hover:bg-white/5" : "text-gray-700 hover:bg-gray-50"}`}>
+                <Table size={16} className="text-green-500" />
+                ดาวน์โหลด CSV
+              </button>
+              <button onClick={() => { exportPDF(data); setShowExportMenu(false); }} className={`w-full flex items-center gap-3 px-4 py-3 text-sm transition-colors ${isDark ? "text-white/70 hover:bg-white/5" : "text-gray-700 hover:bg-gray-50"}`}>
+                <FileText size={16} className="text-red-500" />
+                ดาวน์โหลด PDF
+              </button>
+            </div>
+          )}
+        </div>
       </div>
 
+      {/* Date Range Picker */}
+      <div className={`${card} border border-[var(--color-border)] rounded-xl px-5 py-3`}>
+        <DateRangePicker from={dateFrom} to={dateTo} onChange={handleDateChange} />
+      </div>
+
+      {/* Budget Alerts */}
+      {!alertsDismissed && budgetAlerts.length > 0 && (
+        <div className={`rounded-xl border p-4 ${isDark ? "bg-amber-500/5 border-amber-500/20" : "bg-amber-50 border-amber-200"}`}>
+          <div className="flex items-start justify-between mb-2">
+            <div className="flex items-center gap-2">
+              <AlertTriangle size={18} className="text-amber-500" />
+              <span className={`text-sm font-semibold ${isDark ? "text-amber-400" : "text-amber-700"}`}>
+                แจ้งเตือนงบประมาณ
+              </span>
+            </div>
+            <button onClick={() => setAlertsDismissed(true)} className={`p-1 rounded-lg transition-colors ${isDark ? "hover:bg-white/5 text-white/30" : "hover:bg-gray-200 text-gray-400"}`}>
+              <X size={16} />
+            </button>
+          </div>
+          <div className="space-y-2">
+            {budgetAlerts.map((a) => (
+              <div key={a.cat} className="flex items-center gap-3">
+                <div className="w-2 h-2 rounded-full flex-shrink-0" style={{ backgroundColor: getCatColor(a.cat) }} />
+                <span className={`text-sm flex-1 ${isDark ? "text-white/70" : "text-gray-700"}`}>
+                  <span className="font-medium">{a.cat}</span>{" "}
+                  {a.pct >= 100
+                    ? <span className="text-red-500">เกินงบ! ใช้ไป ฿{a.spent.toLocaleString()} / ฿{a.budget.toLocaleString()} ({a.pct.toFixed(0)}%)</span>
+                    : <span className="text-amber-500">ใกล้ถึงงบ ใช้ไป ฿{a.spent.toLocaleString()} / ฿{a.budget.toLocaleString()} ({a.pct.toFixed(0)}%)</span>
+                  }
+                </span>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+
+      {/* Loading overlay */}
+      {loading && (
+        <div className="flex items-center justify-center py-2">
+          <div className="w-5 h-5 border-2 border-[#FA3633] border-t-transparent rounded-full animate-spin" />
+          <span className={`ml-2 text-sm ${txtSub}`}>กำลังโหลด...</span>
+        </div>
+      )}
+
+      {/* Stats cards */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
         {stats.map((s, i) => (
           <div key={i} className={`${card} border border-[var(--color-border)] rounded-xl p-5`}>
@@ -241,15 +385,16 @@ export default function DashboardClient({ data }: { data: DashboardData }) {
         ))}
       </div>
 
+      {/* Chart + Goals */}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
         <ChartSection monthlyData={data.monthlyData} categoryData={data.categoryData} />
-
-      <div className={`${card} border border-[var(--color-border)] rounded-2xl p-5`}>
-        <h3 className={`font-semibold mb-3 ${txt}`}>เป้าหมาย</h3>
-        <GoalsSection categoryData={data.categoryData} />
+        <div className={`${card} border border-[var(--color-border)] rounded-2xl p-5`}>
+          <h3 className={`font-semibold mb-3 ${txt}`}>เป้าหมาย</h3>
+          <GoalsSection categoryData={data.categoryData} />
+        </div>
       </div>
-      </div>
 
+      {/* Recent receipts */}
       <div className={`${card} border border-[var(--color-border)] rounded-xl overflow-hidden`}>
         <div className="p-5 flex items-center justify-between">
           <h3 className={`font-semibold ${txt}`}>ใบเสร็จล่าสุด</h3>
