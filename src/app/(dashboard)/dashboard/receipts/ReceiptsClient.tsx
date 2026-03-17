@@ -1,7 +1,8 @@
 "use client";
 
 import { useState, useMemo } from "react";
-import { Search, Filter, Receipt, FileText, CheckCircle, Clock } from "lucide-react";
+import { Search, Filter, Receipt, FileText, CheckCircle, Clock, Pencil, ImageIcon } from "lucide-react";
+import Link from "next/link";
 import { useTheme } from "@/contexts/ThemeContext";
 import PageHeader from "@/components/dashboard/PageHeader";
 import StatsCard from "@/components/dashboard/StatsCard";
@@ -16,6 +17,7 @@ interface ReceiptRow {
   status: string;
   type: string;
   source: string;
+  imageUrl?: string;
 }
 
 const statusStyle: Record<string, string> = {
@@ -56,15 +58,28 @@ export default function ReceiptsClient({ receipts }: { receipts: ReceiptRow[] })
   const pending = filtered.filter((r) => r.status === "pending").length;
 
   const sub = isDark ? "text-white/50" : "text-gray-500";
+  const muted = isDark ? "text-white/30" : "text-gray-400";
   const inputCls = isDark
     ? "bg-[rgba(255,255,255,0.03)] border-[rgba(255,255,255,0.06)] text-white placeholder-white/30"
     : "bg-gray-50 border-gray-200 text-gray-900 placeholder-gray-400";
 
   const columns: Column<ReceiptRow>[] = [
+    {
+      key: "image",
+      label: "รูป",
+      render: (r, isDark) => (
+        <div className={`w-10 h-10 rounded-lg flex items-center justify-center overflow-hidden ${isDark ? "bg-white/5" : "bg-gray-100"}`}>
+          {r.imageUrl ? (
+            <img src={r.imageUrl} alt="" className="w-full h-full object-cover" />
+          ) : (
+            <ImageIcon size={16} className={muted} />
+          )}
+        </div>
+      ),
+    },
     { key: "storeName", label: "ร้านค้า", render: (r) => <span className="font-medium">{r.storeName}</span> },
     { key: "type", label: "ประเภท", render: (r) => <span>{typeLabel[r.type] || r.type}</span> },
     { key: "category", label: "หมวดหมู่" },
-    { key: "source", label: "แหล่งที่มา", render: (r) => <span className="capitalize">{r.source}</span> },
     { key: "amount", label: "จำนวนเงิน", align: "right", render: (r) => <span className="font-semibold">฿{r.amount.toLocaleString()}</span> },
     { key: "date", label: "วันที่" },
     {
@@ -76,13 +91,24 @@ export default function ReceiptsClient({ receipts }: { receipts: ReceiptRow[] })
         </span>
       ),
     },
+    {
+      key: "actions",
+      label: "",
+      render: (r, isDark) => (
+        <Link
+          href={`/receipt/${r._id}/edit`}
+          className={`p-2 rounded-lg transition-colors ${isDark ? "hover:bg-white/5 text-white/40 hover:text-white/70" : "hover:bg-gray-100 text-gray-400 hover:text-gray-600"}`}
+        >
+          <Pencil size={14} />
+        </Link>
+      ),
+    },
   ];
 
   return (
     <div className="space-y-6">
       <PageHeader title="ใบเสร็จทั้งหมด" description={`${filtered.length} รายการ — รวม ฿${totalAmount.toLocaleString()}`} />
 
-      {/* Stats Cards */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
         <StatsCard label="ใบเสร็จทั้งหมด" value={`${filtered.length} รายการ`} icon={<Receipt size={20} />} color="text-blue-500" />
         <StatsCard label="ยอดรวม" value={`฿${totalAmount.toLocaleString()}`} icon={<FileText size={20} />} color="text-[#FA3633]" />
@@ -90,17 +116,10 @@ export default function ReceiptsClient({ receipts }: { receipts: ReceiptRow[] })
         <StatsCard label="รอตรวจสอบ" value={`${pending} รายการ`} icon={<Clock size={20} />} color="text-yellow-500" />
       </div>
 
-      {/* Filters */}
       <div className="flex flex-wrap items-center gap-3">
         <div className="relative flex-1 min-w-[240px]">
           <Search size={16} className={`absolute left-3 top-1/2 -translate-y-1/2 ${sub}`} />
-          <input
-            type="text"
-            placeholder="ค้นหาร้านค้า, หมวดหมู่..."
-            value={search}
-            onChange={(e) => setSearch(e.target.value)}
-            className={`w-full h-10 pl-9 pr-4 ${inputCls} border rounded-lg text-sm focus:outline-none focus:border-[#FA3633]/50`}
-          />
+          <input type="text" placeholder="ค้นหาร้านค้า, หมวดหมู่..." value={search} onChange={(e) => setSearch(e.target.value)} className={`w-full h-10 pl-9 pr-4 ${inputCls} border rounded-lg text-sm focus:outline-none focus:border-[#FA3633]/50`} />
         </div>
         <div className="flex items-center gap-2">
           <Filter size={16} className={sub} />
@@ -121,7 +140,6 @@ export default function ReceiptsClient({ receipts }: { receipts: ReceiptRow[] })
         </div>
       </div>
 
-      {/* Table */}
       <DataTable dateField="date" columns={columns} data={filtered} rowKey={(r) => r._id} />
     </div>
   );
