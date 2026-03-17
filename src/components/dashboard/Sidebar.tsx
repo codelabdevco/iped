@@ -20,6 +20,9 @@ interface NavGroup {
   items: { label: string; href: string; icon: React.ElementType }[];
 }
 
+/* ────────────────────────────────
+   ส่วนตัว — 4 กลุ่ม
+   ──────────────────────────────── */
 const personalNav: NavGroup[] = [
   {
     label: "การเงิน",
@@ -28,11 +31,11 @@ const personalNav: NavGroup[] = [
       { label: "รายรับ", href: "/dashboard/income", icon: TrendingUp },
       { label: "รายจ่าย", href: "/dashboard/expenses", icon: TrendingDown },
       { label: "เงินออม", href: "/dashboard/savings", icon: PiggyBank },
+      { label: "รายการประจำ", href: "/dashboard/recurring", icon: Repeat },
       { label: "งบประมาณ", href: "/dashboard/budget", icon: Wallet },
       { label: "หมวดหมู่", href: "/dashboard/categories", icon: FolderOpen },
       { label: "วิธีจ่าย", href: "/dashboard/payments", icon: CreditCard },
-      { label: "รายการประจำ", href: "/dashboard/recurring", icon: Repeat },
-      { label: "Multi-currency", href: "/dashboard/currency", icon: Globe },
+      { label: "สกุลเงิน", href: "/dashboard/currency", icon: Globe },
     ],
   },
   {
@@ -45,11 +48,11 @@ const personalNav: NavGroup[] = [
     ],
   },
   {
-    label: "รายงาน",
+    label: "รายงาน & แจ้งเตือน",
     items: [
-      { label: "สรุป & เปรียบเทียบ", href: "/dashboard/reports", icon: BarChart3 },
-      { label: "ส่งออก", href: "/dashboard/export", icon: Download },
+      { label: "สรุป & Trend", href: "/dashboard/reports", icon: BarChart3 },
       { label: "แจ้งเตือน", href: "/dashboard/notifications", icon: Bell },
+      { label: "ส่งออก PDF / CSV", href: "/dashboard/export", icon: Download },
     ],
   },
   {
@@ -57,11 +60,14 @@ const personalNav: NavGroup[] = [
     items: [
       { label: "LINE Bot", href: "/dashboard/line-bot", icon: Bot },
       { label: "Email Scanner", href: "/dashboard/email-scanner", icon: Mail },
-      { label: "Sync", href: "/dashboard/sync", icon: Cloud },
+      { label: "Drive / Sheets / Notion", href: "/dashboard/sync", icon: Cloud },
     ],
   },
 ];
 
+/* ────────────────────────────────
+   บริษัท — 6 กลุ่ม
+   ──────────────────────────────── */
 const businessNav: NavGroup[] = [
   {
     label: "การเงิน",
@@ -69,11 +75,11 @@ const businessNav: NavGroup[] = [
       { label: "ภาพรวม", href: "/dashboard", icon: LayoutDashboard },
       { label: "รายรับ", href: "/dashboard/income", icon: TrendingUp },
       { label: "รายจ่าย", href: "/dashboard/expenses", icon: TrendingDown },
+      { label: "รายการประจำ", href: "/dashboard/recurring", icon: Repeat },
       { label: "งบประมาณ", href: "/dashboard/budget", icon: Wallet },
       { label: "หมวดหมู่", href: "/dashboard/categories", icon: FolderOpen },
       { label: "วิธีจ่าย", href: "/dashboard/payments", icon: CreditCard },
-      { label: "รายการประจำ", href: "/dashboard/recurring", icon: Repeat },
-      { label: "Multi-currency", href: "/dashboard/currency", icon: Globe },
+      { label: "สกุลเงิน", href: "/dashboard/currency", icon: Globe },
       { label: "VAT / WHT", href: "/dashboard/tax", icon: BadgeDollarSign },
     ],
   },
@@ -94,12 +100,12 @@ const businessNav: NavGroup[] = [
     ],
   },
   {
-    label: "รายงาน",
+    label: "รายงาน & แจ้งเตือน",
     items: [
-      { label: "สรุป & เปรียบเทียบ", href: "/dashboard/reports", icon: BarChart3 },
+      { label: "สรุป & Trend", href: "/dashboard/reports", icon: BarChart3 },
       { label: "เชื่อมโปรแกรมบัญชี", href: "/dashboard/accounting", icon: FileSpreadsheet },
-      { label: "ส่งออก", href: "/dashboard/export", icon: Download },
       { label: "แจ้งเตือน", href: "/dashboard/notifications", icon: Bell },
+      { label: "ส่งออก PDF / CSV", href: "/dashboard/export", icon: Download },
     ],
   },
   {
@@ -107,7 +113,7 @@ const businessNav: NavGroup[] = [
     items: [
       { label: "LINE Bot", href: "/dashboard/line-bot", icon: Bot },
       { label: "Email Scanner", href: "/dashboard/email-scanner", icon: Mail },
-      { label: "Sync", href: "/dashboard/sync", icon: Cloud },
+      { label: "Drive / Sheets / Notion", href: "/dashboard/sync", icon: Cloud },
     ],
   },
   {
