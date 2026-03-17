@@ -204,67 +204,124 @@ export default function ReceiptsClient({ receipts: initialReceipts }: { receipts
 
   return (
     <div className="space-y-6">
-      {/* Slide-in edit panel from left */}
-      {editingId && <div className="fixed inset-0 z-40 bg-black/50 transition-opacity" onClick={handleCancelEdit} />}
-      <div className={`fixed inset-y-0 right-0 z-50 w-[400px] max-w-[90vw] ${card} border-l ${border} shadow-2xl overflow-y-auto transition-transform duration-300 ease-out ${editingId ? "translate-x-0" : "translate-x-full"}`}>
-            <div className="p-6 space-y-5">
-              <div className="flex items-center justify-between">
-                <h2 className={`text-lg font-bold ${txt}`}>แก้ไขใบเสร็จ</h2>
-                <button onClick={handleCancelEdit} className={`p-2 rounded-lg transition-colors ${isDark ? "hover:bg-white/5 text-white/40" : "hover:bg-gray-100 text-gray-400"}`}>&times;</button>
-              </div>
+      {/* Slide-in edit panel from right */}
+      {editingId && <div className="fixed inset-0 z-40 bg-black/60 backdrop-blur-sm transition-opacity" onClick={handleCancelEdit} />}
+      <div className={`fixed inset-y-0 right-0 z-50 w-[460px] max-w-[95vw] bg-[#0d0d0d] border-l border-white/10 shadow-2xl overflow-y-auto transition-transform duration-300 ease-out ${editingId ? "translate-x-0" : "translate-x-full"}`}>
+        {editingReceipt && (
+          <div className="p-6 space-y-5">
+            {/* Header */}
+            <div className="flex items-center justify-between">
+              <h2 className="text-lg font-bold text-white">แก้ไขใบเสร็จ</h2>
+              <button onClick={handleCancelEdit} className="w-8 h-8 rounded-lg hover:bg-white/5 text-white/40 hover:text-white flex items-center justify-center text-xl transition-colors">&times;</button>
+            </div>
 
-              {editingReceipt?.imageUrl && (
-                <div className="w-full h-48 rounded-xl overflow-hidden bg-black/10">
-                  <img src={editingReceipt.imageUrl} alt="" className="w-full h-full object-contain" />
+            {/* Receipt image / slip */}
+            <div className="w-full h-56 rounded-xl overflow-hidden bg-white/5 border border-white/10 flex items-center justify-center">
+              {editingReceipt.imageUrl ? (
+                <img src={editingReceipt.imageUrl} alt="" className="w-full h-full object-contain" />
+              ) : (
+                <div className="text-center">
+                  <ImageIcon size={40} className="text-white/15 mx-auto mb-2" />
+                  <p className="text-xs text-white/30">ไม่มีรูปสลิป</p>
                 </div>
               )}
+            </div>
 
-              <div className="space-y-4">
-                <div>
-                  <label className={`block text-xs ${panelLabel} mb-1.5`}>ร้านค้า</label>
-                  <input value={editForm.storeName || ""} onChange={(e) => setEditForm({ ...editForm, storeName: e.target.value })} className={`w-full h-10 px-3 ${panelInput} border rounded-lg text-sm focus:outline-none focus:border-[#FA3633]/50`} />
-                </div>
-                <div className="grid grid-cols-2 gap-3">
-                  <div>
-                    <label className={`block text-xs ${panelLabel} mb-1.5`}>จำนวนเงิน</label>
-                    <input type="number" value={editForm.amount || 0} onChange={(e) => setEditForm({ ...editForm, amount: Number(e.target.value) })} className={`w-full h-10 px-3 ${panelInput} border rounded-lg text-sm focus:outline-none focus:border-[#FA3633]/50`} />
-                  </div>
-                  <div>
-                    <label className={`block text-xs ${panelLabel} mb-1.5`}>วันที่</label>
-                    <input type="date" value={editForm.date || ""} onChange={(e) => setEditForm({ ...editForm, date: e.target.value })} className={`w-full h-10 px-3 ${panelInput} border rounded-lg text-sm focus:outline-none focus:border-[#FA3633]/50`} />
-                  </div>
-                </div>
-                <div>
-                  <label className={`block text-xs ${panelLabel} mb-1.5`}>หมวดหมู่</label>
-                  <input value={editForm.category || ""} onChange={(e) => setEditForm({ ...editForm, category: e.target.value })} className={`w-full h-10 px-3 ${panelInput} border rounded-lg text-sm focus:outline-none focus:border-[#FA3633]/50`} />
-                </div>
-                <div className="grid grid-cols-2 gap-3">
-                  <div>
-                    <label className={`block text-xs ${panelLabel} mb-1.5`}>สถานะ</label>
-                    <select value={editForm.status || "pending"} onChange={(e) => setEditForm({ ...editForm, status: e.target.value })} className={`w-full h-10 px-3 ${panelInput} border rounded-lg text-sm focus:outline-none`}>
-                      <option value="confirmed">ยืนยันแล้ว</option>
-                      <option value="pending">รอตรวจสอบ</option>
-                      <option value="rejected">ปฏิเสธ</option>
-                    </select>
-                  </div>
-                  <div>
-                    <label className={`block text-xs ${panelLabel} mb-1.5`}>ประเภท</label>
-                    <select value={editForm.type || "receipt"} onChange={(e) => setEditForm({ ...editForm, type: e.target.value })} className={`w-full h-10 px-3 ${panelInput} border rounded-lg text-sm focus:outline-none`}>
-                      {Object.entries(typeLabel).map(([k, v]) => <option key={k} value={k}>{v}</option>)}
-                    </select>
-                  </div>
-                </div>
-                <div>
-                  <label className={`block text-xs ${panelLabel} mb-1.5`}>แหล่งที่มา</label>
-                  <input value={editForm.source || ""} onChange={(e) => setEditForm({ ...editForm, source: e.target.value })} className={`w-full h-10 px-3 ${panelInput} border rounded-lg text-sm focus:outline-none focus:border-[#FA3633]/50`} />
-                </div>
+            {/* Financial summary */}
+            <div className="rounded-xl bg-white/5 border border-white/10 p-4 space-y-3">
+              <p className="text-xs font-semibold text-white/60">ข้อมูลการเงิน</p>
+              <div className="flex items-center justify-between">
+                <span className="text-sm text-white/50">ยอดรวม</span>
+                <span className="text-xl font-bold text-white">฿{(editForm.amount || 0).toLocaleString()}</span>
               </div>
-
-              <div className="flex gap-2 pt-2">
-                <button onClick={handleSaveEdit} className="flex-1 py-2.5 rounded-xl text-sm font-medium bg-[#FA3633] text-white hover:bg-[#e0302d] transition-colors">บันทึก</button>
-                <button onClick={handleCancelEdit} className={`flex-1 py-2.5 rounded-xl text-sm font-medium transition-colors ${isDark ? "bg-white/5 text-white/60 hover:bg-white/10" : "bg-gray-100 text-gray-600 hover:bg-gray-200"}`}>ยกเลิก</button>
+              <div className="flex items-center justify-between">
+                <span className="text-sm text-white/50">วิธีจ่าย</span>
+                <span className="text-sm text-white">{editingReceipt.source || "-"}</span>
+              </div>
+              <div className="flex items-center justify-between">
+                <span className="text-sm text-white/50">สถานะ</span>
+                <span className={`px-2.5 py-1 rounded-lg text-xs font-medium ${statusStyle[editingReceipt.status] || statusStyle.pending}`}>{statusLabel[editingReceipt.status] || editingReceipt.status}</span>
+              </div>
+              <div className="flex items-center justify-between">
+                <span className="text-sm text-white/50">Drive</span>
+                <span className="flex items-center gap-1.5 text-sm">{editingReceipt.driveUploaded ? <><Cloud size={14} className="text-green-500" /> <span className="text-green-400">อัปโหลดแล้ว</span></> : <><CloudOff size={14} className="text-white/20" /> <span className="text-white/30">ยังไม่อัปโหลด</span></>}</span>
               </div>
             </div>
+
+            {/* Line items — split payment */}
+            <div className="rounded-xl bg-white/5 border border-white/10 p-4 space-y-3">
+              <div className="flex items-center justify-between">
+                <p className="text-xs font-semibold text-white/60">รายการในใบเสร็จ</p>
+                <span className="text-[10px] text-white/30">{(editingReceipt.items || [{ name: editingReceipt.storeName, qty: 1, price: editingReceipt.amount }]).length} รายการ</span>
+              </div>
+              {(editingReceipt.items && editingReceipt.items.length > 0 ? editingReceipt.items : [{ name: editingReceipt.storeName, qty: 1, price: editingReceipt.amount }]).map((item, i) => (
+                <div key={i} className="flex items-center justify-between py-1.5">
+                  <div className="flex items-center gap-2">
+                    <span className="w-5 h-5 rounded text-[10px] font-medium bg-white/5 text-white/40 flex items-center justify-center">{i + 1}</span>
+                    <span className="text-sm text-white/80">{item.name}</span>
+                  </div>
+                  <div className="flex items-center gap-3">
+                    <span className="text-xs text-white/30">x{item.qty}</span>
+                    <span className="text-sm font-medium text-white">฿{item.price.toLocaleString()}</span>
+                  </div>
+                </div>
+              ))}
+              <div className="flex justify-between pt-2 border-t border-white/10">
+                <span className="text-sm font-semibold text-white/60">รวม</span>
+                <span className="text-sm font-bold text-white">฿{editingReceipt.amount.toLocaleString()}</span>
+              </div>
+            </div>
+
+            {/* Edit form */}
+            <div className="space-y-4">
+              <p className="text-xs font-semibold text-white/60">แก้ไขข้อมูล</p>
+              <div>
+                <label className="block text-xs text-white/40 mb-1.5">ร้านค้า</label>
+                <input value={editForm.storeName || ""} onChange={(e) => setEditForm({ ...editForm, storeName: e.target.value })} className="w-full h-10 px-3 bg-white/5 border border-white/10 text-white rounded-lg text-sm focus:outline-none focus:border-[#FA3633]/50" />
+              </div>
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <label className="block text-xs text-white/40 mb-1.5">จำนวนเงิน</label>
+                  <input type="number" value={editForm.amount || 0} onChange={(e) => setEditForm({ ...editForm, amount: Number(e.target.value) })} className="w-full h-10 px-3 bg-white/5 border border-white/10 text-white rounded-lg text-sm focus:outline-none focus:border-[#FA3633]/50" />
+                </div>
+                <div>
+                  <label className="block text-xs text-white/40 mb-1.5">วันที่</label>
+                  <input type="date" value={editForm.date || ""} onChange={(e) => setEditForm({ ...editForm, date: e.target.value })} className="w-full h-10 px-3 bg-white/5 border border-white/10 text-white rounded-lg text-sm focus:outline-none focus:border-[#FA3633]/50" />
+                </div>
+              </div>
+              <div>
+                <label className="block text-xs text-white/40 mb-1.5">หมวดหมู่</label>
+                <input value={editForm.category || ""} onChange={(e) => setEditForm({ ...editForm, category: e.target.value })} className="w-full h-10 px-3 bg-white/5 border border-white/10 text-white rounded-lg text-sm focus:outline-none focus:border-[#FA3633]/50" />
+              </div>
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <label className="block text-xs text-white/40 mb-1.5">สถานะ</label>
+                  <select value={editForm.status || "pending"} onChange={(e) => setEditForm({ ...editForm, status: e.target.value })} className="w-full h-10 px-3 bg-white/5 border border-white/10 text-white rounded-lg text-sm focus:outline-none">
+                    <option value="confirmed">ยืนยันแล้ว</option>
+                    <option value="pending">รอตรวจสอบ</option>
+                    <option value="rejected">ปฏิเสธ</option>
+                  </select>
+                </div>
+                <div>
+                  <label className="block text-xs text-white/40 mb-1.5">ประเภท</label>
+                  <select value={editForm.type || "receipt"} onChange={(e) => setEditForm({ ...editForm, type: e.target.value })} className="w-full h-10 px-3 bg-white/5 border border-white/10 text-white rounded-lg text-sm focus:outline-none">
+                    {Object.entries(typeLabel).map(([k, v]) => <option key={k} value={k}>{v}</option>)}
+                  </select>
+                </div>
+              </div>
+              <div>
+                <label className="block text-xs text-white/40 mb-1.5">แหล่งที่มา</label>
+                <input value={editForm.source || ""} onChange={(e) => setEditForm({ ...editForm, source: e.target.value })} className="w-full h-10 px-3 bg-white/5 border border-white/10 text-white rounded-lg text-sm focus:outline-none focus:border-[#FA3633]/50" />
+              </div>
+            </div>
+
+            {/* Actions */}
+            <div className="flex gap-2 pt-2 sticky bottom-0 pb-6">
+              <button onClick={handleSaveEdit} className="flex-1 py-2.5 rounded-xl text-sm font-medium bg-[#FA3633] text-white hover:bg-[#e0302d] transition-colors">บันทึก</button>
+              <button onClick={handleCancelEdit} className="flex-1 py-2.5 rounded-xl text-sm font-medium bg-white/5 text-white/60 hover:bg-white/10 transition-colors">ยกเลิก</button>
+            </div>
+          </div>
+        )}
       </div>
 
       <PageHeader title="ใบเสร็จทั้งหมด" description={`${filtered.length} รายการ — รวม ฿${totalAmount.toLocaleString()}`} />
