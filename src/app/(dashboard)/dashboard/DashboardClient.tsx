@@ -8,12 +8,6 @@ import {
 import GoalsSection from "./GoalsSection";
 import DateRangePicker from "./DateRangePicker";
 
-          {/* ── Dashboard Extras ── */}
-          <DashboardExtras
-            data={data}
-            isDark={isDark}
-            getCatColor={getCatColor}
-          />
 import DashboardExtras from './DashboardExtras';
 
 interface DashboardData {
@@ -477,6 +471,13 @@ export default function DashboardClient({ data: initialData }: { data: Dashboard
           </tbody>
         </table>
       </div>
+
+          {/* Dashboard Extras */}
+          <DashboardExtras
+            data={data}
+            isDark={isDark}
+            getCatColor={getCatColor}
+          />
     </div>
   );
 }
