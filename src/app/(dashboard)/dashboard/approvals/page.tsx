@@ -38,7 +38,7 @@ export default function Page() {
     { key: "date", label: "วันที่ขอ" },
     { key: "status", label: "สถานะ", render: (r) => <span className={`px-2 py-1 rounded-full text-xs ${statusStyle[r.status]}`}>{r.status}</span> },
     { key: "actions", label: "จัดการ", render: (r) => r.status === "รออนุมัติ" ? (
-      <div className="flex gap-1">
+      <div className="flex gap-4">
         <button onClick={() => handleAction(r.id, "อนุมัติ")} className="p-1.5 rounded-lg bg-green-500/20 text-green-400 hover:bg-green-500/30"><Check className="w-3.5 h-3.5" /></button>
         <button onClick={() => handleAction(r.id, "ปฏิเสธ")} className="p-1.5 rounded-lg bg-red-500/20 text-red-400 hover:bg-red-500/30"><X className="w-3.5 h-3.5" /></button>
       </div>
@@ -46,7 +46,7 @@ export default function Page() {
   ];
 
   return (
-    <div className="p-6 space-y-6">
+    <div className="space-y-6">
       <PageHeader title="อนุมัติรายจ่าย" description="จัดการ workflow อนุมัติรายจ่าย" onClear={() => setData([])} />
 
       <div className="grid grid-cols-3 gap-4">

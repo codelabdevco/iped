@@ -50,7 +50,7 @@ export default function Page() {
   ];
 
   return (
-    <div className={`p-6 space-y-6 ${txt}`}>
+    <div className="space-y-6">
       <PageHeader title="Admin Dashboard" description="ภาพรวมระบบและผู้ใช้ทั้งหมด" onClear={clearDemo} />
 
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">

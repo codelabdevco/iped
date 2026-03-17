@@ -29,7 +29,7 @@ export default function EmailScannerPage() {
     { key: "subject", label: "หัวข้อ", render: (r, isDark) => <span className={`font-medium ${isDark ? "text-white" : "text-gray-900"}`}>{r.subject}</span> },
     { key: "sender", label: "ผู้ส่ง" },
     { key: "date", label: "วันที่" },
-    { key: "attachments", label: "แนบ", render: (r, isDark) => <span className="flex items-center gap-1"><Paperclip size={12} className={isDark ? "text-white/50" : "text-gray-500"} /><span className={isDark ? "text-white/50" : "text-gray-500"}>{r.attachments}</span></span> },
+    { key: "attachments", label: "แนบ", render: (r, isDark) => <span className="flex items-center gap-4"><Paperclip size={12} className={isDark ? "text-white/50" : "text-gray-500"} /><span className={isDark ? "text-white/50" : "text-gray-500"}>{r.attachments}</span></span> },
     { key: "status", label: "สถานะ", render: (r) => { const st = stMap[r.status]; return <span className={`px-2.5 py-1 rounded-lg text-xs font-medium ${st.cls}`}>{st.label}</span>; } },
   ];
 

@@ -41,7 +41,7 @@ export default function Page() {
   ];
 
   return (
-    <div className="p-6 space-y-6">
+    <div className="space-y-6">
       <PageHeader title="ใบแจ้งหนี้ขาออก" description="จัดการใบแจ้งหนี้สำหรับลูกค้า" onClear={() => setData([])} actionLabel="สร้างใบแจ้งหนี้" />
 
       <div className="grid grid-cols-4 gap-4">

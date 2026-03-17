@@ -45,7 +45,7 @@ export default function Page() {
   ];
 
   return (
-    <div className={`p-6 space-y-6 ${txt}`}>
+    <div className="space-y-6">
       <PageHeader title="PDPA & Audit Logs" description="ความปลอดภัยและบันทึกการใช้งาน" onClear={clearDemo} />
 
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">

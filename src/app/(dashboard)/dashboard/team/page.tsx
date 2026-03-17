@@ -39,7 +39,7 @@ export default function Page() {
   ];
 
   return (
-    <div className="p-6 space-y-6">
+    <div className="space-y-6">
       <PageHeader title="พนักงาน & แผนก" description="จัดการทีมและสิทธิ์การใช้งาน" onClear={() => setData([])} actionLabel="เชิญพนักงาน" />
 
       <div className="grid grid-cols-3 gap-4">

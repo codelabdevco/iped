@@ -38,7 +38,7 @@ export default function Page() {
   ];
 
   return (
-    <div className="p-6 space-y-6">
+    <div className="space-y-6">
       <PageHeader title="ใบเสนอราคา" description="จัดการใบเสนอราคาสำหรับลูกค้า" onClear={() => setData([])} actionLabel="สร้างใบเสนอราคา" />
 
       <div className="grid grid-cols-3 gap-4">

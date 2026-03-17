@@ -36,7 +36,7 @@ export default function Page() {
   ];
 
   return (
-    <div className={`p-6 space-y-6 ${txt}`}>
+    <div className="space-y-6">
       <PageHeader title="Package & Billing" description="จัดการแพ็กเกจและการชำระเงิน" onClear={clearDemo} />
 
       <div className={`${card} flex items-center gap-4`}>

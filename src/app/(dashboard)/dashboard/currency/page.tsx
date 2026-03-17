@@ -44,7 +44,7 @@ export default function CurrencyPage() {
   return (
     <div className="space-y-6">
       <PageHeader title="สกุลเงิน" description="อัตราแลกเปลี่ยนและรายการต่างสกุลเงิน" onClear={() => setTxData([])} />
-      <div className="grid grid-cols-2 md:grid-cols-5 gap-3">
+      <div className="grid grid-cols-2 md:grid-cols-5 gap-4">
         {RATES.map(r => (
           <div key={r.code} className={`${card} border ${border} rounded-2xl p-4 text-center`}>
             <div className="text-2xl mb-1">{r.flag}</div>
