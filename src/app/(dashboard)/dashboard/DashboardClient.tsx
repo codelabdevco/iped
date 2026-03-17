@@ -177,8 +177,7 @@ function ChartSection({
                       {displayCats.map((cat) => {
                         const val = m.categories?.[cat] || 0;
                         if (val === 0) return null;
-                        const segPct = (val / (m.total || 1)) * 100;
-                        return (
+                                                return (
                           <div key={cat} className="w-full transition-all duration-150 cursor-pointer hover:brightness-125"
                             style={{ height: `${segPct}%`, backgroundColor: getCatColor(cat), minHeight: "3px" }}
                             onMouseEnter={(e) => handleMouseEnter(e, cat, val, m.month, m.total)}
