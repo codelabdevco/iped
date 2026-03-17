@@ -10,6 +10,7 @@ import {
   Copy, CreditCard, Bell, Bot, Mail, Cloud, Download,
   Users, Building2, CheckSquare, FileSpreadsheet, Shield,
   Package, Globe, BadgeDollarSign, ChevronDown,
+  ContactRound, FileOutput, FileInput, CircleDollarSign,
 } from "lucide-react";
 import { useTheme } from "@/contexts/ThemeContext";
 
@@ -66,7 +67,7 @@ const personalNav: NavGroup[] = [
 ];
 
 /* ────────────────────────────────
-   บริษัท — 6 กลุ่ม
+   บริษัท — 7 กลุ่ม
    ──────────────────────────────── */
 const businessNav: NavGroup[] = [
   {
@@ -81,6 +82,15 @@ const businessNav: NavGroup[] = [
       { label: "วิธีจ่าย", href: "/dashboard/payments", icon: CreditCard },
       { label: "สกุลเงิน", href: "/dashboard/currency", icon: Globe },
       { label: "VAT / WHT", href: "/dashboard/tax", icon: BadgeDollarSign },
+    ],
+  },
+  {
+    label: "ลูกค้า & คู่ค้า",
+    items: [
+      { label: "รายชื่อลูกค้า", href: "/dashboard/customers", icon: ContactRound },
+      { label: "ใบเสนอราคา", href: "/dashboard/quotations", icon: FileOutput },
+      { label: "ใบแจ้งหนี้ขาออก", href: "/dashboard/invoices", icon: FileInput },
+      { label: "ยอดค้างชำระ", href: "/dashboard/receivables", icon: CircleDollarSign },
     ],
   },
   {
