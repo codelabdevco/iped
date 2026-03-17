@@ -8,6 +8,14 @@ import {
 import GoalsSection from "./GoalsSection";
 import DateRangePicker from "./DateRangePicker";
 
+          {/* ── Dashboard Extras ── */}
+          <DashboardExtras
+            data={data}
+            isDark={isDark}
+            getCatColor={getCatColor}
+          />
+import DashboardExtras from './DashboardExtras';
+
 interface DashboardData {
   totalAmount: number;
   changePercent: number;
