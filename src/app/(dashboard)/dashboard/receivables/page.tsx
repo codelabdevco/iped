@@ -1,0 +1,138 @@
+"use client";
+
+import { useState } from "react";
+import { useTheme } from "@/contexts/ThemeContext";
+import { DollarSign, Clock, Users, AlertTriangle, Trash2, FileText } from "lucide-react";
+
+interface ARItem {
+  id: string;
+  customer: string;
+  invoiceNo: string;
+  amount: number;
+  dueDate: string;
+  overdueDays: number;
+  status: "ปกติ" | "เกินกำหนด" | "ค้างชำระ";
+}
+
+const initialData: ARItem[] = [
+  { id: "1", customer: "บริษัท สยามเทค โซลูชั่นส์ จำกัด", invoiceNo: "INV-2026-0312", amount: 185000, dueDate: "2026-03-25", overdueDays: 0, status: "ปกติ" },
+  { id: "2", customer: "ห้างหุ้นส่วนจำกัด กรุงไทยเทรดดิ้ง", invoiceNo: "INV-2026-0298", amount: 72500, dueDate: "2026-03-10", overdueDays: 7, status: "เกินกำหนด" },
+  { id: "3", customer: "บริษัท พรีเมียร์ โลจิสติกส์ จำกัด", invoiceNo: "INV-2026-0275", amount: 340000, dueDate: "2026-02-15", overdueDays: 30, status: "เกินกำหนด" },
+  { id: "4", customer: "บริษัท แกรนด์ รีเทล จำกัด (มหาชน)", invoiceNo: "INV-2026-0260", amount: 128000, dueDate: "2026-01-20", overdueDays: 56, status: "ค้างชำระ" },
+  { id: "5", customer: "บริษัท อินโนเวท ดิจิทัล จำกัด", invoiceNo: "INV-2026-0245", amount: 95000, dueDate: "2025-12-18", overdueDays: 89, status: "ค้างชำระ" },
+  { id: "6", customer: "บริษัท ธนบุรี ฟู้ดส์ จำกัด", invoiceNo: "INV-2026-0310", amount: 54000, dueDate: "2026-03-30", overdueDays: 0, status: "ปกติ" },
+  { id: "7", customer: "บริษัท เอเชีย มาร์เก็ตติ้ง จำกัด", invoiceNo: "INV-2026-0288", amount: 210000, dueDate: "2026-02-28", overdueDays: 17, status: "เกินกำหนด" },
+  { id: "8", customer: "บริษัท สมาร์ท เซอร์วิส จำกัด", invoiceNo: "INV-2026-0230", amount: 467000, dueDate: "2025-11-15", overdueDays: 122, status: "ค้างชำระ" },
+];
+
+export default function ReceivablesPage() {
+  const { isDark } = useTheme();
+  const [data, setData] = useState<ARItem[]>(initialData);
+  const clearDemo = () => setData([]);
+  const totalOutstanding = data.reduce((sum, item) => sum + item.amount, 0);
+  const overdueTotal = data.filter((item) => item.overdueDays > 0).reduce((sum, item) => sum + item.amount, 0);
+  const uniqueCustomers = new Set(data.map((item) => item.customer)).size;
+  const aging = {
+    "0-30": data.filter((i) => i.overdueDays >= 0 && i.overdueDays <= 30).reduce((s, i) => s + i.amount, 0),
+    "31-60": data.filter((i) => i.overdueDays >= 31 && i.overdueDays <= 60).reduce((s, i) => s + i.amount, 0),
+    "61-90": data.filter((i) => i.overdueDays >= 61 && i.overdueDays <= 90).reduce((s, i) => s + i.amount, 0),
+    "90+": data.filter((i) => i.overdueDays > 90).reduce((s, i) => s + i.amount, 0),
+  };
+  const fmt = (n: number) => n.toLocaleString("th-TH", { minimumFractionDigits: 2 });
+  const statusColor = (status: ARItem["status"]) => {
+    if (status === "ปกติ") return "text-emerald-500";
+    if (status === "เกินกำหนด") return "text-amber-500";
+    return "text-red-500";
+  };
+  const cardClass = `rounded-2xl border p-5 ${isDark ? "bg-[rgba(255,255,255,0.04)] border-[rgba(255,255,255,0.06)]" : "bg-white border-gray-200"}`;
+
+  return (
+    <div className="space-y-6">
+      <div className="flex items-center justify-between">
+        <div>
+          <h1 className={`text-2xl font-bold ${isDark ? "text-white" : "text-gray-900"}`}>ยอดค้างชำระ</h1>
+          <p className={isDark ? "text-gray-400" : "text-gray-500"}>Accounts Receivable</p>
+        </div>
+        <button onClick={clearDemo} className="flex items-center gap-2 rounded-xl border border-red-300 bg-red-50 px-4 py-2 text-sm text-red-600 hover:bg-red-100 transition-colors dark:border-red-800 dark:bg-red-950 dark:text-red-400 dark:hover:bg-red-900">
+          <Trash2 size={16} />ล้างข้อมูลตัวอย่าง
+        </button>
+      </div>
+      <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
+        {[
+          { label: "ยอดค้างรวม", value: `฿${fmt(totalOutstanding)}`, icon: DollarSign, color: "text-blue-500", bg: "bg-blue-500/10" },
+          { label: "เกินกำหนด", value: `฿${fmt(overdueTotal)}`, icon: AlertTriangle, color: "text-amber-500", bg: "bg-amber-500/10" },
+          { label: "จำนวนลูกค้า", value: String(uniqueCustomers), icon: Users, color: "text-purple-500", bg: "bg-purple-500/10" },
+        ].map((card) => (
+          <div key={card.label} className={cardClass}>
+            <div className="flex items-center gap-3">
+              <div className={`flex h-10 w-10 items-center justify-center rounded-xl ${card.bg}`}><card.icon size={20} className={card.color} /></div>
+              <div>
+                <p className={`text-sm ${isDark ? "text-gray-400" : "text-gray-500"}`}>{card.label}</p>
+                <p className={`text-xl font-bold ${isDark ? "text-white" : "text-gray-900"}`}>{card.value}</p>
+              </div>
+            </div>
+          </div>
+        ))}
+      </div>
+      <div className={cardClass}>
+        <h2 className={`mb-4 text-lg font-semibold ${isDark ? "text-white" : "text-gray-900"}`}>
+          <Clock size={18} className="mr-2 inline" />สรุปอายุหนี้
+        </h2>
+        <div className="grid grid-cols-2 gap-4 sm:grid-cols-4">
+          {[
+            { label: "0-30 วัน", value: aging["0-30"], color: "bg-emerald-500" },
+            { label: "31-60 วัน", value: aging["31-60"], color: "bg-amber-500" },
+            { label: "61-90 วัน", value: aging["61-90"], color: "bg-orange-500" },
+            { label: "90+ วัน", value: aging["90+"], color: "bg-red-500" },
+          ].map((bucket) => (
+            <div key={bucket.label} className={`rounded-xl border p-4 ${isDark ? "border-[rgba(255,255,255,0.06)]" : "border-gray-200"}`}>
+              <div className="flex items-center gap-2 mb-1">
+                <div className={`h-2.5 w-2.5 rounded-full ${bucket.color}`} />
+                <span className={`text-sm ${isDark ? "text-gray-400" : "text-gray-500"}`}>{bucket.label}</span>
+              </div>
+              <p className={`text-lg font-bold ${isDark ? "text-white" : "text-gray-900"}`}>฿{fmt(bucket.value)}</p>
+            </div>
+          ))}
+        </div>
+      </div>
+      <div className={cardClass}>
+        <h2 className={`mb-4 text-lg font-semibold ${isDark ? "text-white" : "text-gray-900"}`}>
+          <FileText size={18} className="mr-2 inline" />รายการค้างชำระ
+        </h2>
+        <div className="overflow-x-auto">
+          <table className="w-full text-sm">
+            <thead>
+              <tr className={`border-b ${isDark ? "border-[rgba(255,255,255,0.06)] text-gray-400" : "border-gray-200 text-gray-500"}`}>
+                <th className="px-3 py-3 text-left font-medium">ลูกค้า</th>
+                <th className="px-3 py-3 text-left font-medium">เลขที่ใบแจ้งหนี้</th>
+                <th className="px-3 py-3 text-right font-medium">จำนวนเงิน</th>
+                <th className="px-3 py-3 text-left font-medium">ครบกำหนด</th>
+                <th className="px-3 py-3 text-right font-medium">เกินกำหนด (วัน)</th>
+                <th className="px-3 py-3 text-left font-medium">สถานะ</th>
+              </tr>
+            </thead>
+            <tbody>
+              {data.map((item) => (
+                <tr key={item.id} className={`border-b ${isDark ? "border-[rgba(255,255,255,0.04)]" : "border-gray-100"}`}>
+                  <td className={`px-3 py-3 ${isDark ? "text-white" : "text-gray-900"}`}>{item.customer}</td>
+                  <td className={`px-3 py-3 font-mono text-xs ${isDark ? "text-gray-300" : "text-gray-700"}`}>{item.invoiceNo}</td>
+                  <td className={`px-3 py-3 text-right font-medium ${isDark ? "text-white" : "text-gray-900"}`}>฿{fmt(item.amount)}</td>
+                  <td className={`px-3 py-3 ${isDark ? "text-gray-300" : "text-gray-600"}`}>{item.dueDate}</td>
+                  <td className={`px-3 py-3 text-right ${item.overdueDays > 0 ? "font-semibold text-red-500" : isDark ? "text-gray-400" : "text-gray-500"}`}>
+                    {item.overdueDays > 0 ? item.overdueDays : "-"}
+                  </td>
+                  <td className={`px-3 py-3 ${statusColor(item.status)}`}>{item.status}</td>
+                </tr>
+              ))}
+              {data.length === 0 && (
+                <tr>
+                  <td colSpan={6} className={`px-3 py-8 text-center ${isDark ? "text-gray-500" : "text-gray-400"}`}>ไม่มีข้อมูล</td>
+                </tr>
+              )}
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+  );
+}
