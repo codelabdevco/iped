@@ -136,7 +136,7 @@ const businessNav: NavGroup[] = [
   },
 ];
 
-export default function Sidebar() {
+export default function Sidebar({ onNavigate }: { onNavigate?: () => void } = {}) {
   const [collapsed, setCollapsed] = useState(false);
   const [mode, setMode] = useState<Mode>("personal");
   const [collapsedGroups, setCollapsedGroups] = useState<Record<string, boolean>>({});
@@ -306,6 +306,7 @@ export default function Sidebar() {
                     <Link
                       key={item.href}
                       href={item.href}
+                      onClick={onNavigate}
                       className={`flex items-center gap-3 px-3 py-2 rounded-lg text-[13px] font-medium transition-colors whitespace-nowrap overflow-hidden ${
                         active ? activeCls : txt
                       }`}
