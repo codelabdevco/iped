@@ -9,6 +9,7 @@ import GoalsSection from "./GoalsSection";
 import DateRangePicker from "./DateRangePicker";
 
 import DashboardExtras from './DashboardExtras';
+import ReceiptsTable from './ReceiptsTable';
 
 interface DashboardData {
   totalAmount: number;
@@ -20,7 +21,7 @@ interface DashboardData {
   categoryData: Record<string, number>;
   recentReceipts: {
     _id: string; storeName: string; type: string; category: string;
-    amount: number; date: string; status: string;
+    amount: number; date: string; status: string; time?: string; description?: string;
   }[];
 }
 
@@ -61,9 +62,9 @@ function getStatusInfo(s: string): { label: string; cls: string } {
 /* ─── Export helpers ─── */
 function exportCSV(data: DashboardData) {
   const BOM = "\uFEFF";
-  let csv = BOM + "ร้านค้า,ประเภท,หมวดหมู่,จำนวนเงิน,วันที่,สถานะ\n";
+  let csv = BOM + "ร้านค้า,ประเภท,รายละเอียด,หมวดหมู่,จำนวนเงิน,วันที่,เวลา,สถานะ\n";
   data.recentReceipts.forEach((r) => {
-    csv += `"${r.storeName}","${r.type}","${r.category}",${r.amount},"${r.date}","${r.status}"\n`;
+    csv += `"${r.storeName}","${r.type}","${r.description || ""}","${r.category}",${r.amount},"${r.date}","${r.time || ""}","${r.status}"\n`;
   });
   csv += "\n\nสรุปหมวดหมู่\nหมวดหมู่,ยอดรวม\n";
   Object.entries(data.categoryData).forEach(([cat, val]) => {
@@ -440,52 +441,7 @@ export default function DashboardClient({ data: initialData }: { data: Dashboard
           <h3 className={`font-semibold ${txt}`}>ใบเสร็จล่าสุด</h3>
           <a href="/dashboard/receipts" className="text-sm text-[#FA3633] hover:underline">ดูทั้งหมด &rarr;</a>
         </div>
-        <table className="w-full">
-          <thead>
-            <tr className={`border-t ${tableBorder}`}>
-              {["ร้านค้า", "ประเภท", "หมวดหมู่", "จำนวนเงิน", "วันที่", "สถานะ"].map((h) => (
-                <th key={h} className={`px-5 py-3 text-left text-xs font-medium ${txtSub} uppercase`}>{h}</th>
-              ))}
-            </tr>
-          </thead>
-          <tbody>
-            {(data.recentReceipts || []).length > 0 ? (
-              (data.recentReceipts || []).slice(0, 5).map((r) => (
-                <tr key={r._id} className={`border-t ${tableBorder} ${tableRowHover} transition-colors`}
-                    onMouseEnter={() => setHoveredReceipt(r._id)}
-                    onMouseLeave={() => setHoveredReceipt(null)}
-                  >
-                  <td className={`px-5 py-3 text-sm ${txt} relative`}>
-                      {r.storeName}
-                      {hoveredReceipt === r._id && (
-                        <div className="absolute left-4 bottom-full mb-1 z-50 pointer-events-none">
-                          <div className={`px-3 py-2.5 rounded-xl text-xs whitespace-nowrap backdrop-blur-sm ${isDark ? "bg-[#2a2a2a]/95 text-white border border-white/10 shadow-xl shadow-black/40" : "bg-white/95 text-gray-900 border border-gray-200 shadow-xl shadow-black/10"}`}>
-                            <div className="font-semibold text-sm mb-1">{r.storeName}</div>
-                            <div className="flex items-center gap-1.5 mb-1">
-                              <div className="w-2 h-2 rounded-full flex-shrink-0" style={{ backgroundColor: getCatColor(r.category) }} />
-                              <span>{r.category}</span>
-                            </div>
-                            <div className={`font-bold text-base ${isDark ? "text-green-400" : "text-green-600"}`}>฿{(r.amount || 0).toLocaleString()}</div>
-                            <div className={isDark ? "text-white/40" : "text-gray-400"}>{r.date}</div>
-                          </div>
-                          <div className="flex justify-start ml-4 -mt-[1px]">
-                            <div className={`w-2.5 h-2.5 rotate-45 ${isDark ? "bg-[#2a2a2a]/95 border-r border-b border-white/10" : "bg-white/95 border-r border-b border-gray-200"}`} />
-                          </div>
-                        </div>
-                      )}
-                    </td>
-                  <td className={`px-5 py-3 text-sm ${txtSub}`}>{getThaiType(r.type)}</td>
-                  <td className={`px-5 py-3 text-sm ${txtSub}`}><span className="inline-block w-2 h-2 rounded-full mr-1.5" style={{ backgroundColor: getCatColor(r.category) }} />{r.category}</td>
-                  <td className={`px-5 py-3 text-sm font-medium ${txt}`}>฿{(r.amount || 0).toLocaleString()}</td>
-                  <td className={`px-5 py-3 text-sm ${txtSub}`}>{r.date}</td>
-                    <td className={`px-5 py-3`}>{(() => { const si = getStatusInfo(r.status); return <span className={`text-xs px-3 py-1 rounded-full ${si.cls}`}>{si.label}</span>; })()}</td>
-                </tr>
-              ))
-            ) : (
-              <tr><td colSpan={6} className={`px-5 py-12 text-center text-sm ${txtMuted}`}>ยังไม่มีใบเสร็จ — ลองส่งรูปใบเสร็จผ่าน LINE ดูสิ!</td></tr>
-            )}
-          </tbody>
-        </table>
+            <ReceiptsTable receipts={data.recentReceipts || []} isDark={isDark} getCatColor={getCatColor} />
       </div>
 
           {/* Dashboard Extras */}
