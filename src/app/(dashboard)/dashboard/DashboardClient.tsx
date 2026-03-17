@@ -439,12 +439,12 @@ export default function DashboardClient({ data: initialData }: { data: Dashboard
       </div>
 
       {/* Recent receipts */}
-      <div className={`${card} border border-[var(--color-border)] rounded-xl overflow-hidden`}>
-        <div className="p-5 flex items-center justify-between">
+      <div>
+        <div className="flex items-center justify-between mb-4">
           <h3 className={`font-semibold ${txt}`}>ใบเสร็จล่าสุด</h3>
           <a href="/dashboard/receipts" className="text-sm text-[#FA3633] hover:underline">ดูทั้งหมด &rarr;</a>
         </div>
-            <ReceiptsTable receipts={data.recentReceipts || []} isDark={isDark} getCatColor={getCatColor} />
+        <ReceiptsTable receipts={data.recentReceipts || []} isDark={isDark} getCatColor={getCatColor} />
       </div>
 
 
