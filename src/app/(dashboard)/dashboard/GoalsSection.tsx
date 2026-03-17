@@ -3,17 +3,17 @@ import { useState } from "react";
 import { useTheme } from "@/contexts/ThemeContext";
 
 const BUDGET_DATA = [
-  { name: "à¸à¹à¸­à¸à¸à¸´à¹à¸", budget: 20000, color: "#818CF8" },
-  { name: "à¸­à¸²à¸«à¸²à¸£", budget: 15000, color: "#F9923C" },
-  { name: "à¹à¸à¸´à¸à¸à¸²à¸", budget: 12000, color: "#60A5FA" },
-  { name: "à¸ªà¸²à¸à¸²à¸£à¸à¸¹à¸à¹à¸ à¸", budget: 10000, color: "#F472B6" },
-  { name: "à¸à¸­à¸à¹à¸à¹à¹à¸à¸à¹à¸²à¸", budget: 8000, color: "#A78BFA" },
+  { name: "ช็อปปิ้ง", budget: 20000, color: "#818CF8" },
+  { name: "อาหาร", budget: 15000, color: "#F9923C" },
+  { name: "เดินทาง", budget: 12000, color: "#60A5FA" },
+  { name: "สาธารณูปโภค", budget: 10000, color: "#F472B6" },
+  { name: "ของใช้ในบ้าน", budget: 8000, color: "#A78BFA" },
 ];
 
 const SAVINGS_DATA = [
-  { name: "à¸à¸·à¹à¸­ iPhone 17", target: 45000, saved: 28500, color: "#818CF8" },
-  { name: "à¸à¹à¸­à¸à¹à¸à¸µà¹à¸¢à¸§à¸à¸µà¹à¸à¸¸à¹à¸", target: 80000, saved: 32000, color: "#F9923C" },
-  { name: "à¸à¸­à¸à¸à¸¸à¸à¸à¸¸à¸à¹à¸à¸´à¸", target: 100000, saved: 67000, color: "#60A5FA" },
+  { name: "ซื้อ iPhone 17", target: 45000, saved: 28500, color: "#818CF8" },
+  { name: "ท่องเที่ยวญี่ปุ่น", target: 80000, saved: 32000, color: "#F9923C" },
+  { name: "กองทุนฉุกเฉิน", target: 100000, saved: 67000, color: "#60A5FA" },
 ];
 
 interface Props {
@@ -105,7 +105,7 @@ export default function GoalsSection({ categoryData }: Props) {
                 ? "bg-white/8 text-white/60 hover:bg-white/12"
                 : "bg-gray-100 text-gray-500 hover:bg-gray-200"
             }`}>
-            {t === "budget" ? "à¸à¸à¸à¸£à¸°à¸¡à¸²à¸" : "à¸­à¸­à¸¡à¹à¸à¸´à¸"}
+            {t === "budget" ? "งบประมาณ" : "ออมเงิน"}
           </button>
         ))}
       </div>
@@ -118,7 +118,7 @@ export default function GoalsSection({ categoryData }: Props) {
               color: b.color,
             })),
             `${Math.round(budgetPct)}%`,
-            `à¸¿${monthlySpent.toLocaleString()} / à¸¿${totalBudget.toLocaleString()}`
+            `฿${monthlySpent.toLocaleString()} / ฿${totalBudget.toLocaleString()}`
           )}
 
           <div className="space-y-2.5 mt-1">
@@ -136,7 +136,7 @@ export default function GoalsSection({ categoryData }: Props) {
                       b.spent > b.budget * 0.8 ? "text-yellow-400" :
                       isDark ? "text-white/70" : "text-gray-600"
                     }`}>
-                      à¸¿{b.spent.toLocaleString()} / à¸¿{b.budget.toLocaleString()}
+                      ฿{b.spent.toLocaleString()} / ฿{b.budget.toLocaleString()}
                     </span>
                   </div>
                   <div className={`h-1.5 rounded-full overflow-hidden ${isDark ? "bg-white/6" : "bg-gray-100"}`}>
@@ -155,13 +155,13 @@ export default function GoalsSection({ categoryData }: Props) {
 
           <div className={`mt-3 pt-3 border-t ${isDark ? "border-white/10" : "border-gray-100"}`}>
             <div className="flex justify-between mb-2">
-              <span className={`text-xs ${subtext}`}>à¸à¸à¸£à¸§à¸¡/à¹à¸à¸·à¸­à¸</span>
-              <span className={`text-sm font-semibold ${txt}`}>à¸¿{totalBudget.toLocaleString()}</span>
+              <span className={`text-xs ${subtext}`}>งบรวม/เดือน</span>
+              <span className={`text-sm font-semibold ${txt}`}>฿{totalBudget.toLocaleString()}</span>
             </div>
             <div className="flex justify-between">
-              <span className={`text-xs ${subtext}`}>à¸à¸à¹à¸«à¸¥à¸·à¸­</span>
+              <span className={`text-xs ${subtext}`}>คงเหลือ</span>
               <span className={`text-sm font-semibold ${remaining >= 0 ? "text-green-400" : "text-red-400"}`}>
-                à¸¿{Math.abs(remaining).toLocaleString()}
+                ฿{Math.abs(remaining).toLocaleString()}
               </span>
             </div>
           </div>
@@ -174,7 +174,7 @@ export default function GoalsSection({ categoryData }: Props) {
               color: g.color,
             })),
             `${Math.round(savingsPct)}%`,
-            `à¸¿${totalSaved.toLocaleString()} / à¸¿${totalTarget.toLocaleString()}`
+            `฿${totalSaved.toLocaleString()} / ฿${totalTarget.toLocaleString()}`
           )}
 
           <div className="space-y-3">
@@ -193,8 +193,8 @@ export default function GoalsSection({ categoryData }: Props) {
                     />
                   </div>
                   <div className="flex justify-between mt-0.5">
-                    <span className={`text-[10px] ${subtext}`}>à¸¿{g.saved.toLocaleString()}</span>
-                    <span className={`text-[10px] ${subtext}`}>à¸¿{g.target.toLocaleString()}</span>
+                    <span className={`text-[10px] ${subtext}`}>฿{g.saved.toLocaleString()}</span>
+                    <span className={`text-[10px] ${subtext}`}>฿{g.target.toLocaleString()}</span>
                   </div>
                 </div>
               );
@@ -203,17 +203,17 @@ export default function GoalsSection({ categoryData }: Props) {
 
           <div className={`mt-3 pt-3 border-t ${isDark ? "border-white/10" : "border-gray-100"}`}>
             <div className="flex justify-between mb-2">
-              <span className={`text-xs ${subtext}`}>à¹à¸à¹à¸²à¸«à¸¡à¸²à¸¢à¸£à¸§à¸¡</span>
-              <span className={`text-sm font-semibold ${txt}`}>à¸¿{totalTarget.toLocaleString()}</span>
+              <span className={`text-xs ${subtext}`}>เป้าหมายรวม</span>
+              <span className={`text-sm font-semibold ${txt}`}>฿{totalTarget.toLocaleString()}</span>
             </div>
             <div className="flex justify-between">
-              <span className={`text-xs ${subtext}`}>à¸­à¸­à¸¡à¹à¸¥à¹à¸§</span>
-              <span className="text-sm font-semibold text-green-400">à¸¿{totalSaved.toLocaleString()}</span>
+              <span className={`text-xs ${subtext}`}>ออมแล้ว</span>
+              <span className="text-sm font-semibold text-green-400">฿{totalSaved.toLocaleString()}</span>
             </div>
             <div className="flex justify-between mt-1">
-              <span className={`text-xs ${subtext}`}>à¸¢à¸±à¸à¸à¸²à¸à¸­à¸µà¸</span>
+              <span className={`text-xs ${subtext}`}>ยังขาดอีก</span>
               <span className={`text-sm font-semibold ${isDark ? "text-white/70" : "text-gray-600"}`}>
-                à¸¿{(totalTarget - totalSaved).toLocaleString()}
+                ฿{(totalTarget - totalSaved).toLocaleString()}
               </span>
             </div>
           </div>
