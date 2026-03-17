@@ -2,7 +2,6 @@
 import { useState } from "react";
 import { useTheme } from "@/contexts/ThemeContext";
 import { Trash2, Users, UserPlus, Receipt, DollarSign, Activity } from "lucide-react";
-import StatsCard from "@/components/dashboard/StatsCard";
 import PageHeader from "@/components/dashboard/PageHeader";
 import DataTable, { Column } from "@/components/dashboard/DataTable";
 
@@ -55,10 +54,12 @@ export default function Page() {
       <PageHeader title="Admin Dashboard" description="ภาพรวมระบบและผู้ใช้ทั้งหมด" onClear={clearDemo} />
 
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-        <StatsCard label="ผู้ใช้ทั้งหมด" value={stats.totalUsers.toLocaleString()} icon={<Users size={20} />} color="text-blue-500" />
-        <StatsCard label="ใหม่เดือนนี้" value={stats.newMonth.toLocaleString()} icon={<UserPlus size={20} />} color="text-green-500" />
-        <StatsCard label="ใบเสร็จทั้งระบบ" value={stats.totalReceipts.toLocaleString()} icon={<Receipt size={20} />} color="text-purple-500" />
-        <StatsCard label="รายได้แพ็กเกจ" value={`฿${stats.revenue.toLocaleString()}`} icon={<DollarSign size={20} />} color="text-orange-500" />
+        {statCards.map((s) => (
+          <div key={s.label} className={card}>
+            <div className="flex items-center gap-3 mb-2"><s.icon size={20} className={s.color} /><span className={sub}>{s.label}</span></div>
+            <p className="text-2xl font-bold">{s.value}</p>
+          </div>
+        ))}
       </div>
 
       <DataTable columns={columns} data={users} rowKey={(r) => r.id} />
