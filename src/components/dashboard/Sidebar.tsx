@@ -136,7 +136,7 @@ const businessNav: NavGroup[] = [
   },
 ];
 
-export default function Sidebar({ onNavigate }: { onNavigate?: () => void } = {}) {
+export default function Sidebar({ onNavigate }: { onNavigate?: () => void }) {
   const [collapsed, setCollapsed] = useState(false);
   const [mode, setMode] = useState<Mode>("personal");
   const [collapsedGroups, setCollapsedGroups] = useState<Record<string, boolean>>({});
