@@ -4,6 +4,7 @@ import { useState, useMemo } from "react";
 import { Search, Filter, Receipt, FileText, CheckCircle, Clock, Pencil, Trash2, ImageIcon, Cloud, CloudOff, HardDrive } from "lucide-react";
 import Select from "@/components/dashboard/Select";
 import DatePicker from "@/components/dashboard/DatePicker";
+import FileAttachments, { Attachment } from "@/components/dashboard/FileAttachments";
 import { useTheme } from "@/contexts/ThemeContext";
 import PageHeader from "@/components/dashboard/PageHeader";
 import StatsCard from "@/components/dashboard/StatsCard";
@@ -100,6 +101,7 @@ export default function ReceiptsClient({ receipts: initialReceipts }: { receipts
   const [editItems, setEditItems] = useState<LineItem[]>([]);
   const [vatEnabled, setVatEnabled] = useState(false);
   const [whtEnabled, setWhtEnabled] = useState(false);
+  const [attachments, setAttachments] = useState<Attachment[]>([]);
 
   const filtered = useMemo(() => {
     return receipts.filter((r) => {
@@ -137,6 +139,7 @@ export default function ReceiptsClient({ receipts: initialReceipts }: { receipts
     setEditItems(r.items && r.items.length > 0 ? [...r.items] : [{ name: r.storeName, qty: 1, price: r.amount }]);
     setVatEnabled(false);
     setWhtEnabled(false);
+    setAttachments([]);
   };
 
   const handleSaveEdit = () => {
@@ -379,6 +382,11 @@ export default function ReceiptsClient({ receipts: initialReceipts }: { receipts
               <p className="text-xs font-semibold text-white/50">ข้อมูลเพิ่มเติม</p>
               <div className="flex justify-between text-sm"><span className="text-white/40">วิธีจ่าย</span><span className="text-white">{editingReceipt.source || "-"}</span></div>
               <div className="flex justify-between text-sm"><span className="text-white/40">Drive</span><span className="flex items-center gap-1.5">{editingReceipt.driveUploaded ? <><Cloud size={14} className="text-green-500" /><span className="text-green-400 text-xs">อัปโหลดแล้ว</span></> : <><CloudOff size={14} className="text-white/20" /><span className="text-white/30 text-xs">ยังไม่อัปโหลด</span></>}</span></div>
+            </div>
+
+            {/* File attachments */}
+            <div className="rounded-xl bg-white/[0.03] border border-white/10 p-4">
+              <FileAttachments files={attachments} onChange={setAttachments} />
             </div>
 
             {/* Actions */}
