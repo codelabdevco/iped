@@ -2,6 +2,7 @@
 
 import { useState, useMemo } from "react";
 import { Search, Filter, Receipt, FileText, CheckCircle, Clock, Pencil, Trash2, ImageIcon, Cloud, CloudOff, HardDrive } from "lucide-react";
+import Select from "@/components/dashboard/Select";
 import { useTheme } from "@/contexts/ThemeContext";
 import PageHeader from "@/components/dashboard/PageHeader";
 import StatsCard from "@/components/dashboard/StatsCard";
@@ -254,15 +255,11 @@ export default function ReceiptsClient({ receipts: initialReceipts }: { receipts
               <div className="grid grid-cols-2 gap-3">
                 <div><label className={lbl}>หมวดหมู่</label><input value={editForm.category || ""} onChange={(e) => setEditForm({ ...editForm, category: e.target.value })} className={inp} /></div>
                 <div><label className={lbl}>สถานะ</label>
-                  <select value={editForm.status || "pending"} onChange={(e) => setEditForm({ ...editForm, status: e.target.value })} className={inp}>
-                    <option value="confirmed">ยืนยันแล้ว</option><option value="pending">รอตรวจสอบ</option><option value="rejected">ปฏิเสธ</option>
-                  </select>
+                  <Select value={editForm.status || "pending"} onChange={(v) => setEditForm({ ...editForm, status: v })} options={[{ value: "confirmed", label: "ยืนยันแล้ว" }, { value: "pending", label: "รอตรวจสอบ" }, { value: "rejected", label: "ปฏิเสธ" }]} />
                 </div>
               </div>
               <div><label className={lbl}>ประเภท</label>
-                <select value={editForm.type || "receipt"} onChange={(e) => setEditForm({ ...editForm, type: e.target.value })} className={inp}>
-                  {Object.entries(typeLabel).map(([k, v]) => <option key={k} value={k}>{v}</option>)}
-                </select>
+                <Select value={editForm.type || "receipt"} onChange={(v) => setEditForm({ ...editForm, type: v })} options={Object.entries(typeLabel).map(([k, v]) => ({ value: k, label: v }))} />
               </div>
             </div>
 
@@ -320,15 +317,30 @@ export default function ReceiptsClient({ receipts: initialReceipts }: { receipts
             </div>
 
             {/* Grand total */}
-            <div className="rounded-xl bg-[#FA3633]/10 border border-[#FA3633]/20 p-4">
-              <div className="flex items-center justify-between">
-                <span className="text-sm font-semibold text-white/70">ยอดสุทธิ</span>
-                <span className="text-2xl font-bold text-white">฿{grandTotal.toLocaleString()}</span>
-              </div>
-              {(vatEnabled || whtEnabled) && (
-                <p className="text-[11px] text-white/30 mt-1">สินค้า ฿{itemsTotal.toLocaleString()}{vatEnabled ? ` + VAT ฿${vatAmount.toLocaleString()}` : ""}{whtEnabled ? ` - WHT ฿${whtAmount.toLocaleString()}` : ""}</p>
-              )}
-            </div>
+            {(() => {
+              const ocrAmount = editingReceipt.amount;
+              const mismatch = grandTotal !== ocrAmount && grandTotal > 0;
+              return (
+                <div className={`rounded-xl p-4 ${mismatch ? "bg-amber-500/10 border border-amber-500/20" : "bg-[#FA3633]/10 border border-[#FA3633]/20"}`}>
+                  <div className="flex items-center justify-between">
+                    <span className="text-sm font-semibold text-white/70">ยอดสุทธิ</span>
+                    <span className="text-2xl font-bold text-white">฿{grandTotal.toLocaleString()}</span>
+                  </div>
+                  {(vatEnabled || whtEnabled) && (
+                    <p className="text-[11px] text-white/30 mt-1">สินค้า ฿{itemsTotal.toLocaleString()}{vatEnabled ? ` + VAT ฿${vatAmount.toLocaleString()}` : ""}{whtEnabled ? ` - WHT ฿${whtAmount.toLocaleString()}` : ""}</p>
+                  )}
+                  {mismatch && (
+                    <div className="mt-3 flex items-start gap-2 p-2.5 rounded-lg bg-amber-500/10">
+                      <span className="text-amber-400 text-sm mt-0.5">⚠</span>
+                      <div>
+                        <p className="text-xs font-medium text-amber-400">ยอดไม่ตรงกับ OCR</p>
+                        <p className="text-[11px] text-amber-400/60 mt-0.5">ยอดจาก OCR: ฿{ocrAmount.toLocaleString()} — ยอดที่แก้ไข: ฿{grandTotal.toLocaleString()} (ต่างกัน ฿{Math.abs(grandTotal - ocrAmount).toLocaleString()})</p>
+                      </div>
+                    </div>
+                  )}
+                </div>
+              );
+            })()}
 
             {/* Financial info */}
             <div className="rounded-xl bg-white/[0.03] border border-white/10 p-4 space-y-2">
@@ -364,21 +376,9 @@ export default function ReceiptsClient({ receipts: initialReceipts }: { receipts
             <input type="text" placeholder="ค้นหาร้านค้า, หมวดหมู่..." value={search} onChange={(e) => setSearch(e.target.value)} className={`w-full h-10 pl-9 pr-4 ${inputCls} border rounded-lg text-sm focus:outline-none focus:border-[#FA3633]/50`} />
           </div>
           <Filter size={16} className={sub} />
-          <select value={statusFilter} onChange={(e) => setStatusFilter(e.target.value)} className={`h-10 px-3 ${inputCls} border rounded-lg text-sm focus:outline-none`}>
-            <option value="all">สถานะทั้งหมด</option>
-            <option value="confirmed">ยืนยันแล้ว</option>
-            <option value="pending">รอตรวจสอบ</option>
-            <option value="rejected">ปฏิเสธ</option>
-          </select>
-          <select value={typeFilter} onChange={(e) => setTypeFilter(e.target.value)} className={`h-10 px-3 ${inputCls} border rounded-lg text-sm focus:outline-none`}>
-            <option value="all">ประเภททั้งหมด</option>
-            {Object.entries(typeLabel).map(([k, v]) => <option key={k} value={k}>{v}</option>)}
-          </select>
-          <select value={driveFilter} onChange={(e) => setDriveFilter(e.target.value)} className={`h-10 px-3 ${inputCls} border rounded-lg text-sm focus:outline-none`}>
-            <option value="all">Drive ทั้งหมด</option>
-            <option value="uploaded">อัปโหลดแล้ว</option>
-            <option value="not_uploaded">ยังไม่อัปโหลด</option>
-          </select>
+          <Select value={statusFilter} onChange={setStatusFilter} className="w-40" options={[{ value: "all", label: "สถานะทั้งหมด" }, { value: "confirmed", label: "ยืนยันแล้ว" }, { value: "pending", label: "รอตรวจสอบ" }, { value: "rejected", label: "ปฏิเสธ" }]} />
+          <Select value={typeFilter} onChange={setTypeFilter} className="w-40" options={[{ value: "all", label: "ประเภททั้งหมด" }, ...Object.entries(typeLabel).map(([k, v]) => ({ value: k, label: v }))]} />
+          <Select value={driveFilter} onChange={setDriveFilter} className="w-44" options={[{ value: "all", label: "Drive ทั้งหมด" }, { value: "uploaded", label: "อัปโหลดแล้ว" }, { value: "not_uploaded", label: "ยังไม่อัปโหลด" }]} />
         </div>
       </div>
 
