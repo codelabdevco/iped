@@ -83,19 +83,11 @@ export default function MatchingPage() {
   return (
     <div className="space-y-6">
       <div className="flex items-center justify-between">
-        <div className="flex items-center gap-3">
-          <div className="p-2 rounded-xl bg-violet-500/10">
-            <Link2 className="w-6 h-6 text-violet-500" />
-          </div>
-          <div>
-            <h1 className={"text-2xl font-bold " + tp}>จับคู่เอกสาร</h1>
-            <p className={ts}>จับคู่ใบแจ้งหนี้กับใบเสร็จรับเงินอัตโนมัติ</p>
-          </div>
+        <div>
+          <h1 className={`text-2xl font-bold ${tp}`}>จับคู่เอกสาร</h1>
+          <p className={`text-sm ${ts}`}>จับคู่ใบแจ้งหนี้กับใบเสร็จอัตโนมัติ</p>
         </div>
-        <button onClick={clearDemo} className={"flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-medium transition-colors " + btnCls}>
-          <Trash2 className="w-4 h-4" />
-          ล้างข้อมูลตัวอย่าง
-        </button>
+        <button onClick={clearDemo} className={`flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-medium ${isDark ? "bg-red-500/10 text-red-400 hover:bg-red-500/20" : "bg-red-50 text-red-600 hover:bg-red-100"} transition-colors`}><Trash2 size={16} />ล้างข้อมูลตัวอย่าง</button>
       </div>
 
       <div className="grid grid-cols-3 gap-4">

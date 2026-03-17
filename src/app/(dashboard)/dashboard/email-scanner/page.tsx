@@ -20,7 +20,10 @@ export default function EmailScannerPage() {
   return (
     <div className="space-y-6">
       <div className="flex items-center justify-between">
-        <div><h1 className={`text-2xl font-bold ${t}`}>Email Scanner</h1><p className={`text-sm ${s}`}>สแกนเอกสารจากอีเมลอัตโนมัติ</p></div>
+        <div>
+          <h1 className={`text-2xl font-bold ${t}`}>Email Scanner</h1>
+          <p className={`text-sm ${s}`}>สแกนเอกสารจากอีเมลอัตโนมัติ</p>
+        </div>
         <button onClick={() => setData([])} className={`flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-medium ${isDark ? "bg-red-500/10 text-red-400 hover:bg-red-500/20" : "bg-red-50 text-red-600 hover:bg-red-100"} transition-colors`}><Trash2 size={16} />ล้างข้อมูลตัวอย่าง</button>
       </div>
       <div className={`${c} border ${b} rounded-2xl p-5 flex items-center justify-between`}>

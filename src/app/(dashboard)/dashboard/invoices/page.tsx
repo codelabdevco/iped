@@ -27,10 +27,13 @@ export default function Page() {
   return (
     <div className="p-6 space-y-6">
       <div className="flex items-center justify-between">
-        <h1 className={`text-2xl font-bold ${c("text-white", "text-gray-900")}`}><Receipt className="inline mr-2 w-6 h-6" />ใบแจ้งหนี้ขาออก</h1>
+        <div>
+          <h1 className={`text-2xl font-bold ${c("text-white", "text-gray-900")}`}>ใบแจ้งหนี้ขาออก</h1>
+          <p className={`text-sm ${c("text-white/50", "text-gray-500")}`}>จัดการใบแจ้งหนี้สำหรับลูกค้า</p>
+        </div>
         <div className="flex gap-2">
-          {data.length > 0 && <button onClick={() => setData([])} className="flex items-center gap-1 px-3 py-2 rounded-lg bg-red-500/20 text-red-400 text-sm hover:bg-red-500/30"><Trash2 className="w-4 h-4" />ล้างข้อมูลตัวอย่าง</button>}
-          <button className="flex items-center gap-1 px-4 py-2 rounded-lg bg-blue-600 text-white text-sm hover:bg-blue-700"><Plus className="w-4 h-4" />สร้างใบแจ้งหนี้</button>
+          <button onClick={() => setData([])} className={`flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-medium ${isDark ? "bg-red-500/10 text-red-400 hover:bg-red-500/20" : "bg-red-50 text-red-600 hover:bg-red-100"} transition-colors`}><Trash2 size={16} />ล้างข้อมูลตัวอย่าง</button>
+          <button className="flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-medium bg-[#FA3633] text-white hover:bg-[#e0302d] transition-colors"><Plus size={16} />สร้างใบแจ้งหนี้</button>
         </div>
       </div>
 

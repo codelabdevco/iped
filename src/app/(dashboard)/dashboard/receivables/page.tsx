@@ -51,11 +51,9 @@ export default function ReceivablesPage() {
       <div className="flex items-center justify-between">
         <div>
           <h1 className={`text-2xl font-bold ${isDark ? "text-white" : "text-gray-900"}`}>ยอดค้างชำระ</h1>
-          <p className={isDark ? "text-gray-400" : "text-gray-500"}>Accounts Receivable</p>
+          <p className={`text-sm ${isDark ? "text-gray-400" : "text-gray-500"}`}>ติดตามยอดค้างชำระจากลูกค้า</p>
         </div>
-        <button onClick={clearDemo} className="flex items-center gap-2 rounded-xl border border-red-300 bg-red-50 px-4 py-2 text-sm text-red-600 hover:bg-red-100 transition-colors dark:border-red-800 dark:bg-red-950 dark:text-red-400 dark:hover:bg-red-900">
-          <Trash2 size={16} />ล้างข้อมูลตัวอย่าง
-        </button>
+        <button onClick={clearDemo} className={`flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-medium ${isDark ? "bg-red-500/10 text-red-400 hover:bg-red-500/20" : "bg-red-50 text-red-600 hover:bg-red-100"} transition-colors`}><Trash2 size={16} />ล้างข้อมูลตัวอย่าง</button>
       </div>
       <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
         {[

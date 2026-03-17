@@ -31,8 +31,11 @@ export default function Page() {
   return (
     <div className="p-6 space-y-6">
       <div className="flex items-center justify-between">
-        <h1 className={`text-2xl font-bold ${c("text-white", "text-gray-900")}`}><ShieldCheck className="inline mr-2 w-6 h-6" />อนุมัติรายจ่าย</h1>
-        {data.length > 0 && <button onClick={() => setData([])} className="flex items-center gap-1 px-3 py-2 rounded-lg bg-red-500/20 text-red-400 text-sm hover:bg-red-500/30"><Trash2 className="w-4 h-4" />ล้างข้อมูลตัวอย่าง</button>}
+        <div>
+          <h1 className={`text-2xl font-bold ${c("text-white", "text-gray-900")}`}>อนุมัติรายจ่าย</h1>
+          <p className={`text-sm ${c("text-white/50", "text-gray-500")}`}>จัดการ workflow อนุมัติรายจ่าย</p>
+        </div>
+        <button onClick={() => setData([])} className={`flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-medium ${isDark ? "bg-red-500/10 text-red-400 hover:bg-red-500/20" : "bg-red-50 text-red-600 hover:bg-red-100"} transition-colors`}><Trash2 size={16} />ล้างข้อมูลตัวอย่าง</button>
       </div>
 
       <div className="grid grid-cols-3 gap-4">

@@ -61,30 +61,11 @@ export default function NotificationsPage() {
   return (
     <div className="space-y-6">
       <div className="flex items-center justify-between">
-        <div className="flex items-center gap-3">
-          <div className="p-2 rounded-xl bg-rose-500/10 relative">
-            <Bell className="w-6 h-6 text-rose-500" />
-            {unreadCount > 0 && (
-              <span className="absolute -top-1 -right-1 w-5 h-5 bg-rose-500 text-white text-xs font-bold rounded-full flex items-center justify-center">
-                {unreadCount}
-              </span>
-            )}
-          </div>
-          <div>
-            <h1 className={"text-2xl font-bold " + tp}>การแจ้งเตือน</h1>
-            <p className={ts}>{"ทั้งหมด " + notifications.length + " รายการ, ยังไม่อ่าน " + unreadCount + " รายการ"}</p>
-          </div>
+        <div>
+          <h1 className={`text-2xl font-bold ${tp}`}>การแจ้งเตือน</h1>
+          <p className={`text-sm ${ts}`}>แจ้งเตือนงบประมาณ บิล และระบบ</p>
         </div>
-        <div className="flex items-center gap-2">
-          <button onClick={markAllRead} className={"flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-medium transition-colors " + btnCls}>
-            <CheckCheck className="w-4 h-4" />
-            อ่านทั้งหมด
-          </button>
-          <button onClick={clearDemo} className={"flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-medium transition-colors " + btnCls}>
-            <Trash2 className="w-4 h-4" />
-            ล้างข้อมูลตัวอย่าง
-          </button>
-        </div>
+        <button onClick={clearDemo} className={`flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-medium ${isDark ? "bg-red-500/10 text-red-400 hover:bg-red-500/20" : "bg-red-50 text-red-600 hover:bg-red-100"} transition-colors`}><Trash2 size={16} />ล้างข้อมูลตัวอย่าง</button>
       </div>
 
       <div className={"flex gap-1 p-1 rounded-xl " + (isDark ? "bg-[rgba(255,255,255,0.04)]" : "bg-gray-100")}>

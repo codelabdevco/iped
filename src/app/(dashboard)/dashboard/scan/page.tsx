@@ -96,30 +96,11 @@ export default function ScanPage() {
     <div className="space-y-6">
       {/* Header */}
       <div className="flex items-center justify-between">
-        <div className="flex items-center gap-3">
-          <div className="p-2 rounded-xl bg-blue-500/10">
-            <ScanLine className="w-6 h-6 text-blue-500" />
-          </div>
-          <div>
-            <h1 className={`text-2xl font-bold ${isDark ? "text-white" : "text-gray-900"}`}>
-              สแกน AI OCR
-            </h1>
-            <p className={isDark ? "text-gray-400" : "text-gray-500"}>
-              อัปโหลดใบเสร็จเพื่อสแกนด้วย AI
-            </p>
-          </div>
+        <div>
+          <h1 className={`text-2xl font-bold ${isDark ? "text-white" : "text-gray-900"}`}>สแกน AI OCR</h1>
+          <p className={`text-sm ${isDark ? "text-gray-400" : "text-gray-500"}`}>สแกนใบเสร็จและเอกสารด้วย AI</p>
         </div>
-        <button
-          onClick={clearDemo}
-          className={`flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-medium transition-colors ${
-            isDark
-              ? "bg-[rgba(255,255,255,0.04)] border border-[rgba(255,255,255,0.06)] text-gray-300 hover:bg-[rgba(255,255,255,0.08)]"
-              : "bg-white border border-gray-200 text-gray-600 hover:bg-gray-50"
-          }`}
-        >
-          <Trash2 className="w-4 h-4" />
-          ล้างข้อมูลตัวอย่าง
-        </button>
+        <button onClick={clearDemo} className={`flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-medium ${isDark ? "bg-red-500/10 text-red-400 hover:bg-red-500/20" : "bg-red-50 text-red-600 hover:bg-red-100"} transition-colors`}><Trash2 size={16} />ล้างข้อมูลตัวอย่าง</button>
       </div>
 
       {/* Upload Zone */}

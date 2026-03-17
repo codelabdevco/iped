@@ -24,7 +24,10 @@ export default function CustomersPage() {
   return (
     <div className="space-y-6">
       <div className="flex items-center justify-between">
-        <div><h1 className={`text-2xl font-bold ${t}`}>รายชื่อลูกค้า</h1><p className={`text-sm ${s}`}>จัดการลูกค้าและคู่ค้า</p></div>
+        <div>
+          <h1 className={`text-2xl font-bold ${t}`}>รายชื่อลูกค้า</h1>
+          <p className={`text-sm ${s}`}>จัดการลูกค้าและคู่ค้า</p>
+        </div>
         <div className="flex gap-2">
           <button onClick={() => setData([])} className={`flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-medium ${isDark ? "bg-red-500/10 text-red-400 hover:bg-red-500/20" : "bg-red-50 text-red-600 hover:bg-red-100"} transition-colors`}><Trash2 size={16} />ล้างข้อมูลตัวอย่าง</button>
           <button className="flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-medium bg-[#FA3633] text-white hover:bg-[#e0302d] transition-colors"><Plus size={16} />เพิ่มลูกค้า</button>

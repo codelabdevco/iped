@@ -37,10 +37,11 @@ export default function Page() {
   return (
     <div className={`p-6 space-y-6 ${txt}`}>
       <div className="flex items-center justify-between">
-        <h1 className="text-2xl font-bold">PDPA & Audit Logs</h1>
-        <button onClick={clearDemo} className="flex items-center gap-2 px-4 py-2 rounded-lg bg-red-500/10 text-red-400 hover:bg-red-500/20 text-sm">
-          <Trash2 size={16} /> ล้างข้อมูลตัวอย่าง
-        </button>
+        <div>
+          <h1 className={`text-2xl font-bold ${txt}`}>PDPA & Audit Logs</h1>
+          <p className={`text-sm ${sub}`}>ความปลอดภัยและบันทึกการใช้งาน</p>
+        </div>
+        <button onClick={clearDemo} className={`flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-medium ${isDark ? "bg-red-500/10 text-red-400 hover:bg-red-500/20" : "bg-red-50 text-red-600 hover:bg-red-100"} transition-colors`}><Trash2 size={16} />ล้างข้อมูลตัวอย่าง</button>
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
