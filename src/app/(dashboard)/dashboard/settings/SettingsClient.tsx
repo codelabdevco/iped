@@ -3,6 +3,7 @@
 import { useState, useEffect } from "react";
 import { User, Bell, Palette, Shield, Link2, Building2, Trash2, Download, Smartphone, Monitor, Eye, MessageCircle, FileSpreadsheet, Mail, HardDrive, Sheet, BookOpen, Clock, Users, CheckSquare, Receipt as ReceiptIcon, Globe } from "lucide-react";
 import Image from "next/image";
+import Select from "@/components/dashboard/Select";
 import { useTheme } from "@/contexts/ThemeContext";
 import PageHeader from "@/components/dashboard/PageHeader";
 
@@ -63,14 +64,15 @@ export default function SettingsClient({ profile }: { profile: Profile }) {
     );
   };
 
-  const SelectField = ({ label, options }: { label: string; options: string[][] }) => (
-    <div>
-      <label className={`block text-sm ${labelCls} mb-1.5`}>{label}</label>
-      <select className={`w-full h-10 px-3 ${inputCls} border rounded-lg text-sm focus:outline-none`}>
-        {options.map(([v, l]) => <option key={v} value={v}>{l}</option>)}
-      </select>
-    </div>
-  );
+  const SelectField = ({ label, options, value }: { label: string; options: string[][]; value?: string }) => {
+    const [val, setVal] = useState(value || options[0]?.[0] || "");
+    return (
+      <div>
+        {label && <label className={`block text-sm ${labelCls} mb-1.5`}>{label}</label>}
+        <Select value={val} onChange={setVal} options={options.map(([v, l]) => ({ value: v, label: l }))} />
+      </div>
+    );
+  };
 
   const InputField = ({ label, type = "text", value = "" }: { label: string; type?: string; value?: string }) => (
     <div>

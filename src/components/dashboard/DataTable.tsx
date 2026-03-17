@@ -3,6 +3,7 @@
 import { useState, useMemo, useRef } from "react";
 import { useTheme } from "@/contexts/ThemeContext";
 import { ChevronLeft, ChevronRight, ChevronsLeft, ChevronsRight, Calendar, ChevronDown } from "lucide-react";
+import DatePicker from "@/components/dashboard/DatePicker";
 
 export interface Column<T> {
   key: string;
@@ -147,9 +148,9 @@ export default function DataTable<T>({ columns, data, rowKey, emptyText = "ไ�
           {datePreset !== "all" && <span className={`text-xs ${sub}`}>{filteredData.length} รายการ</span>}
           {datePreset === "custom" && (
             <div className="flex items-center gap-2 ml-2">
-              <input type="date" value={customFrom} onChange={(e) => { setCustomFrom(e.target.value); setPage(1); }} className={`h-8 px-2 rounded-lg text-xs ${isDark ? "bg-white/5 border-white/10 text-white" : "bg-gray-50 border-gray-200 text-gray-900"} border focus:outline-none focus:border-[#FA3633]/50`} />
+              <DatePicker value={customFrom} onChange={(v) => { setCustomFrom(v); setPage(1); }} className="w-40" />
               <span className={`text-xs ${sub}`}>—</span>
-              <input type="date" value={customTo} onChange={(e) => { setCustomTo(e.target.value); setPage(1); }} className={`h-8 px-2 rounded-lg text-xs ${isDark ? "bg-white/5 border-white/10 text-white" : "bg-gray-50 border-gray-200 text-gray-900"} border focus:outline-none focus:border-[#FA3633]/50`} />
+              <DatePicker value={customTo} onChange={(v) => { setCustomTo(v); setPage(1); }} className="w-40" />
             </div>
           )}
         </div>
