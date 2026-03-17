@@ -265,7 +265,6 @@ export default function ReceiptsClient({ receipts: initialReceipts }: { receipts
                 <button onClick={handleCancelEdit} className={`flex-1 py-2.5 rounded-xl text-sm font-medium transition-colors ${isDark ? "bg-white/5 text-white/60 hover:bg-white/10" : "bg-gray-100 text-gray-600 hover:bg-gray-200"}`}>ยกเลิก</button>
               </div>
             </div>
-          </div>
       </div>
 
       <PageHeader title="ใบเสร็จทั้งหมด" description={`${filtered.length} รายการ — รวม ฿${totalAmount.toLocaleString()}`} />
