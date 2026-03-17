@@ -1,8 +1,9 @@
 "use client";
 import { useState } from "react";
 import { useTheme } from "@/contexts/ThemeContext";
-import { Mail, Trash2, Paperclip } from "lucide-react";
+import { Mail, Paperclip, FileText, Hash } from "lucide-react";
 import PageHeader from "@/components/dashboard/PageHeader";
+import StatsCard from "@/components/dashboard/StatsCard";
 import DataTable, { Column } from "@/components/dashboard/DataTable";
 
 interface EmailEntry {
@@ -40,10 +41,10 @@ export default function EmailScannerPage() {
         <div className="flex items-center gap-3"><div className="w-10 h-10 rounded-xl bg-blue-500/10 flex items-center justify-center"><Mail size={20} className="text-blue-500" /></div><div><p className={`font-semibold ${t}`}>Gmail เชื่อมต่อแล้ว</p><p className={`text-sm ${s}`}>demo@iped.co</p></div></div>
         <div className={`px-3 py-1.5 rounded-lg text-xs font-medium bg-green-500/10 text-green-400`}>ใช้งานอยู่</div>
       </div>
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-        {[{ l: "อีเมลที่สแกน", v: `${data.length}` }, { l: "เอกสารที่พบ", v: `${data.reduce((a,d)=>a+d.attachments,0)}` }, { l: "จัดหมวดอัตโนมัติ", v: `${data.filter(d=>d.status==="scanned").length}` }].map((x,i) => (
-          <div key={i} className={`${c} border ${b} rounded-2xl p-5`}><p className={`text-sm ${s}`}>{x.l}</p><p className={`text-2xl font-bold mt-1 ${t}`}>{x.v}</p></div>
-        ))}
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+        <StatsCard label="อีเมลที่สแกน" value={`${data.length}`} icon={<Mail size={20} />} color="text-blue-500" />
+        <StatsCard label="เอกสารที่พบ" value={`${data.reduce((a,d)=>a+d.attachments,0)}`} icon={<FileText size={20} />} color="text-purple-500" />
+        <StatsCard label="จัดหมวดอัตโนมัติ" value={`${data.filter(d=>d.status==="scanned").length}`} icon={<Hash size={20} />} color="text-green-500" />
       </div>
       <DataTable columns={columns} data={data} rowKey={(r) => r.id} />
     </div>

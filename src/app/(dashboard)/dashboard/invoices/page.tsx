@@ -1,8 +1,9 @@
 "use client";
 import { useState } from "react";
 import { useTheme } from "@/contexts/ThemeContext";
-import { Trash2, Receipt, Plus, Clock } from "lucide-react";
+import { Receipt, Clock, AlertTriangle, Wallet } from "lucide-react";
 import PageHeader from "@/components/dashboard/PageHeader";
+import StatsCard from "@/components/dashboard/StatsCard";
 import DataTable, { Column } from "@/components/dashboard/DataTable";
 
 interface InvoiceEntry {
@@ -28,7 +29,6 @@ export default function Page() {
   const pending = data.filter(d => d.status === "ค้างชำระ").length;
   const overdue = data.filter(d => d.status === "เกินกำหนด").length;
   const total = data.reduce((s, d) => s + d.amount, 0);
-  const c = (d: string, l: string) => isDark ? d : l;
 
   const columns: Column<InvoiceEntry>[] = [
     { key: "id", label: "เลขที่", render: (r, isDark) => <span className={`font-mono ${isDark ? "text-white" : "text-gray-900"}`}>{r.id}</span> },
@@ -44,13 +44,11 @@ export default function Page() {
     <div className="space-y-6">
       <PageHeader title="ใบแจ้งหนี้ขาออก" description="จัดการใบแจ้งหนี้สำหรับลูกค้า" onClear={() => setData([])} actionLabel="สร้างใบแจ้งหนี้" />
 
-      <div className="grid grid-cols-4 gap-4">
-        {[["ทั้งหมด", data.length + " รายการ"], ["ค้างชำระ", pending + " รายการ"], ["เกินกำหนด", overdue + " รายการ"], ["มูลค่ารวม", "฿" + total.toLocaleString()]].map(([label, val]) => (
-          <div key={label} className={`p-4 rounded-xl border ${c("bg-[rgba(255,255,255,0.04)] border-[rgba(255,255,255,0.06)]", "bg-white border-gray-200")}`}>
-            <p className={`text-sm ${c("text-white/50", "text-gray-500")}`}>{label}</p>
-            <p className={`text-xl font-bold mt-1 ${c("text-white", "text-gray-900")}`}>{val}</p>
-          </div>
-        ))}
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+        <StatsCard label="ทั้งหมด" value={`${data.length} รายการ`} icon={<Receipt size={20} />} color="text-blue-500" />
+        <StatsCard label="ค้างชำระ" value={`${pending} รายการ`} icon={<Clock size={20} />} color="text-yellow-500" />
+        <StatsCard label="เกินกำหนด" value={`${overdue} รายการ`} icon={<AlertTriangle size={20} />} color="text-red-500" />
+        <StatsCard label="มูลค่ารวม" value={`฿${total.toLocaleString()}`} icon={<Wallet size={20} />} color="text-green-500" />
       </div>
 
       <DataTable columns={columns} data={data} rowKey={(r) => r.id} />
