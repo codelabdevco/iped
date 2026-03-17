@@ -70,6 +70,8 @@ export default function ReceiptsClient({ receipts }: { receipts: ReceiptRow[] })
   const driveUploaded = filtered.filter((r) => r.driveUploaded).length;
   const driveNotUploaded = filtered.filter((r) => !r.driveUploaded).length;
 
+  const card = isDark ? "bg-[rgba(255,255,255,0.04)]" : "bg-white";
+  const border = isDark ? "border-[rgba(255,255,255,0.06)]" : "border-gray-200";
   const sub = isDark ? "text-white/50" : "text-gray-500";
   const muted = isDark ? "text-white/30" : "text-gray-400";
   const txt = isDark ? "text-white" : "text-gray-900";
@@ -161,30 +163,40 @@ export default function ReceiptsClient({ receipts }: { receipts: ReceiptRow[] })
         <StatsCard label="อัปโหลด Drive" value={`${driveUploaded} / ${filtered.length}`} icon={<HardDrive size={20} />} color="text-blue-400" />
       </div>
 
-      <div className="flex flex-wrap items-center gap-3">
-        <div className="relative flex-1 min-w-[240px]">
-          <Search size={16} className={`absolute left-3 top-1/2 -translate-y-1/2 ${sub}`} />
-          <input type="text" placeholder="ค้นหาร้านค้า, หมวดหมู่..." value={search} onChange={(e) => setSearch(e.target.value)} className={`w-full h-10 pl-9 pr-4 ${inputCls} border rounded-lg text-sm focus:outline-none focus:border-[#FA3633]/50`} />
+      {/* Search */}
+      <div className="relative">
+        <Search size={16} className={`absolute left-3 top-1/2 -translate-y-1/2 ${sub}`} />
+        <input type="text" placeholder="ค้นหาร้านค้า, หมวดหมู่..." value={search} onChange={(e) => setSearch(e.target.value)} className={`w-full h-10 pl-9 pr-4 ${inputCls} border rounded-lg text-sm focus:outline-none focus:border-[#FA3633]/50`} />
+      </div>
+
+      {/* Filters — pill style like Dashboard DateRangePicker */}
+      <div className={`${card} border ${border} rounded-xl px-5 py-3 space-y-3`}>
+        {/* Status filter */}
+        <div className="flex items-center gap-3 flex-wrap">
+          <span className={`text-xs font-medium ${sub} w-16`}>สถานะ</span>
+          <div className="flex gap-1.5 flex-wrap">
+            {[{ key: "all", label: "ทั้งหมด" }, { key: "confirmed", label: "ยืนยันแล้ว" }, { key: "pending", label: "รอตรวจสอบ" }, { key: "rejected", label: "ปฏิเสธ" }].map((o) => (
+              <button key={o.key} onClick={() => setStatusFilter(o.key)} className={`px-3 py-1.5 rounded-full text-xs font-medium transition-all ${statusFilter === o.key ? "bg-[#FA3633] text-white shadow-sm shadow-[#FA3633]/25" : isDark ? "bg-white/5 text-white/50 hover:bg-white/10" : "bg-gray-100 text-gray-500 hover:bg-gray-200"}`}>{o.label}</button>
+            ))}
+          </div>
         </div>
-        <div className="flex items-center gap-2 flex-wrap">
-          <Filter size={16} className={sub} />
-          <select value={statusFilter} onChange={(e) => setStatusFilter(e.target.value)} className={`h-10 px-3 ${inputCls} border rounded-lg text-sm focus:outline-none`}>
-            <option value="all">สถานะทั้งหมด</option>
-            <option value="confirmed">ยืนยันแล้ว</option>
-            <option value="pending">รอตรวจสอบ</option>
-            <option value="rejected">ปฏิเสธ</option>
-          </select>
-          <select value={typeFilter} onChange={(e) => setTypeFilter(e.target.value)} className={`h-10 px-3 ${inputCls} border rounded-lg text-sm focus:outline-none`}>
-            <option value="all">ประเภททั้งหมด</option>
-            <option value="receipt">ใบเสร็จ</option>
-            <option value="invoice">ใบแจ้งหนี้</option>
-            <option value="billing">บิลเรียกเก็บ</option>
-          </select>
-          <select value={driveFilter} onChange={(e) => setDriveFilter(e.target.value)} className={`h-10 px-3 ${inputCls} border rounded-lg text-sm focus:outline-none`}>
-            <option value="all">Drive ทั้งหมด</option>
-            <option value="uploaded">อัปโหลดแล้ว</option>
-            <option value="not_uploaded">ยังไม่อัปโหลด</option>
-          </select>
+        {/* Type filter */}
+        <div className="flex items-center gap-3 flex-wrap">
+          <span className={`text-xs font-medium ${sub} w-16`}>ประเภท</span>
+          <div className="flex gap-1.5 flex-wrap">
+            {[{ key: "all", label: "ทั้งหมด" }, { key: "receipt", label: "ใบเสร็จ" }, { key: "invoice", label: "ใบแจ้งหนี้" }, { key: "billing", label: "บิลเรียกเก็บ" }, { key: "debit_note", label: "ใบเพิ่มหนี้" }, { key: "credit_note", label: "ใบลดหนี้" }].map((o) => (
+              <button key={o.key} onClick={() => setTypeFilter(o.key)} className={`px-3 py-1.5 rounded-full text-xs font-medium transition-all ${typeFilter === o.key ? "bg-[#FA3633] text-white shadow-sm shadow-[#FA3633]/25" : isDark ? "bg-white/5 text-white/50 hover:bg-white/10" : "bg-gray-100 text-gray-500 hover:bg-gray-200"}`}>{o.label}</button>
+            ))}
+          </div>
+        </div>
+        {/* Drive filter */}
+        <div className="flex items-center gap-3 flex-wrap">
+          <span className={`text-xs font-medium ${sub} w-16`}>Drive</span>
+          <div className="flex gap-1.5 flex-wrap">
+            {[{ key: "all", label: "ทั้งหมด" }, { key: "uploaded", label: "อัปโหลดแล้ว" }, { key: "not_uploaded", label: "ยังไม่อัปโหลด" }].map((o) => (
+              <button key={o.key} onClick={() => setDriveFilter(o.key)} className={`px-3 py-1.5 rounded-full text-xs font-medium transition-all ${driveFilter === o.key ? "bg-[#FA3633] text-white shadow-sm shadow-[#FA3633]/25" : isDark ? "bg-white/5 text-white/50 hover:bg-white/10" : "bg-gray-100 text-gray-500 hover:bg-gray-200"}`}>{o.label}</button>
+            ))}
+          </div>
         </div>
       </div>
 
