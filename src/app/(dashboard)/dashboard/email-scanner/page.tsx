@@ -2,6 +2,7 @@
 import { useState } from "react";
 import { useTheme } from "@/contexts/ThemeContext";
 import { Mail, Trash2, Paperclip } from "lucide-react";
+import PageHeader from "@/components/dashboard/PageHeader";
 const INIT = [
   { id: 1, subject: "ใบเสร็จค่าบริการ Cloud - มี.ค. 2569", sender: "billing@aws.amazon.com", date: "15/03/2569", attachments: 1, status: "scanned" },
   { id: 2, subject: "ใบแจ้งหนี้ค่าโทรศัพท์", sender: "billing@truemoveh.com", date: "14/03/2569", attachments: 1, status: "scanned" },
@@ -19,13 +20,7 @@ export default function EmailScannerPage() {
   const s = isDark ? "text-white/50" : "text-gray-500";
   return (
     <div className="space-y-6">
-      <div className="flex items-center justify-between">
-        <div>
-          <h1 className={`text-2xl font-bold ${t}`}>Email Scanner</h1>
-          <p className={`text-sm ${s}`}>สแกนเอกสารจากอีเมลอัตโนมัติ</p>
-        </div>
-        <button onClick={() => setData([])} className={`flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-medium ${isDark ? "bg-red-500/10 text-red-400 hover:bg-red-500/20" : "bg-red-50 text-red-600 hover:bg-red-100"} transition-colors`}><Trash2 size={16} />ล้างข้อมูลตัวอย่าง</button>
-      </div>
+      <PageHeader title="Email Scanner" description="สแกนเอกสารจากอีเมลอัตโนมัติ" onClear={() => setData([])} />
       <div className={`${c} border ${b} rounded-2xl p-5 flex items-center justify-between`}>
         <div className="flex items-center gap-3"><div className="w-10 h-10 rounded-xl bg-blue-500/10 flex items-center justify-center"><Mail size={20} className="text-blue-500" /></div><div><p className={`font-semibold ${t}`}>Gmail เชื่อมต่อแล้ว</p><p className={`text-sm ${s}`}>demo@iped.co</p></div></div>
         <div className={`px-3 py-1.5 rounded-lg text-xs font-medium bg-green-500/10 text-green-400`}>ใช้งานอยู่</div>

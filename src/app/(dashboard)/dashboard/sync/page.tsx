@@ -2,6 +2,7 @@
 import { useState } from "react";
 import { useTheme } from "@/contexts/ThemeContext";
 import { Cloud, HardDrive, Sheet, BookOpen, Trash2, RefreshCw } from "lucide-react";
+import PageHeader from "@/components/dashboard/PageHeader";
 const SERVICES = [
   { id: "drive", name: "Google Drive", icon: HardDrive, color: "#4285F4", connected: true, lastSync: "5 นาทีที่แล้ว", items: 142 },
   { id: "sheets", name: "Google Sheets", icon: Sheet, color: "#0F9D58", connected: true, lastSync: "1 ชม.ที่แล้ว", items: 89 },
@@ -24,13 +25,7 @@ export default function SyncPage() {
   const s = isDark ? "text-white/50" : "text-gray-500";
   return (
     <div className="space-y-6">
-      <div className="flex items-center justify-between">
-        <div>
-          <h1 className={`text-2xl font-bold ${t}`}>Drive / Sheets / Notion</h1>
-          <p className={`text-sm ${s}`}>ซิงค์ข้อมูลกับบริการภายนอก</p>
-        </div>
-        <button onClick={() => setLogs([])} className={`flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-medium ${isDark ? "bg-red-500/10 text-red-400 hover:bg-red-500/20" : "bg-red-50 text-red-600 hover:bg-red-100"} transition-colors`}><Trash2 size={16} />ล้างข้อมูลตัวอย่าง</button>
-      </div>
+      <PageHeader title="Drive / Sheets / Notion" description="ซิงค์ข้อมูลกับบริการภายนอก" onClear={() => setLogs([])} />
       <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
         {SERVICES.map(sv => { const Icon = sv.icon; return (
           <div key={sv.id} className={`${c} border ${b} rounded-2xl p-5`}>

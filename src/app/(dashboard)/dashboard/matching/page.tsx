@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { useTheme } from "@/contexts/ThemeContext";
 import { Link2, CheckCircle2, Clock, AlertTriangle, Trash2, FileText, ArrowLeftRight } from "lucide-react";
+import PageHeader from "@/components/dashboard/PageHeader";
 
 interface MatchPair {
   id: string;
@@ -82,13 +83,7 @@ export default function MatchingPage() {
 
   return (
     <div className="space-y-6">
-      <div className="flex items-center justify-between">
-        <div>
-          <h1 className={`text-2xl font-bold ${tp}`}>จับคู่เอกสาร</h1>
-          <p className={`text-sm ${ts}`}>จับคู่ใบแจ้งหนี้กับใบเสร็จอัตโนมัติ</p>
-        </div>
-        <button onClick={clearDemo} className={`flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-medium ${isDark ? "bg-red-500/10 text-red-400 hover:bg-red-500/20" : "bg-red-50 text-red-600 hover:bg-red-100"} transition-colors`}><Trash2 size={16} />ล้างข้อมูลตัวอย่าง</button>
-      </div>
+      <PageHeader title="จับคู่เอกสาร" description="จับคู่ใบแจ้งหนี้กับใบเสร็จอัตโนมัติ" onClear={clearDemo} />
 
       <div className="grid grid-cols-3 gap-4">
         {summaryCards.map((card) => (

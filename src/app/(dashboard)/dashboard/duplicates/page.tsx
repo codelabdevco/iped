@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { useTheme } from "@/contexts/ThemeContext";
 import { Copy, Trash2, Merge, Archive, AlertCircle, ImageIcon } from "lucide-react";
+import PageHeader from "@/components/dashboard/PageHeader";
 
 interface DuplicateDoc {
   id: string;
@@ -72,13 +73,7 @@ export default function DuplicatesPage() {
 
   return (
     <div className="space-y-6">
-      <div className="flex items-center justify-between">
-        <div>
-          <h1 className={`text-2xl font-bold ${tp}`}>ตรวจเอกสารซ้ำ</h1>
-          <p className={`text-sm ${ts}`}>ตรวจจับและจัดการเอกสารที่อาจซ้ำกัน</p>
-        </div>
-        <button onClick={clearDemo} className={`flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-medium ${isDark ? "bg-red-500/10 text-red-400 hover:bg-red-500/20" : "bg-red-50 text-red-600 hover:bg-red-100"} transition-colors`}><Trash2 size={16} />ล้างข้อมูลตัวอย่าง</button>
-      </div>
+      <PageHeader title="ตรวจเอกสารซ้ำ" description="ตรวจจับและจัดการเอกสารที่อาจซ้ำกัน" onClear={clearDemo} />
 
       <div className="grid grid-cols-2 gap-4">
         <div className={"rounded-2xl border p-4 text-center " + cardCls}>

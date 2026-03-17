@@ -2,6 +2,7 @@
 import { useState } from "react";
 import { useTheme } from "@/contexts/ThemeContext";
 import { Bot, MessageCircle, Bell, BarChart3, Trash2 } from "lucide-react";
+import PageHeader from "@/components/dashboard/PageHeader";
 const MSGS = [
   { id: 1, from: "user", text: "ส่งรูปใบเสร็จ", time: "10:30" },
   { id: 2, from: "bot", text: "สแกนสำเร็จ! ใบเสร็จร้าน Tops Market ฿1,250 หมวดอาหาร", time: "10:30" },
@@ -20,13 +21,7 @@ export default function LineBotPage() {
   const s = isDark ? "text-white/50" : "text-gray-500";
   return (
     <div className="space-y-6">
-      <div className="flex items-center justify-between">
-        <div>
-          <h1 className={`text-2xl font-bold ${t}`}>LINE Bot</h1>
-          <p className={`text-sm ${s}`}>ส่งรูป ถามสรุป คุยเรื่องเงินผ่าน LINE</p>
-        </div>
-        <button onClick={() => setData([])} className={`flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-medium ${isDark ? "bg-red-500/10 text-red-400 hover:bg-red-500/20" : "bg-red-50 text-red-600 hover:bg-red-100"} transition-colors`}><Trash2 size={16} />ล้างข้อมูลตัวอย่าง</button>
-      </div>
+      <PageHeader title="LINE Bot" description="ส่งรูป ถามสรุป คุยเรื่องเงินผ่าน LINE" onClear={() => setData([])} />
       <div className={`${c} border ${b} rounded-2xl p-5 flex items-center justify-between`}>
         <div className="flex items-center gap-3">
           <div className={`w-10 h-10 rounded-xl flex items-center justify-center ${connected ? "bg-green-500/10" : "bg-red-500/10"}`}><Bot size={20} className={connected ? "text-green-500" : "text-red-500"} /></div>

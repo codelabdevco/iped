@@ -2,6 +2,7 @@
 import { useState } from "react";
 import { useTheme } from "@/contexts/ThemeContext";
 import { Trash2, Link2, RefreshCw, CheckCircle, XCircle, Clock } from "lucide-react";
+import PageHeader from "@/components/dashboard/PageHeader";
 
 const initIntegrations = [
   { id: 1, name: "PEAK", status: "connected", lastSync: "2026-03-17 09:30", records: 1245 },
@@ -29,13 +30,7 @@ export default function Page() {
 
   return (
     <div className={`p-6 space-y-6 ${txt}`}>
-      <div className="flex items-center justify-between">
-        <div>
-          <h1 className={`text-2xl font-bold ${txt}`}>เชื่อมโปรแกรมบัญชี</h1>
-          <p className={`text-sm ${sub}`}>เชื่อมต่อกับซอฟต์แวร์บัญชี</p>
-        </div>
-        <button onClick={clearDemo} className={`flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-medium ${isDark ? "bg-red-500/10 text-red-400 hover:bg-red-500/20" : "bg-red-50 text-red-600 hover:bg-red-100"} transition-colors`}><Trash2 size={16} />ล้างข้อมูลตัวอย่าง</button>
-      </div>
+      <PageHeader title="เชื่อมโปรแกรมบัญชี" description="เชื่อมต่อกับซอฟต์แวร์บัญชี" onClear={clearDemo} />
 
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
         {integrations.map((i) => (

@@ -2,6 +2,7 @@
 import { useState } from "react";
 import { useTheme } from "@/contexts/ThemeContext";
 import { Trash2, FileText, Plus, Clock } from "lucide-react";
+import PageHeader from "@/components/dashboard/PageHeader";
 
 const initData = [
   { id: "QT-2026-001", customer: "บจก. สยามเทค โซลูชั่นส์", item: "ระบบ ERP License x10", amount: 450000, date: "2026-03-01", expires: "2026-03-31", status: "ส่งแล้ว" },
@@ -23,16 +24,7 @@ export default function Page() {
 
   return (
     <div className="p-6 space-y-6">
-      <div className="flex items-center justify-between">
-        <div>
-          <h1 className={`text-2xl font-bold ${c("text-white", "text-gray-900")}`}>ใบเสนอราคา</h1>
-          <p className={`text-sm ${c("text-white/50", "text-gray-500")}`}>จัดการใบเสนอราคาสำหรับลูกค้า</p>
-        </div>
-        <div className="flex gap-2">
-          <button onClick={() => setData([])} className={`flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-medium ${isDark ? "bg-red-500/10 text-red-400 hover:bg-red-500/20" : "bg-red-50 text-red-600 hover:bg-red-100"} transition-colors`}><Trash2 size={16} />ล้างข้อมูลตัวอย่าง</button>
-          <button className="flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-medium bg-[#FA3633] text-white hover:bg-[#e0302d] transition-colors"><Plus size={16} />สร้างใบเสนอราคา</button>
-        </div>
-      </div>
+      <PageHeader title="ใบเสนอราคา" description="จัดการใบเสนอราคาสำหรับลูกค้า" onClear={() => setData([])} actionLabel="สร้างใบเสนอราคา" />
 
       <div className="grid grid-cols-3 gap-4">
         {[["ทั้งหมด", data.length + " รายการ"], ["รออนุมัติ", pending + " รายการ"], ["มูลค่ารวม", "฿" + total.toLocaleString()]].map(([label, val]) => (

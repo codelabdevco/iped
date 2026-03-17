@@ -11,6 +11,7 @@ import {
   Trash2,
   ImageIcon,
 } from "lucide-react";
+import PageHeader from "@/components/dashboard/PageHeader";
 
 interface ScanItem {
   id: string;
@@ -95,13 +96,7 @@ export default function ScanPage() {
   return (
     <div className="space-y-6">
       {/* Header */}
-      <div className="flex items-center justify-between">
-        <div>
-          <h1 className={`text-2xl font-bold ${isDark ? "text-white" : "text-gray-900"}`}>สแกน AI OCR</h1>
-          <p className={`text-sm ${isDark ? "text-gray-400" : "text-gray-500"}`}>สแกนใบเสร็จและเอกสารด้วย AI</p>
-        </div>
-        <button onClick={clearDemo} className={`flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-medium ${isDark ? "bg-red-500/10 text-red-400 hover:bg-red-500/20" : "bg-red-50 text-red-600 hover:bg-red-100"} transition-colors`}><Trash2 size={16} />ล้างข้อมูลตัวอย่าง</button>
-      </div>
+      <PageHeader title="สแกน AI OCR" description="สแกนใบเสร็จและเอกสารด้วย AI" onClear={clearDemo} />
 
       {/* Upload Zone */}
       <div

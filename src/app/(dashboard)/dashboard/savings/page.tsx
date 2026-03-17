@@ -2,6 +2,7 @@
 import { useState } from "react";
 import { useTheme } from "@/contexts/ThemeContext";
 import { PiggyBank, Plus, Trash2 } from "lucide-react";
+import PageHeader from "@/components/dashboard/PageHeader";
 
 const INIT = [
   { id: 1, name: "ท่องเที่ยวญี่ปุ่น", target: 50000, current: 32000, deadline: "30/09/2569", color: "#818CF8" },
@@ -22,16 +23,7 @@ export default function SavingsPage() {
 
   return (
     <div className="space-y-6">
-      <div className="flex items-center justify-between">
-        <div>
-          <h1 className={`text-2xl font-bold ${txt}`}>เงินออม</h1>
-          <p className={`text-sm ${sub}`}>เป้าหมายการออมเงินของคุณ</p>
-        </div>
-        <div className="flex gap-2">
-          <button onClick={() => setData([])} className={`flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-medium ${isDark ? "bg-red-500/10 text-red-400 hover:bg-red-500/20" : "bg-red-50 text-red-600 hover:bg-red-100"} transition-colors`}><Trash2 size={16} />ล้างข้อมูลตัวอย่าง</button>
-          <button className="flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-medium bg-[#FA3633] text-white hover:bg-[#e0302d] transition-colors"><Plus size={16} />เพิ่มเป้าหมาย</button>
-        </div>
-      </div>
+      <PageHeader title="เงินออม" description="เป้าหมายการออมเงินของคุณ" onClear={() => setData([])} actionLabel="เพิ่มเป้าหมาย" />
       <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
         {[{ label: "เงินออมทั้งหมด", value: `฿${totalSaved.toLocaleString()}` }, { label: "เป้าหมายที่สำเร็จ", value: `${done} / ${data.length}` }, { label: "ออมเดือนนี้", value: "฿12,500" }].map((s, i) => (
           <div key={i} className={`${card} border ${border} rounded-2xl p-5`}><p className={`text-sm ${sub}`}>{s.label}</p><p className={`text-2xl font-bold mt-1 ${txt}`}>{s.value}</p></div>

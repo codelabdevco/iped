@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { useTheme } from "@/contexts/ThemeContext";
 import { TrendingUp, Plus, Trash2, Wallet, ArrowUpRight, BarChart3 } from "lucide-react";
+import PageHeader from "@/components/dashboard/PageHeader";
 
 interface IncomeEntry {
   id: number; date: string; source: string; category: string; amount: number; note: string;
@@ -41,16 +42,7 @@ export default function IncomePage() {
 
   return (
     <div className="space-y-6">
-      <div className="flex items-center justify-between">
-        <div>
-          <h1 className={`text-2xl font-bold ${txt}`}>รายรับ</h1>
-          <p className={`text-sm ${sub}`}>จัดการรายรับทั้งหมดของคุณ</p>
-        </div>
-        <div className="flex gap-2">
-          <button onClick={clearDemo} className={`flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-medium ${isDark ? "bg-red-500/10 text-red-400 hover:bg-red-500/20" : "bg-red-50 text-red-600 hover:bg-red-100"} transition-colors`}><Trash2 size={16} />ล้างข้อมูลตัวอย่าง</button>
-          <button className="flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-medium bg-[#FA3633] text-white hover:bg-[#e0302d] transition-colors"><Plus size={16} />เพิ่มรายรับ</button>
-        </div>
-      </div>
+      <PageHeader title="รายรับ" description="จัดการรายรับทั้งหมดของคุณ" onClear={clearDemo} actionLabel="เพิ่มรายรับ" />
       <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
         {cards.map((c) => (
           <div key={c.label} className={`rounded-2xl border p-5 ${card}`}>

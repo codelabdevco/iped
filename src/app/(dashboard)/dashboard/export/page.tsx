@@ -2,6 +2,7 @@
 import { useState } from "react";
 import { useTheme } from "@/contexts/ThemeContext";
 import { Download, FileText, Table, FileSpreadsheet, Trash2 } from "lucide-react";
+import PageHeader from "@/components/dashboard/PageHeader";
 const INIT = [
   { id: 1, name: "iPED-report-2569-03.pdf", date: "15/03/2569", size: "2.4 MB", type: "PDF" },
   { id: 2, name: "receipts-march-2569.csv", date: "14/03/2569", size: "156 KB", type: "CSV" },
@@ -20,13 +21,7 @@ export default function ExportPage() {
   const colors: Record<string, string> = { PDF: "text-red-500 bg-red-500/10", CSV: "text-green-500 bg-green-500/10", Excel: "text-blue-500 bg-blue-500/10" };
   return (
     <div className="space-y-6">
-      <div className="flex items-center justify-between">
-        <div>
-          <h1 className={`text-2xl font-bold ${t}`}>ส่งออก PDF / CSV</h1>
-          <p className={`text-sm ${s}`}>ส่งออกข้อมูลในรูปแบบต่างๆ</p>
-        </div>
-        <button onClick={() => setData([])} className={`flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-medium ${isDark ? "bg-red-500/10 text-red-400 hover:bg-red-500/20" : "bg-red-50 text-red-600 hover:bg-red-100"} transition-colors`}><Trash2 size={16} />ล้างข้อมูลตัวอย่าง</button>
-      </div>
+      <PageHeader title="ส่งออก PDF / CSV" description="ส่งออกข้อมูลในรูปแบบต่างๆ" onClear={() => setData([])} />
       <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
         {[{ label: "PDF Report", desc: "รายงานสรุปพร้อมกราฟ", icon: FileText, color: "text-red-500 bg-red-500/10" }, { label: "CSV Data", desc: "ข้อมูลดิบสำหรับ Excel", icon: Table, color: "text-green-500 bg-green-500/10" }, { label: "Excel (.xlsx)", desc: "ไฟล์ Excel พร้อมใช้", icon: FileSpreadsheet, color: "text-blue-500 bg-blue-500/10" }].map((e, i) => {
           const Icon = e.icon;

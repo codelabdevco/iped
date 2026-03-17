@@ -2,6 +2,7 @@
 import { useState } from "react";
 import { useTheme } from "@/contexts/ThemeContext";
 import { TrendingDown, Plus, Trash2 } from "lucide-react";
+import PageHeader from "@/components/dashboard/PageHeader";
 
 const INIT = [
   { id: 1, date: "01/03/2569", store: "Tops Market สาขาสีลม", category: "อาหาร", amount: 1250, payment: "พร้อมเพย์", status: "confirmed" },
@@ -30,16 +31,7 @@ export default function ExpensesPage() {
 
   return (
     <div className="space-y-6">
-      <div className="flex items-center justify-between">
-        <div>
-          <h1 className={`text-2xl font-bold ${txt}`}>รายจ่าย</h1>
-          <p className={`text-sm ${sub}`}>จัดการรายจ่ายทั้งหมดของคุณ</p>
-        </div>
-        <div className="flex gap-2">
-          <button onClick={() => setData([])} className={`flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-medium ${isDark ? "bg-red-500/10 text-red-400 hover:bg-red-500/20" : "bg-red-50 text-red-600 hover:bg-red-100"} transition-colors`}><Trash2 size={16} />ล้างข้อมูลตัวอย่าง</button>
-          <button className="flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-medium bg-[#FA3633] text-white hover:bg-[#e0302d] transition-colors"><Plus size={16} />เพิ่มรายจ่าย</button>
-        </div>
-      </div>
+      <PageHeader title="รายจ่าย" description="จัดการรายจ่ายทั้งหมดของคุณ" onClear={() => setData([])} actionLabel="เพิ่มรายจ่าย" />
       <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
         {[{ label: "รายจ่ายเดือนนี้", value: `฿${total.toLocaleString()}` }, { label: "จำนวนรายการ", value: `${data.length} รายการ` }, { label: "เฉลี่ย/รายการ", value: `฿${data.length > 0 ? Math.round(total / data.length).toLocaleString() : 0}` }].map((s, i) => (
           <div key={i} className={`${card} border ${border} rounded-2xl p-5`}><p className={`text-sm ${sub}`}>{s.label}</p><p className={`text-2xl font-bold mt-1 ${txt}`}>{s.value}</p></div>

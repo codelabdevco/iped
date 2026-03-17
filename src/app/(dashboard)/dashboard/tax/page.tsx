@@ -2,6 +2,7 @@
 import { useState } from "react";
 import { useTheme } from "@/contexts/ThemeContext";
 import { Trash2, Receipt, Calculator, FileText } from "lucide-react";
+import PageHeader from "@/components/dashboard/PageHeader";
 
 const initVat = { sales: 45000, purchase: 28000, net: 17000 };
 const initWht = [
@@ -31,13 +32,7 @@ export default function Page() {
 
   return (
     <div className={`p-6 space-y-6 ${txt}`}>
-      <div className="flex items-center justify-between">
-        <div>
-          <h1 className={`text-2xl font-bold ${txt}`}>VAT / WHT</h1>
-          <p className={`text-sm ${sub}`}>จัดการภาษีมูลค่าเพิ่มและภาษีหัก ณ ที่จ่าย</p>
-        </div>
-        <button onClick={clearDemo} className={`flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-medium ${isDark ? "bg-red-500/10 text-red-400 hover:bg-red-500/20" : "bg-red-50 text-red-600 hover:bg-red-100"} transition-colors`}><Trash2 size={16} />ล้างข้อมูลตัวอย่าง</button>
-      </div>
+      <PageHeader title="VAT / WHT" description="จัดการภาษีมูลค่าเพิ่มและภาษีหัก ณ ที่จ่าย" onClear={clearDemo} />
 
       <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
         {vatCards.map((c) => (

@@ -2,6 +2,7 @@
 import { useState } from "react";
 import { useTheme } from "@/contexts/ThemeContext";
 import { Trash2, CreditCard, Check, Star, Zap } from "lucide-react";
+import PageHeader from "@/components/dashboard/PageHeader";
 
 const initPlans = [
   { id: 1, name: "Free", price: 0, features: ["ใบเสร็จ 50 ใบ/เดือน", "OCR พื้นฐาน", "รายงานสรุป", "ผู้ใช้ 1 คน"], current: false },
@@ -28,13 +29,7 @@ export default function Page() {
 
   return (
     <div className={`p-6 space-y-6 ${txt}`}>
-      <div className="flex items-center justify-between">
-        <div>
-          <h1 className={`text-2xl font-bold ${txt}`}>Package & Billing</h1>
-          <p className={`text-sm ${sub}`}>จัดการแพ็กเกจและการชำระเงิน</p>
-        </div>
-        <button onClick={clearDemo} className={`flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-medium ${isDark ? "bg-red-500/10 text-red-400 hover:bg-red-500/20" : "bg-red-50 text-red-600 hover:bg-red-100"} transition-colors`}><Trash2 size={16} />ล้างข้อมูลตัวอย่าง</button>
-      </div>
+      <PageHeader title="Package & Billing" description="จัดการแพ็กเกจและการชำระเงิน" onClear={clearDemo} />
 
       <div className={`${card} flex items-center gap-4`}>
         <div className="p-3 rounded-xl bg-blue-500/10"><Star size={24} className="text-blue-400" /></div>

@@ -2,6 +2,7 @@
 import { useState } from "react";
 import { useTheme } from "@/contexts/ThemeContext";
 import { Trash2, ShieldCheck, FileText, Database, UserX, Lock, Clock } from "lucide-react";
+import PageHeader from "@/components/dashboard/PageHeader";
 
 const initPdpa = [
   { label: "ความยินยอม", desc: "ผู้ใช้ยินยอม 1,180/1,247", icon: ShieldCheck, color: "text-green-400", pct: "94.6%" },
@@ -36,13 +37,7 @@ export default function Page() {
 
   return (
     <div className={`p-6 space-y-6 ${txt}`}>
-      <div className="flex items-center justify-between">
-        <div>
-          <h1 className={`text-2xl font-bold ${txt}`}>PDPA & Audit Logs</h1>
-          <p className={`text-sm ${sub}`}>ความปลอดภัยและบันทึกการใช้งาน</p>
-        </div>
-        <button onClick={clearDemo} className={`flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-medium ${isDark ? "bg-red-500/10 text-red-400 hover:bg-red-500/20" : "bg-red-50 text-red-600 hover:bg-red-100"} transition-colors`}><Trash2 size={16} />ล้างข้อมูลตัวอย่าง</button>
-      </div>
+      <PageHeader title="PDPA & Audit Logs" description="ความปลอดภัยและบันทึกการใช้งาน" onClear={clearDemo} />
 
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
         {pdpa.map((p) => (

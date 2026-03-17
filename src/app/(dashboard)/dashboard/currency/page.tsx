@@ -2,6 +2,7 @@
 import { useState } from "react";
 import { useTheme } from "@/contexts/ThemeContext";
 import { Globe, Trash2 } from "lucide-react";
+import PageHeader from "@/components/dashboard/PageHeader";
 
 const RATES = [
   { code: "THB", name: "บาท", flag: "🇹🇭", rate: 1, isDefault: true },
@@ -29,13 +30,7 @@ export default function CurrencyPage() {
 
   return (
     <div className="space-y-6">
-      <div className="flex items-center justify-between">
-        <div>
-          <h1 className={`text-2xl font-bold ${txt}`}>สกุลเงิน</h1>
-          <p className={`text-sm ${sub}`}>อัตราแลกเปลี่ยนและรายการต่างสกุลเงิน</p>
-        </div>
-        <button onClick={() => setTxData([])} className={`flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-medium ${isDark ? "bg-red-500/10 text-red-400 hover:bg-red-500/20" : "bg-red-50 text-red-600 hover:bg-red-100"} transition-colors`}><Trash2 size={16} />ล้างข้อมูลตัวอย่าง</button>
-      </div>
+      <PageHeader title="สกุลเงิน" description="อัตราแลกเปลี่ยนและรายการต่างสกุลเงิน" onClear={() => setTxData([])} />
       <div className="grid grid-cols-2 md:grid-cols-5 gap-3">
         {RATES.map(r => (
           <div key={r.code} className={`${card} border ${border} rounded-2xl p-4 text-center`}>

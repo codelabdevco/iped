@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { useTheme } from "@/contexts/ThemeContext";
 import { Bell, Trash2, AlertTriangle, Receipt, Copy, Settings, CheckCheck, Circle } from "lucide-react";
+import PageHeader from "@/components/dashboard/PageHeader";
 
 type NotifType = "budget" | "bill" | "duplicate" | "system";
 type FilterTab = "all" | "unread" | "budget" | "bill" | "system";
@@ -60,13 +61,7 @@ export default function NotificationsPage() {
 
   return (
     <div className="space-y-6">
-      <div className="flex items-center justify-between">
-        <div>
-          <h1 className={`text-2xl font-bold ${tp}`}>การแจ้งเตือน</h1>
-          <p className={`text-sm ${ts}`}>แจ้งเตือนงบประมาณ บิล และระบบ</p>
-        </div>
-        <button onClick={clearDemo} className={`flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-medium ${isDark ? "bg-red-500/10 text-red-400 hover:bg-red-500/20" : "bg-red-50 text-red-600 hover:bg-red-100"} transition-colors`}><Trash2 size={16} />ล้างข้อมูลตัวอย่าง</button>
-      </div>
+      <PageHeader title="การแจ้งเตือน" description="แจ้งเตือนงบประมาณ บิล และระบบ" onClear={clearDemo} />
 
       <div className={"flex gap-1 p-1 rounded-xl " + (isDark ? "bg-[rgba(255,255,255,0.04)]" : "bg-gray-100")}>
         {tabs.map((tab) => (
