@@ -179,7 +179,7 @@ function ChartSection({
                         if (val === 0) return null;
                                                 return (
                           <div key={cat} className="w-full transition-all duration-150 cursor-pointer hover:brightness-125"
-                            style={{ height: `${segPct}%`, backgroundColor: getCatColor(cat), minHeight: "3px" }}
+                            style={{ flex: `${val} 0 0%`, backgroundColor: getCatColor(cat), minHeight: "2px" }}
                             onMouseEnter={(e) => handleMouseEnter(e, cat, val, m.month, m.total)}
                             onMouseLeave={() => setTooltip(null)} />
                         );
