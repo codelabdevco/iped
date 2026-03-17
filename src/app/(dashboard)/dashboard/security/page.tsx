@@ -76,7 +76,7 @@ export default function Page() {
         </div>
       </div>
 
-      <DataTable columns={columns} data={logs} rowKey={(r) => r.id} />
+      <DataTable dateField="timestamp" columns={columns} data={logs} rowKey={(r) => r.id} />
     </div>
   );
 }

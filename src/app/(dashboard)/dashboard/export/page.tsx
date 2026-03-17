@@ -42,7 +42,7 @@ export default function ExportPage() {
           return <div key={i} className={`${c} border ${b} rounded-2xl p-5 cursor-pointer transition-all ${isDark ? "hover:bg-white/5" : "hover:bg-gray-50"}`}><div className={`w-10 h-10 rounded-xl flex items-center justify-center ${e.color} mb-3`}><Icon size={20} /></div><p className={`font-semibold ${t}`}>{e.label}</p><p className={`text-xs ${s} mt-1`}>{e.desc}</p><button className="mt-3 px-4 py-2 rounded-xl text-xs font-medium bg-[#FA3633] text-white hover:bg-[#e0302d] transition-colors">ส่งออก</button></div>;
         })}
       </div>
-      <DataTable columns={columns} data={data} rowKey={(r) => r.id} />
+      <DataTable dateField="date" columns={columns} data={data} rowKey={(r) => r.id} />
     </div>
   );
 }

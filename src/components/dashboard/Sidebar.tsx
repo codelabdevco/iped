@@ -36,7 +36,6 @@ const personalNav: NavGroup[] = [
       { label: "งบประมาณ", href: "/dashboard/budget", icon: Wallet },
       { label: "หมวดหมู่", href: "/dashboard/categories", icon: FolderOpen },
       { label: "วิธีจ่าย", href: "/dashboard/payments", icon: CreditCard },
-      { label: "สกุลเงิน", href: "/dashboard/currency", icon: Globe },
     ],
   },
   {
@@ -79,7 +78,6 @@ const businessNav: NavGroup[] = [
       { label: "งบประมาณ", href: "/dashboard/budget", icon: Wallet },
       { label: "หมวดหมู่", href: "/dashboard/categories", icon: FolderOpen },
       { label: "วิธีจ่าย", href: "/dashboard/payments", icon: CreditCard },
-      { label: "สกุลเงิน", href: "/dashboard/currency", icon: Globe },
       { label: "VAT / WHT", href: "/dashboard/tax", icon: BadgeDollarSign },
     ],
   },

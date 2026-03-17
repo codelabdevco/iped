@@ -72,7 +72,7 @@ export default function Page() {
         </div>
       </div>
 
-      <DataTable columns={columns} data={invoices} rowKey={(r) => r.id} />
+      <DataTable dateField="date" columns={columns} data={invoices} rowKey={(r) => r.id} />
     </div>
   );
 }

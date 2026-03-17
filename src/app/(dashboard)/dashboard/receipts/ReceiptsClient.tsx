@@ -122,7 +122,7 @@ export default function ReceiptsClient({ receipts }: { receipts: ReceiptRow[] })
       </div>
 
       {/* Table */}
-      <DataTable columns={columns} data={filtered} rowKey={(r) => r._id} />
+      <DataTable dateField="date" columns={columns} data={filtered} rowKey={(r) => r._id} />
     </div>
   );
 }

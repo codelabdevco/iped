@@ -54,7 +54,7 @@ export default function Page() {
         <StatsCard label="รายได้แพ็กเกจ" value={`฿${stats.revenue.toLocaleString()}`} icon={<DollarSign size={20} />} color="text-orange-500" />
       </div>
 
-      <DataTable columns={columns} data={users} rowKey={(r) => r.id} />
+      <DataTable dateField="date" columns={columns} data={users} rowKey={(r) => r.id} />
 
       <div className={card}>
         <h2 className="text-lg font-semibold mb-4 flex items-center gap-2"><Activity size={18} /> System Health</h2>

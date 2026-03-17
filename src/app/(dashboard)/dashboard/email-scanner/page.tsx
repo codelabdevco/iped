@@ -46,7 +46,7 @@ export default function EmailScannerPage() {
         <StatsCard label="เอกสารที่พบ" value={`${data.reduce((a,d)=>a+d.attachments,0)}`} icon={<FileText size={20} />} color="text-blue-500" />
         <StatsCard label="จัดหมวดอัตโนมัติ" value={`${data.filter(d=>d.status==="scanned").length}`} icon={<CheckCircle size={20} />} color="text-green-500" />
       </div>
-      <DataTable columns={columns} data={data} rowKey={(r) => r.id} />
+      <DataTable dateField="date" columns={columns} data={data} rowKey={(r) => r.id} />
     </div>
   );
 }
