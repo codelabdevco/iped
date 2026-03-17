@@ -14,7 +14,7 @@ function ShellInner({ displayName, children }: { displayName: string; children: 
   return (
     <div className={`flex h-screen overflow-hidden ${isDark ? "bg-[#0a0a0a] text-white" : "bg-gray-50 text-gray-900"}`}>
       {/* Desktop sidebar */}
-      <div className="hidden md:block">
+      <div className="hidden md:flex h-full">
         <Sidebar />
       </div>
 

@@ -187,7 +187,7 @@ export default function Sidebar({ onNavigate }: { onNavigate?: () => void }) {
 
   return (
     <aside
-      className={`${bg} border-r flex flex-col min-h-0`}
+      className={`${bg} border-r flex flex-col h-full overflow-hidden`}
       style={{
         width: collapsed ? 70 : 260,
         minWidth: collapsed ? 70 : 260,
