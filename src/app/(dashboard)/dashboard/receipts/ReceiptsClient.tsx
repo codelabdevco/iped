@@ -112,9 +112,14 @@ export default function ReceiptsClient({ receipts: initialReceipts }: { receipts
 
   const handleSaveEdit = () => {
     if (!editingId) return;
-    setReceipts((prev) => prev.map((r) => r._id === editingId ? { ...r, ...editForm } : r));
+    const itemsTotal = editItems.reduce((s, it) => s + it.qty * it.price, 0);
+    const vat = vatEnabled ? Math.round(itemsTotal * 0.07) : 0;
+    const wht = whtEnabled ? Math.round(itemsTotal * 0.03) : 0;
+    const total = itemsTotal + vat - wht;
+    setReceipts((prev) => prev.map((r) => r._id === editingId ? { ...r, ...editForm, amount: total, items: editItems } : r));
     setEditingId(null);
     setEditForm({});
+    setEditItems([]);
   };
 
   const handleCancelEdit = () => {
@@ -267,21 +272,31 @@ export default function ReceiptsClient({ receipts: initialReceipts }: { receipts
                 <p className="text-xs font-semibold text-white/50">รายการสินค้า/บริการ</p>
                 <button onClick={() => setEditItems([...editItems, { name: "", qty: 1, price: 0 }])} className="px-2.5 py-1 rounded-lg text-[11px] font-medium bg-green-500/10 text-green-400 hover:bg-green-500/20 transition-colors">+ เพิ่มรายการ</button>
               </div>
+              {/* Column headers */}
+              <div className="flex items-center gap-2 text-[10px] text-white/30 font-medium">
+                <span className="w-5 shrink-0">#</span>
+                <span className="flex-1">รายการ</span>
+                <span className="w-12 text-center">จำนวน</span>
+                <span className="w-20 text-right">ราคา/หน่วย</span>
+                <span className="w-20 text-right">รวม</span>
+                <span className="w-7 shrink-0"></span>
+              </div>
               <div className="space-y-2">
                 {editItems.map((item, i) => (
                   <div key={i} className="flex items-center gap-2">
                     <span className="w-5 h-5 rounded text-[10px] font-medium bg-white/5 text-white/30 flex items-center justify-center shrink-0">{i + 1}</span>
                     <input value={item.name} onChange={(e) => { const n = [...editItems]; n[i] = { ...n[i], name: e.target.value }; setEditItems(n); }} placeholder="ชื่อรายการ" className="flex-1 h-8 px-2 bg-white/5 border border-white/10 text-white rounded text-xs focus:outline-none focus:border-[#FA3633]/50" />
-                    <input type="number" value={item.qty} onChange={(e) => { const n = [...editItems]; n[i] = { ...n[i], qty: Number(e.target.value) }; setEditItems(n); }} className="w-12 h-8 px-2 bg-white/5 border border-white/10 text-white rounded text-xs text-center focus:outline-none" />
-                    <input type="number" value={item.price} onChange={(e) => { const n = [...editItems]; n[i] = { ...n[i], price: Number(e.target.value) }; setEditItems(n); }} placeholder="ราคา" className="w-20 h-8 px-2 bg-white/5 border border-white/10 text-white rounded text-xs text-right focus:outline-none" />
-                    {editItems.length > 1 && (
+                    <input type="number" value={item.qty} min={1} onChange={(e) => { const n = [...editItems]; n[i] = { ...n[i], qty: Math.max(1, Number(e.target.value)) }; setEditItems(n); }} className="w-12 h-8 px-2 bg-white/5 border border-white/10 text-white rounded text-xs text-center focus:outline-none" />
+                    <input type="number" value={item.price} onChange={(e) => { const n = [...editItems]; n[i] = { ...n[i], price: Number(e.target.value) }; setEditItems(n); }} placeholder="0" className="w-20 h-8 px-2 bg-white/5 border border-white/10 text-white rounded text-xs text-right focus:outline-none" />
+                    <span className="w-20 text-right text-xs font-medium text-white/60">฿{(item.qty * item.price).toLocaleString()}</span>
+                    {editItems.length > 1 ? (
                       <button onClick={() => setEditItems(editItems.filter((_, j) => j !== i))} className="w-7 h-7 rounded hover:bg-red-500/10 text-white/20 hover:text-red-400 flex items-center justify-center transition-colors shrink-0"><Trash2 size={12} /></button>
-                    )}
+                    ) : <span className="w-7 shrink-0" />}
                   </div>
                 ))}
               </div>
               <div className="border-t border-white/10 pt-3 space-y-2">
-                <div className="flex justify-between text-sm"><span className="text-white/40">รวมสินค้า</span><span className="text-white font-medium">฿{itemsTotal.toLocaleString()}</span></div>
+                <div className="flex justify-between text-sm"><span className="text-white/40">รวมสินค้า ({editItems.length} รายการ)</span><span className="text-white font-medium">฿{itemsTotal.toLocaleString()}</span></div>
               </div>
             </div>
 
@@ -324,7 +339,7 @@ export default function ReceiptsClient({ receipts: initialReceipts }: { receipts
 
             {/* Actions */}
             <div className="flex gap-2 pt-2 sticky bottom-0 pb-6 bg-[#0a0a0a]">
-              <button onClick={() => { setEditForm({ ...editForm, amount: grandTotal }); handleSaveEdit(); }} className="flex-1 py-2.5 rounded-xl text-sm font-medium bg-[#FA3633] text-white hover:bg-[#e0302d] transition-colors">บันทึก</button>
+              <button onClick={handleSaveEdit} className="flex-1 py-2.5 rounded-xl text-sm font-medium bg-[#FA3633] text-white hover:bg-[#e0302d] transition-colors">บันทึก</button>
               <button onClick={handleCancelEdit} className="flex-1 py-2.5 rounded-xl text-sm font-medium bg-white/5 text-white/60 hover:bg-white/10 transition-colors">ยกเลิก</button>
             </div>
           </div>
