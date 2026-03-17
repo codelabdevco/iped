@@ -113,7 +113,7 @@ const SpendingTrend: React.FC<{
 
   const svgPath = points
     .map((point, i) => `${(i / (points.length - 1)) * 100},${100 - point}`)
-    .join(' L ');
+    .join(' ');
 
   const isPositive = changePercent >= 0;
   const arrowIcon = isPositive ? '↑' : '↓';
@@ -157,7 +157,7 @@ const SpendingTrend: React.FC<{
             vectorEffect="non-scaling-stroke"
           />
           <polyline
-            points={`0,100 L ${svgPath} L 100,100`}
+            points={`0,100 ${svgPath} 100,100`}
             fill={isDark ? 'url(#gradientDark)' : 'url(#gradientLight)'}
             opacity="0.1"
           />
