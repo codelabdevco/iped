@@ -111,6 +111,7 @@ function ChartSection({
   const [activeFilter, setActiveFilter] = useState("ทั้งหมด");
   const [tooltip, setTooltip] = useState<{ category: string; amount: number; month: string; percent: string } | null>(null);
   const [tooltipPos, setTooltipPos] = useState({ x: 0, y: 0 });
+  const [hoveredCat, setHoveredCat] = useState<string | null>(null);
   const chartRef = useRef<HTMLDivElement>(null);
 
   const CATEGORY_ORDER = ["ช็อปปิ้ง", "อาหาร", "เดินทาง", "สาธารณูปโภค", "ของใช้ในบ้าน"];
@@ -215,7 +216,12 @@ function ChartSection({
             const val = categoryData?.[cat] || 0;
             const pct = yearTotal > 0 ? (val / yearTotal) * 100 : 0;
             return (
-              <div key={cat} className="flex items-center gap-3">
+              <div
+                    key={cat}
+                    className="flex items-center gap-3 relative cursor-pointer"
+                    onMouseEnter={() => setHoveredCat(cat)}
+                    onMouseLeave={() => setHoveredCat(null)}
+                  >
                 <div className="flex items-center gap-1.5 w-24">
                   <div className="w-2 h-2 rounded-full flex-shrink-0" style={{ backgroundColor: getCatColor(cat) }} />
                   <span className={`text-xs truncate ${subtext}`}>{cat}</span>
@@ -225,6 +231,21 @@ function ChartSection({
                 </div>
                 <span className={`text-xs w-12 text-right font-medium ${subtext}`}>{pct.toFixed(1)}%</span>
                 <span className={`text-xs w-20 text-right font-semibold ${maintext}`}>฿{val.toLocaleString()}</span>
+                    {hoveredCat === cat && (
+                      <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 z-50 pointer-events-none">
+                        <div className={`px-3 py-2.5 rounded-xl text-xs whitespace-nowrap backdrop-blur-sm ${isDark ? "bg-[#2a2a2a]/95 text-white border border-white/10 shadow-xl shadow-black/40" : "bg-white/95 text-gray-900 border border-gray-200 shadow-xl shadow-black/10"}`}>
+                          <div className="flex items-center gap-1.5 mb-1">
+                            <div className="w-2 h-2 rounded-full flex-shrink-0" style={{ backgroundColor: getCatColor(cat) }} />
+                            <span className="font-semibold">{cat}</span>
+                          </div>
+                          <div className="font-bold text-sm">฿{val.toLocaleString()}</div>
+                          <div className={subtext}>{pct.toFixed(1)}% ของทั้งหมด</div>
+                        </div>
+                        <div className="flex justify-center -mt-[1px]">
+                          <div className={`w-2.5 h-2.5 rotate-45 ${isDark ? "bg-[#2a2a2a]/95 border-r border-b border-white/10" : "bg-white/95 border-r border-b border-gray-200"}`} />
+                        </div>
+                      </div>
+                    )}
               </div>
             );
           })}
@@ -244,6 +265,7 @@ export default function DashboardClient({ data: initialData }: { data: Dashboard
   const [loading, setLoading] = useState(false);
   const [alertsDismissed, setAlertsDismissed] = useState(false);
   const [showExportMenu, setShowExportMenu] = useState(false);
+  const [hoveredReceipt, setHoveredReceipt] = useState<string | null>(null);
   const exportRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
@@ -410,8 +432,29 @@ export default function DashboardClient({ data: initialData }: { data: Dashboard
           <tbody>
             {(data.recentReceipts || []).length > 0 ? (
               (data.recentReceipts || []).slice(0, 5).map((r) => (
-                <tr key={r._id} className={`border-t ${tableBorder} ${tableRowHover} transition-colors`}>
-                  <td className={`px-5 py-3 text-sm ${txt}`}>{r.storeName}</td>
+                <tr key={r._id} className={`border-t ${tableBorder} ${tableRowHover} transition-colors`}
+                    onMouseEnter={() => setHoveredReceipt(r._id)}
+                    onMouseLeave={() => setHoveredReceipt(null)}
+                  >
+                  <td className={`px-5 py-3 text-sm ${txt} relative`}>
+                      {r.storeName}
+                      {hoveredReceipt === r._id && (
+                        <div className="absolute left-4 bottom-full mb-1 z-50 pointer-events-none">
+                          <div className={`px-3 py-2.5 rounded-xl text-xs whitespace-nowrap backdrop-blur-sm ${isDark ? "bg-[#2a2a2a]/95 text-white border border-white/10 shadow-xl shadow-black/40" : "bg-white/95 text-gray-900 border border-gray-200 shadow-xl shadow-black/10"}`}>
+                            <div className="font-semibold text-sm mb-1">{r.storeName}</div>
+                            <div className="flex items-center gap-1.5 mb-1">
+                              <div className="w-2 h-2 rounded-full flex-shrink-0" style={{ backgroundColor: getCatColor(r.category) }} />
+                              <span>{r.category}</span>
+                            </div>
+                            <div className={`font-bold text-base ${isDark ? "text-green-400" : "text-green-600"}`}>฿{(r.amount || 0).toLocaleString()}</div>
+                            <div className={isDark ? "text-white/40" : "text-gray-400"}>{r.date}</div>
+                          </div>
+                          <div className="flex justify-start ml-4 -mt-[1px]">
+                            <div className={`w-2.5 h-2.5 rotate-45 ${isDark ? "bg-[#2a2a2a]/95 border-r border-b border-white/10" : "bg-white/95 border-r border-b border-gray-200"}`} />
+                          </div>
+                        </div>
+                      )}
+                    </td>
                   <td className={`px-5 py-3 text-sm ${txtSub}`}>{r.type}</td>
                   <td className={`px-5 py-3 text-sm ${txtSub}`}>{r.category}</td>
                   <td className={`px-5 py-3 text-sm font-medium ${txt}`}>฿{(r.amount || 0).toLocaleString()}</td>
