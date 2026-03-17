@@ -4,6 +4,7 @@ import { useState, useEffect } from "react";
 import { User, Bell, Palette, Shield, Link2, Building2, Trash2, Download, Smartphone, Monitor, Eye, MessageCircle, FileSpreadsheet, Mail, HardDrive, Sheet, BookOpen, Clock, Users, CheckSquare, Receipt as ReceiptIcon, Globe } from "lucide-react";
 import Image from "next/image";
 import Select from "@/components/dashboard/Select";
+import DatePicker from "@/components/dashboard/DatePicker";
 import { useTheme } from "@/contexts/ThemeContext";
 import PageHeader from "@/components/dashboard/PageHeader";
 
@@ -121,7 +122,7 @@ export default function SettingsClient({ profile }: { profile: Profile }) {
               </div>
             </div>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <InputField label="วันเกิด" type="date" value={profile.birthDate} />
+              <div><label className={`block text-sm ${labelCls} mb-1.5`}>วันเกิด</label><DatePicker value={profile.birthDate} onChange={() => {}} /></div>
               <SelectField label="เพศ" options={[["male", "ชาย"], ["female", "หญิง"], ["other", "อื่นๆ"]]} />
               <InputField label="อาชีพ" value={profile.occupation} />
               <SelectField label="ประเภทบัญชี" options={[["personal", "ส่วนตัว"], ["business", "ธุรกิจ"]]} />
