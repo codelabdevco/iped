@@ -5,7 +5,7 @@ import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import {
   LayoutDashboard, Receipt, FolderOpen, PiggyBank, BarChart3,
-  FileText, Settings, LogOut, ChevronLeft, ChevronRight, Moon, Sun,
+  Settings, LogOut, ChevronLeft, ChevronRight, Moon, Sun,
   Wallet, TrendingUp, TrendingDown, Repeat, ScanLine, FileCheck,
   Copy, CreditCard, Bell, Bot, Mail, Cloud, Download,
   Users, Building2, CheckSquare, FileSpreadsheet, Shield,
@@ -17,25 +17,22 @@ type Mode = "personal" | "business";
 
 interface NavGroup {
   label: string;
-  items: { label: string; href: string; icon: React.ElementType; badge?: string }[];
+  items: { label: string; href: string; icon: React.ElementType }[];
 }
 
 const personalNav: NavGroup[] = [
   {
-    label: "หลัก",
-    items: [
-      { label: "ภาพรวม", href: "/dashboard", icon: LayoutDashboard },
-    ],
-  },
-  {
     label: "การเงิน",
     items: [
+      { label: "ภาพรวม", href: "/dashboard", icon: LayoutDashboard },
       { label: "รายรับ", href: "/dashboard/income", icon: TrendingUp },
       { label: "รายจ่าย", href: "/dashboard/expenses", icon: TrendingDown },
       { label: "เงินออม", href: "/dashboard/savings", icon: PiggyBank },
+      { label: "งบประมาณ", href: "/dashboard/budget", icon: Wallet },
+      { label: "หมวดหมู่", href: "/dashboard/categories", icon: FolderOpen },
+      { label: "วิธีจ่าย", href: "/dashboard/payments", icon: CreditCard },
       { label: "รายการประจำ", href: "/dashboard/recurring", icon: Repeat },
       { label: "Multi-currency", href: "/dashboard/currency", icon: Globe },
-      { label: "วิธีจ่าย", href: "/dashboard/payments", icon: CreditCard },
     ],
   },
   {
@@ -48,17 +45,11 @@ const personalNav: NavGroup[] = [
     ],
   },
   {
-    label: "งบ & หมวดหมู่",
-    items: [
-      { label: "ตั้งงบประมาณ", href: "/dashboard/budget", icon: Wallet },
-      { label: "หมวดหมู่", href: "/dashboard/categories", icon: FolderOpen },
-    ],
-  },
-  {
     label: "รายงาน",
     items: [
       { label: "สรุป & เปรียบเทียบ", href: "/dashboard/reports", icon: BarChart3 },
       { label: "ส่งออก", href: "/dashboard/export", icon: Download },
+      { label: "แจ้งเตือน", href: "/dashboard/notifications", icon: Bell },
     ],
   },
   {
@@ -69,29 +60,20 @@ const personalNav: NavGroup[] = [
       { label: "Sync", href: "/dashboard/sync", icon: Cloud },
     ],
   },
-  {
-    label: "แจ้งเตือน",
-    items: [
-      { label: "การแจ้งเตือน", href: "/dashboard/notifications", icon: Bell },
-    ],
-  },
 ];
 
 const businessNav: NavGroup[] = [
   {
-    label: "หลัก",
-    items: [
-      { label: "ภาพรวม", href: "/dashboard", icon: LayoutDashboard },
-    ],
-  },
-  {
     label: "การเงิน",
     items: [
+      { label: "ภาพรวม", href: "/dashboard", icon: LayoutDashboard },
       { label: "รายรับ", href: "/dashboard/income", icon: TrendingUp },
       { label: "รายจ่าย", href: "/dashboard/expenses", icon: TrendingDown },
+      { label: "งบประมาณ", href: "/dashboard/budget", icon: Wallet },
+      { label: "หมวดหมู่", href: "/dashboard/categories", icon: FolderOpen },
+      { label: "วิธีจ่าย", href: "/dashboard/payments", icon: CreditCard },
       { label: "รายการประจำ", href: "/dashboard/recurring", icon: Repeat },
       { label: "Multi-currency", href: "/dashboard/currency", icon: Globe },
-      { label: "วิธีจ่าย", href: "/dashboard/payments", icon: CreditCard },
       { label: "VAT / WHT", href: "/dashboard/tax", icon: BadgeDollarSign },
     ],
   },
@@ -102,13 +84,6 @@ const businessNav: NavGroup[] = [
       { label: "ใบเสร็จ / เอกสาร", href: "/dashboard/receipts", icon: Receipt },
       { label: "จับคู่เอกสาร", href: "/dashboard/matching", icon: FileCheck },
       { label: "ตรวจเอกสารซ้ำ", href: "/dashboard/duplicates", icon: Copy },
-    ],
-  },
-  {
-    label: "งบ & หมวดหมู่",
-    items: [
-      { label: "ตั้งงบประมาณ", href: "/dashboard/budget", icon: Wallet },
-      { label: "หมวดหมู่", href: "/dashboard/categories", icon: FolderOpen },
     ],
   },
   {
@@ -124,6 +99,7 @@ const businessNav: NavGroup[] = [
       { label: "สรุป & เปรียบเทียบ", href: "/dashboard/reports", icon: BarChart3 },
       { label: "เชื่อมโปรแกรมบัญชี", href: "/dashboard/accounting", icon: FileSpreadsheet },
       { label: "ส่งออก", href: "/dashboard/export", icon: Download },
+      { label: "แจ้งเตือน", href: "/dashboard/notifications", icon: Bell },
     ],
   },
   {
@@ -132,12 +108,6 @@ const businessNav: NavGroup[] = [
       { label: "LINE Bot", href: "/dashboard/line-bot", icon: Bot },
       { label: "Email Scanner", href: "/dashboard/email-scanner", icon: Mail },
       { label: "Sync", href: "/dashboard/sync", icon: Cloud },
-    ],
-  },
-  {
-    label: "แจ้งเตือน",
-    items: [
-      { label: "การแจ้งเตือน", href: "/dashboard/notifications", icon: Bell },
     ],
   },
   {
@@ -278,7 +248,7 @@ export default function Sidebar() {
 
       {/* Nav Groups */}
       <nav className="flex-1 py-2 px-3 space-y-0.5 overflow-y-auto overflow-x-hidden">
-        {navGroups.map((group) => {
+        {navGroups.map((group, gi) => {
           const isGroupCollapsed = collapsedGroups[group.label];
           return (
             <div key={group.label}>
@@ -286,7 +256,7 @@ export default function Sidebar() {
               {!collapsed && (
                 <button
                   onClick={() => toggleGroup(group.label)}
-                  className={`flex items-center justify-between w-full px-2 pt-4 pb-1.5 ${sectionLabel}`}
+                  className={`flex items-center justify-between w-full px-2 ${gi === 0 ? "pt-2" : "pt-4"} pb-1.5 ${sectionLabel}`}
                 >
                   <span className="text-[10px] font-bold uppercase tracking-widest">
                     {group.label}
@@ -301,7 +271,7 @@ export default function Sidebar() {
               )}
 
               {/* Collapsed: divider dot */}
-              {collapsed && group.label !== "หลัก" && (
+              {collapsed && gi !== 0 && (
                 <div className="flex justify-center py-2">
                   <div
                     className={`w-1 h-1 rounded-full ${
