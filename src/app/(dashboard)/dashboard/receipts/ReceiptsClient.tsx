@@ -36,12 +36,20 @@ const statusStyle: Record<string, string> = {
   confirmed: "bg-green-500/10 text-green-400",
   pending: "bg-yellow-500/10 text-yellow-400",
   rejected: "bg-red-500/10 text-red-400",
+  duplicate: "bg-orange-500/10 text-orange-400",
+  ocr_incomplete: "bg-purple-500/10 text-purple-400",
 };
 const statusLabel: Record<string, string> = {
   confirmed: "ยืนยันแล้ว",
   pending: "รอตรวจสอบ",
   rejected: "ปฏิเสธ",
+  duplicate: "สลิปซ้ำ",
+  ocr_incomplete: "OCR ไม่สมบูรณ์",
 };
+const STATUS_DOTS: Record<string, string> = {
+  confirmed: "#22c55e", pending: "#eab308", rejected: "#ef4444", duplicate: "#f97316", ocr_incomplete: "#a855f7",
+};
+const STATUS_OPTIONS = Object.entries(statusLabel).map(([k, v]) => ({ value: k, label: v, dot: STATUS_DOTS[k] }));
 const CATEGORY_COLORS: Record<string, string> = {
   "ช็อปปิ้ง": "#818CF8", "อาหาร": "#FB923C", "เดินทาง": "#60A5FA",
   "สาธารณูปโภค": "#F472B6", "ของใช้ในบ้าน": "#C084FC", "สุขภาพ": "#34D399",
@@ -87,6 +95,8 @@ const typeLabel: Record<string, string> = {
   billing: "บิลเรียกเก็บ",
   debit_note: "ใบเพิ่มหนี้",
   credit_note: "ใบลดหนี้",
+  income: "รายรับ",
+  expense: "รายจ่าย",
 };
 
 export default function ReceiptsClient({ receipts: initialReceipts }: { receipts: ReceiptRow[] }) {
@@ -102,6 +112,7 @@ export default function ReceiptsClient({ receipts: initialReceipts }: { receipts
   const [vatEnabled, setVatEnabled] = useState(false);
   const [whtEnabled, setWhtEnabled] = useState(false);
   const [attachments, setAttachments] = useState<Attachment[]>([]);
+  const [txType, setTxType] = useState<"income" | "expense">("expense");
 
   const filtered = useMemo(() => {
     return receipts.filter((r) => {
@@ -274,6 +285,12 @@ export default function ReceiptsClient({ receipts: initialReceipts }: { receipts
               )}
             </div>
 
+            {/* Income / Expense toggle */}
+            <div className="flex p-1 rounded-xl bg-white/5">
+              <button onClick={() => setTxType("income")} className={`flex-1 py-2.5 rounded-lg text-sm font-semibold transition-all ${txType === "income" ? "bg-green-500 text-white shadow-sm" : "text-white/50 hover:text-white/70"}`}>รายรับ</button>
+              <button onClick={() => setTxType("expense")} className={`flex-1 py-2.5 rounded-lg text-sm font-semibold transition-all ${txType === "expense" ? "bg-red-500 text-white shadow-sm" : "text-white/50 hover:text-white/70"}`}>รายจ่าย</button>
+            </div>
+
             {/* Edit form */}
             <div className="rounded-xl bg-white/[0.03] border border-white/10 p-4 space-y-3">
               <p className="text-xs font-semibold text-white/50">ข้อมูลใบเสร็จ</p>
@@ -290,7 +307,7 @@ export default function ReceiptsClient({ receipts: initialReceipts }: { receipts
                   <Select value={editForm.category || "ไม่ระบุ"} onChange={(v) => setEditForm({ ...editForm, category: v })} options={Object.entries(CATEGORY_COLORS).map(([c, color]) => ({ value: c, label: c, dot: color }))} />
                 </div>
                 <div><label className={lbl}>สถานะ</label>
-                  <Select value={editForm.status || "pending"} onChange={(v) => setEditForm({ ...editForm, status: v })} options={[{ value: "confirmed", label: "ยืนยันแล้ว" }, { value: "pending", label: "รอตรวจสอบ" }, { value: "rejected", label: "ปฏิเสธ" }]} />
+                  <Select value={editForm.status || "pending"} onChange={(v) => setEditForm({ ...editForm, status: v })} options={STATUS_OPTIONS} />
                 </div>
               </div>
               <div><label className={lbl}>ประเภท</label>
@@ -416,7 +433,7 @@ export default function ReceiptsClient({ receipts: initialReceipts }: { receipts
             <input type="text" placeholder="ค้นหาร้านค้า, หมวดหมู่..." value={search} onChange={(e) => setSearch(e.target.value)} className={`w-full h-10 pl-9 pr-4 ${inputCls} border rounded-lg text-sm focus:outline-none focus:border-[#FA3633]/50`} />
           </div>
           <Filter size={16} className={sub} />
-          <Select value={statusFilter} onChange={setStatusFilter} className="w-40" options={[{ value: "all", label: "สถานะทั้งหมด" }, { value: "confirmed", label: "ยืนยันแล้ว" }, { value: "pending", label: "รอตรวจสอบ" }, { value: "rejected", label: "ปฏิเสธ" }]} />
+          <Select value={statusFilter} onChange={setStatusFilter} className="w-44" options={[{ value: "all", label: "สถานะทั้งหมด" }, ...STATUS_OPTIONS]} />
           <Select value={typeFilter} onChange={setTypeFilter} className="w-40" options={[{ value: "all", label: "ประเภททั้งหมด" }, ...Object.entries(typeLabel).map(([k, v]) => ({ value: k, label: v }))]} />
           <Select value={driveFilter} onChange={setDriveFilter} className="w-44" options={[{ value: "all", label: "Drive ทั้งหมด" }, { value: "uploaded", label: "อัปโหลดแล้ว" }, { value: "not_uploaded", label: "ยังไม่อัปโหลด" }]} />
         </div>
