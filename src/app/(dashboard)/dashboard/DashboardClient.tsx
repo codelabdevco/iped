@@ -42,6 +42,22 @@ function getCatColor(cat: string): string {
   return FALLBACK_COLORS[idx];
 }
 
+function getThaiType(t: string): string {
+  if (t === 'receipt') return 'ใบเสร็จ';
+  if (t === 'invoice') return 'ใบแจ้งหนี้';
+  if (t === 'payment') return 'ใบรับเงิน';
+  return t;
+}
+
+function getStatusInfo(s: string): { label: string; cls: string } {
+  if (s === 'confirmed') return { label: 'ยืนยันแล้ว', cls: 'bg-green-500/10 text-green-400' };
+  if (s === 'pending') return { label: 'รอตรวจสอบ', cls: 'bg-yellow-500/10 text-yellow-400' };
+  if (s === 'rejected') return { label: 'ปฏิเสธ', cls: 'bg-red-500/10 text-red-400' };
+  if (s === 'duplicate') return { label: 'เอกสารซ้ำ', cls: 'bg-orange-500/10 text-orange-400' };
+  return { label: s, cls: 'bg-gray-500/10 text-gray-400' };
+}
+
+
 /* ─── Export helpers ─── */
 function exportCSV(data: DashboardData) {
   const BOM = "\uFEFF";
@@ -69,7 +85,7 @@ function exportPDF(data: DashboardData) {
     .map(([cat, val]) => `<tr><td style="padding:8px 12px;border-bottom:1px solid #eee">${cat}</td><td style="padding:8px 12px;border-bottom:1px solid #eee;text-align:right">฿${val.toLocaleString()}</td></tr>`)
     .join("");
   const receipts = data.recentReceipts
-    .map((r) => `<tr><td style="padding:6px 10px;border-bottom:1px solid #eee">${r.storeName}</td><td style="padding:6px 10px;border-bottom:1px solid #eee">${r.category}</td><td style="padding:6px 10px;border-bottom:1px solid #eee;text-align:right">฿${r.amount.toLocaleString()}</td><td style="padding:6px 10px;border-bottom:1px solid #eee">${r.date}</td></tr>`)
+    .map((r) => `<tr><td style="padding:6px 10px;border-bottom:1px solid #eee">${r.storeName}</td><td style="padding:6px 10px;border-bottom:1px solid #eee">$<span className="inline-block w-2 h-2 rounded-full mr-1.5" style={{ backgroundColor: getCatColor(r.category) }} />{r.category}</td><td style="padding:6px 10px;border-bottom:1px solid #eee;text-align:right">฿${r.amount.toLocaleString()}</td><td style="padding:6px 10px;border-bottom:1px solid #eee">${r.date}</td></tr>`)
     .join("");
   const html = `<!DOCTYPE html><html><head><meta charset="utf-8"><title>iPED Report</title>
 <style>body{font-family:'Sarabun',sans-serif;max-width:800px;margin:0 auto;padding:40px;color:#111}
@@ -458,11 +474,11 @@ export default function DashboardClient({ data: initialData }: { data: Dashboard
                         </div>
                       )}
                     </td>
-                  <td className={`px-5 py-3 text-sm ${txtSub}`}>{r.type}</td>
-                  <td className={`px-5 py-3 text-sm ${txtSub}`}>{r.category}</td>
+                  <td className={`px-5 py-3 text-sm ${txtSub}`}>{getThaiType(r.type)}</td>
+                  <td className={`px-5 py-3 text-sm ${txtSub}`}><span className="inline-block w-2 h-2 rounded-full mr-1.5" style={{ backgroundColor: getCatColor(r.category) }} />{r.category}</td>
                   <td className={`px-5 py-3 text-sm font-medium ${txt}`}>฿{(r.amount || 0).toLocaleString()}</td>
                   <td className={`px-5 py-3 text-sm ${txtSub}`}>{r.date}</td>
-                  <td className="px-5 py-3"><span className="text-xs px-2 py-1 rounded-full bg-green-500/10 text-green-400">{r.status}</span></td>
+                    <td className={`px-5 py-3`}>{(() => { const si = getStatusInfo(r.status); return <span className={`text-xs px-3 py-1 rounded-full ${si.cls}`}>{si.label}</span>; })()}</td>
                 </tr>
               ))
             ) : (
