@@ -3,6 +3,7 @@
 import { useState, useMemo } from "react";
 import { Search, Filter, Receipt, FileText, CheckCircle, Clock, Pencil, Trash2, ImageIcon, Cloud, CloudOff, HardDrive } from "lucide-react";
 import Select from "@/components/dashboard/Select";
+import DatePicker from "@/components/dashboard/DatePicker";
 import { useTheme } from "@/contexts/ThemeContext";
 import PageHeader from "@/components/dashboard/PageHeader";
 import StatsCard from "@/components/dashboard/StatsCard";
@@ -46,6 +47,33 @@ const CATEGORY_COLORS: Record<string, string> = {
   "การศึกษา": "#FBBF24", "บันเทิง": "#F87171", "ไม่ระบุ": "#9CA3AF",
 };
 const FALLBACK_COLORS = ["#818CF8","#FB923C","#60A5FA","#F472B6","#C084FC","#34D399","#FBBF24","#F87171"];
+
+const PAYMENT_METHODS = [
+  { value: "cash", label: "เงินสด" },
+  { value: "promptpay", label: "พร้อมเพย์" },
+  { value: "credit", label: "บัตรเครดิต" },
+  { value: "debit", label: "บัตรเดบิต" },
+  { value: "transfer", label: "โอนธนาคาร" },
+  { value: "bank-scb", label: "SCB ไทยพาณิชย์" },
+  { value: "bank-kbank", label: "KBank กสิกรไทย" },
+  { value: "bank-bbl", label: "BBL กรุงเทพ" },
+  { value: "bank-ktb", label: "KTB กรุงไทย" },
+  { value: "bank-tmb", label: "TTB ทีเอ็มบีธนชาต" },
+  { value: "bank-bay", label: "BAY กรุงศรีอยุธยา" },
+  { value: "bank-gsb", label: "GSB ออมสิน" },
+  { value: "bank-ghb", label: "GHB อาคารสงเคราะห์" },
+  { value: "bank-baac", label: "ธ.ก.ส." },
+  { value: "bank-tisco", label: "TISCO ทิสโก้" },
+  { value: "bank-kk", label: "KKP เกียรตินาคินภัทร" },
+  { value: "bank-lhbank", label: "LH Bank แลนด์แอนด์เฮ้าส์" },
+  { value: "bank-cimb", label: "CIMB ซีไอเอ็มบี" },
+  { value: "bank-uob", label: "UOB ยูโอบี" },
+  { value: "bank-icbc", label: "ICBC ไอซีบีซี" },
+  { value: "ewallet-truemoney", label: "TrueMoney Wallet" },
+  { value: "ewallet-rabbit", label: "Rabbit LINE Pay" },
+  { value: "ewallet-shopee", label: "ShopeePay" },
+  { value: "other", label: "อื่นๆ" },
+];
 function getCatColor(cat: string): string {
   if (CATEGORY_COLORS[cat]) return CATEGORY_COLORS[cat];
   const idx = cat.split("").reduce((a, c) => a + c.charCodeAt(0), 0) % FALLBACK_COLORS.length;
@@ -249,11 +277,15 @@ export default function ReceiptsClient({ receipts: initialReceipts }: { receipts
               <div><label className={lbl}>ร้านค้า</label><input value={editForm.storeName || ""} onChange={(e) => setEditForm({ ...editForm, storeName: e.target.value })} className={inp} /></div>
               <div><label className={lbl}>รายละเอียด</label><textarea rows={2} defaultValue="" placeholder="หมายเหตุ, รายละเอียดเพิ่มเติม..." className={`${inp} h-auto py-2`} /></div>
               <div className="grid grid-cols-2 gap-3">
-                <div><label className={lbl}>วันที่</label><input type="date" value={editForm.date || ""} onChange={(e) => setEditForm({ ...editForm, date: e.target.value })} className={inp} /></div>
-                <div><label className={lbl}>แหล่งที่มา</label><input value={editForm.source || ""} onChange={(e) => setEditForm({ ...editForm, source: e.target.value })} className={inp} /></div>
+                <div><label className={lbl}>วันที่</label><DatePicker value={editForm.date || ""} onChange={(v) => setEditForm({ ...editForm, date: v })} /></div>
+                <div><label className={lbl}>วิธีจ่าย</label>
+                  <Select value={editForm.source || "cash"} onChange={(v) => setEditForm({ ...editForm, source: v })} options={PAYMENT_METHODS} />
+                </div>
               </div>
               <div className="grid grid-cols-2 gap-3">
-                <div><label className={lbl}>หมวดหมู่</label><input value={editForm.category || ""} onChange={(e) => setEditForm({ ...editForm, category: e.target.value })} className={inp} /></div>
+                <div><label className={lbl}>หมวดหมู่</label>
+                  <Select value={editForm.category || "ไม่ระบุ"} onChange={(v) => setEditForm({ ...editForm, category: v })} options={Object.entries(CATEGORY_COLORS).map(([c, color]) => ({ value: c, label: c, dot: color }))} />
+                </div>
                 <div><label className={lbl}>สถานะ</label>
                   <Select value={editForm.status || "pending"} onChange={(v) => setEditForm({ ...editForm, status: v })} options={[{ value: "confirmed", label: "ยืนยันแล้ว" }, { value: "pending", label: "รอตรวจสอบ" }, { value: "rejected", label: "ปฏิเสธ" }]} />
                 </div>

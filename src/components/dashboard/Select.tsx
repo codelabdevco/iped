@@ -7,6 +7,7 @@ import { ChevronDown } from "lucide-react";
 interface Option {
   value: string;
   label: string;
+  dot?: string; // color for dot indicator
 }
 
 interface SelectProps {
@@ -48,7 +49,10 @@ export default function Select({ value, onChange, options, placeholder = "เล
         onClick={() => setOpen(!open)}
         className={`w-full h-10 px-3 ${bg} border ${border} rounded-lg text-sm text-left flex items-center justify-between transition-colors focus:outline-none focus:border-[#FA3633]/50 ${txt}`}
       >
-        <span className={selected ? txt : sub}>{selected ? selected.label : placeholder}</span>
+        <span className={`flex items-center gap-1.5 ${selected ? txt : sub}`}>
+          {selected?.dot && <span className="w-2.5 h-2.5 rounded-full shrink-0" style={{ backgroundColor: selected.dot }} />}
+          {selected ? selected.label : placeholder}
+        </span>
         <ChevronDown size={14} className={`transition-transform ${sub} ${open ? "rotate-180" : ""}`} />
       </button>
 
@@ -64,7 +68,10 @@ export default function Select({ value, onChange, options, placeholder = "เล
                   opt.value === value ? activeBg : `${txt} ${hoverBg}`
                 }`}
               >
-                {opt.label}
+                <span className="flex items-center gap-1.5">
+                  {opt.dot && <span className="w-2.5 h-2.5 rounded-full shrink-0" style={{ backgroundColor: opt.dot }} />}
+                  {opt.label}
+                </span>
               </button>
             ))}
           </div>
