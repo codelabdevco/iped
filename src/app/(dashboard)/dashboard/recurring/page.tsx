@@ -1,9 +1,8 @@
 "use client";
 import { useState } from "react";
 import { useTheme } from "@/contexts/ThemeContext";
-import { Wallet, Banknote, Hash } from "lucide-react";
+import { Repeat, Plus, Trash2 } from "lucide-react";
 import PageHeader from "@/components/dashboard/PageHeader";
-import StatsCard from "@/components/dashboard/StatsCard";
 import DataTable, { Column } from "@/components/dashboard/DataTable";
 
 interface RecurringEntry {
@@ -22,9 +21,6 @@ const INIT: RecurringEntry[] = [
 export default function RecurringPage() {
   const { isDark } = useTheme();
   const [data, setData] = useState(INIT);
-  const totalIncome = data.filter(d => d.type === "income" && d.active).reduce((s, d) => s + d.amount, 0);
-  const totalExpense = data.filter(d => d.type === "expense" && d.active).reduce((s, d) => s + d.amount, 0);
-  const activeCount = data.filter(d => d.active).length;
 
   const columns: Column<RecurringEntry>[] = [
     { key: "name", label: "ชื่อรายการ", render: (r, isDark) => <span className={`font-medium ${isDark ? "text-white" : "text-gray-900"}`}>{r.name}</span> },
@@ -38,11 +34,6 @@ export default function RecurringPage() {
   return (
     <div className="space-y-6">
       <PageHeader title="รายการประจำ" description="รายรับ-รายจ่ายที่เกิดขึ้นเป็นประจำ" onClear={() => setData([])} actionLabel="เพิ่มรายการ" />
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-        <StatsCard label="รายรับประจำ/เดือน" value={`฿${totalIncome.toLocaleString()}`} icon={<Wallet size={20} />} color="text-green-500" />
-        <StatsCard label="รายจ่ายประจำ/เดือน" value={`฿${totalExpense.toLocaleString()}`} icon={<Banknote size={20} />} color="text-red-500" />
-        <StatsCard label="รายการที่ใช้งาน" value={`${activeCount} รายการ`} icon={<Hash size={20} />} color="text-blue-500" />
-      </div>
       <DataTable columns={columns} data={data} rowKey={(r) => r.id} />
     </div>
   );

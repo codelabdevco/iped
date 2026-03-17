@@ -1,9 +1,8 @@
 "use client";
 import { useState } from "react";
 import { useTheme } from "@/contexts/ThemeContext";
-import { Users, Search, Hash, Banknote } from "lucide-react";
+import { Users, Plus, Trash2, Search } from "lucide-react";
 import PageHeader from "@/components/dashboard/PageHeader";
-import StatsCard from "@/components/dashboard/StatsCard";
 import DataTable, { Column } from "@/components/dashboard/DataTable";
 
 interface CustomerEntry {
@@ -42,10 +41,10 @@ export default function CustomersPage() {
   return (
     <div className="space-y-6">
       <PageHeader title="รายชื่อลูกค้า" description="จัดการลูกค้าและคู่ค้า" onClear={() => setData([])} actionLabel="เพิ่มลูกค้า" />
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-        <StatsCard label="ลูกค้าทั้งหมด" value={`${data.length}`} icon={<Users size={20} />} color="text-blue-500" />
-        <StatsCard label="ใช้งาน" value={`${data.filter(d=>d.active).length}`} icon={<Hash size={20} />} color="text-green-500" />
-        <StatsCard label="ยอดค้างชำระรวม" value={`฿${data.reduce((a,d)=>a+d.total,0).toLocaleString()}`} icon={<Banknote size={20} />} color="text-red-500" />
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+        {[{ l: "ลูกค้าทั้งหมด", v: `${data.length}` }, { l: "ใช้งาน", v: `${data.filter(d=>d.active).length}` }, { l: "ยอดค้างชำระรวม", v: `฿${data.reduce((a,d)=>a+d.total,0).toLocaleString()}` }].map((x,i) => (
+          <div key={i} className={`${c} border ${b} rounded-2xl p-5`}><p className={`text-sm ${s}`}>{x.l}</p><p className={`text-2xl font-bold mt-1 ${t}`}>{x.v}</p></div>
+        ))}
       </div>
       <div className={`${c} border ${b} rounded-xl px-4 py-2.5 flex items-center gap-2`}><Search size={16} className={s} /><input value={q} onChange={e=>setQ(e.target.value)} placeholder="ค้นหาลูกค้า..." className={`flex-1 bg-transparent outline-none text-sm ${t} placeholder:${s}`}/></div>
       <DataTable columns={columns} data={filtered} rowKey={(r) => r.id} />

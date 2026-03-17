@@ -1,9 +1,8 @@
 "use client";
 import { useState } from "react";
 import { useTheme } from "@/contexts/ThemeContext";
-import { Banknote, Hash, Calculator } from "lucide-react";
+import { TrendingDown, Plus, Trash2 } from "lucide-react";
 import PageHeader from "@/components/dashboard/PageHeader";
-import StatsCard from "@/components/dashboard/StatsCard";
 import DataTable, { Column } from "@/components/dashboard/DataTable";
 
 interface ExpenseEntry {
@@ -29,6 +28,10 @@ const statusMap: Record<string, { label: string; cls: string }> = { confirmed: {
 export default function ExpensesPage() {
   const { isDark } = useTheme();
   const [data, setData] = useState(INIT);
+  const card = isDark ? "bg-[rgba(255,255,255,0.04)]" : "bg-white";
+  const border = isDark ? "border-[rgba(255,255,255,0.06)]" : "border-gray-200";
+  const txt = isDark ? "text-white" : "text-gray-900";
+  const sub = isDark ? "text-white/50" : "text-gray-500";
   const total = data.reduce((s, d) => s + d.amount, 0);
 
   const columns: Column<ExpenseEntry>[] = [
@@ -43,10 +46,10 @@ export default function ExpensesPage() {
   return (
     <div className="space-y-6">
       <PageHeader title="รายจ่าย" description="จัดการรายจ่ายทั้งหมดของคุณ" onClear={() => setData([])} actionLabel="เพิ่มรายจ่าย" />
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-        <StatsCard label="รายจ่ายเดือนนี้" value={`฿${total.toLocaleString()}`} icon={<Banknote size={20} />} color="text-red-500" />
-        <StatsCard label="จำนวนรายการ" value={`${data.length} รายการ`} icon={<Hash size={20} />} color="text-blue-500" />
-        <StatsCard label="เฉลี่ย/รายการ" value={`฿${data.length > 0 ? Math.round(total / data.length).toLocaleString() : 0}`} icon={<Calculator size={20} />} color="text-purple-500" />
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+        {[{ label: "รายจ่ายเดือนนี้", value: `฿${total.toLocaleString()}` }, { label: "จำนวนรายการ", value: `${data.length} รายการ` }, { label: "เฉลี่ย/รายการ", value: `฿${data.length > 0 ? Math.round(total / data.length).toLocaleString() : 0}` }].map((s, i) => (
+          <div key={i} className={`${card} border ${border} rounded-2xl p-5`}><p className={`text-sm ${sub}`}>{s.label}</p><p className={`text-2xl font-bold mt-1 ${txt}`}>{s.value}</p></div>
+        ))}
       </div>
       <DataTable columns={columns} data={data} rowKey={(r) => r.id} />
     </div>

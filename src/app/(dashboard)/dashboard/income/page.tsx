@@ -2,9 +2,8 @@
 
 import { useState } from "react";
 import { useTheme } from "@/contexts/ThemeContext";
-import { Wallet, ArrowUpRight, BarChart3 } from "lucide-react";
+import { TrendingUp, Plus, Trash2, Wallet, ArrowUpRight, BarChart3 } from "lucide-react";
 import PageHeader from "@/components/dashboard/PageHeader";
-import StatsCard from "@/components/dashboard/StatsCard";
 import DataTable, { Column } from "@/components/dashboard/DataTable";
 
 interface IncomeEntry {
@@ -33,6 +32,14 @@ export default function IncomePage() {
   const lastMonth = demoData.filter((d) => d.date.startsWith("2026-02")).reduce((s, d) => s + d.amount, 0);
   const avg = demoData.length > 0 ? Math.round((thisMonth + lastMonth) / 2) : 0;
   const fmt = (n: number) => n.toLocaleString("th-TH", { style: "currency", currency: "THB" });
+  const card = isDark ? "bg-[rgba(255,255,255,0.04)] border-white/10" : "bg-white border-gray-200";
+  const txt = isDark ? "text-white" : "text-gray-900";
+  const sub = isDark ? "text-gray-400" : "text-gray-500";
+  const cards = [
+    { label: "รายรับเดือนนี้", value: thisMonth, icon: Wallet, color: "text-green-400" },
+    { label: "เดือนที่แล้ว", value: lastMonth, icon: ArrowUpRight, color: "text-blue-400" },
+    { label: "เฉลี่ย/เดือน", value: avg, icon: BarChart3, color: "text-purple-400" },
+  ];
 
   const columns: Column<IncomeEntry>[] = [
     { key: "date", label: "วันที่", render: (r, isDark) => <span className={isDark ? "text-gray-300" : "text-gray-700"}>{r.date}</span> },
@@ -45,10 +52,16 @@ export default function IncomePage() {
   return (
     <div className="space-y-6">
       <PageHeader title="รายรับ" description="จัดการรายรับทั้งหมดของคุณ" onClear={clearDemo} actionLabel="เพิ่มรายรับ" />
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-        <StatsCard label="รายรับเดือนนี้" value={fmt(thisMonth)} icon={<Wallet size={20} />} color="text-green-500" />
-        <StatsCard label="เดือนที่แล้ว" value={fmt(lastMonth)} icon={<ArrowUpRight size={20} />} color="text-blue-500" />
-        <StatsCard label="เฉลี่ย/เดือน" value={fmt(avg)} icon={<BarChart3 size={20} />} color="text-purple-500" />
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+        {cards.map((c) => (
+          <div key={c.label} className={`rounded-2xl border p-5 ${card}`}>
+            <div className="flex items-center gap-3 mb-2">
+              <c.icon className={`w-5 h-5 ${c.color}`} />
+              <span className={`text-sm ${sub}`}>{c.label}</span>
+            </div>
+            <p className={`text-2xl font-bold ${txt}`}>{fmt(c.value)}</p>
+          </div>
+        ))}
       </div>
       <DataTable columns={columns} data={demoData} rowKey={(r) => r.id} />
     </div>

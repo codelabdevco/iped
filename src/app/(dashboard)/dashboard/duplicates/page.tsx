@@ -2,9 +2,8 @@
 
 import { useState } from "react";
 import { useTheme } from "@/contexts/ThemeContext";
-import { Copy, Trash2, Merge, Archive, AlertCircle, ImageIcon, CheckCircle2 } from "lucide-react";
+import { Copy, Trash2, Merge, Archive, AlertCircle, ImageIcon } from "lucide-react";
 import PageHeader from "@/components/dashboard/PageHeader";
-import StatsCard from "@/components/dashboard/StatsCard";
 
 interface DuplicateDoc {
   id: string;
@@ -70,14 +69,21 @@ export default function DuplicatesPage() {
   const ts = isDark ? "text-gray-400" : "text-gray-500";
   const tm = isDark ? "text-gray-500" : "text-gray-400";
   const subBg = isDark ? "bg-[rgba(255,255,255,0.06)]" : "bg-gray-100";
+  const btnCls = isDark ? "bg-[rgba(255,255,255,0.04)] border border-[rgba(255,255,255,0.06)] text-gray-300 hover:bg-[rgba(255,255,255,0.08)]" : "bg-white border border-gray-200 text-gray-600 hover:bg-gray-50";
 
   return (
     <div className="space-y-6">
       <PageHeader title="ตรวจเอกสารซ้ำ" description="ตรวจจับและจัดการเอกสารที่อาจซ้ำกัน" onClear={clearDemo} />
 
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-        <StatsCard label="กลุ่มที่พบ" value={`${groups.length}`} icon={<Copy size={20} />} color="text-orange-500" />
-        <StatsCard label="จัดการแล้ว" value={`${groups.filter((g) => g.resolved).length}`} icon={<CheckCircle2 size={20} />} color="text-green-500" />
+      <div className="grid grid-cols-2 gap-4">
+        <div className={"rounded-2xl border p-4 text-center " + cardCls}>
+          <p className="text-3xl font-bold text-orange-500">{groups.length}</p>
+          <p className={"text-sm mt-1 " + ts}>กลุ่มที่พบ</p>
+        </div>
+        <div className={"rounded-2xl border p-4 text-center " + cardCls}>
+          <p className="text-3xl font-bold text-emerald-500">{groups.filter((g) => g.resolved).length}</p>
+          <p className={"text-sm mt-1 " + ts}>จัดการแล้ว</p>
+        </div>
       </div>
 
       {groups.length === 0 ? (

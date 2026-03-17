@@ -2,9 +2,8 @@
 
 import { useState } from "react";
 import { useTheme } from "@/contexts/ThemeContext";
-import { CheckCircle2, Clock, AlertTriangle, FileText, ArrowLeftRight } from "lucide-react";
+import { Link2, CheckCircle2, Clock, AlertTriangle, Trash2, FileText, ArrowLeftRight } from "lucide-react";
 import PageHeader from "@/components/dashboard/PageHeader";
-import StatsCard from "@/components/dashboard/StatsCard";
 
 interface MatchPair {
   id: string;
@@ -69,20 +68,30 @@ export default function MatchingPage() {
     not_found: { label: "ไม่พบคู่", icon: AlertTriangle, color: "text-red-500", bg: isDark ? "bg-red-500/10" : "bg-red-50" },
   };
 
+  const summaryCards = [
+    { label: "จับคู่แล้ว", value: matched, color: "text-emerald-500" },
+    { label: "รอจับคู่", value: pending, color: "text-amber-500" },
+    { label: "ไม่พบคู่", value: notFound, color: "text-red-500" },
+  ];
+
   const cardCls = isDark ? "bg-[rgba(255,255,255,0.04)] border-[rgba(255,255,255,0.06)]" : "bg-white border-gray-200";
   const subBg = isDark ? "bg-[rgba(255,255,255,0.03)]" : "bg-gray-50";
   const tp = isDark ? "text-white" : "text-gray-900";
   const ts = isDark ? "text-gray-400" : "text-gray-500";
   const tm = isDark ? "text-gray-500" : "text-gray-400";
+  const btnCls = isDark ? "bg-[rgba(255,255,255,0.04)] border border-[rgba(255,255,255,0.06)] text-gray-300 hover:bg-[rgba(255,255,255,0.08)]" : "bg-white border border-gray-200 text-gray-600 hover:bg-gray-50";
 
   return (
     <div className="space-y-6">
       <PageHeader title="จับคู่เอกสาร" description="จับคู่ใบแจ้งหนี้กับใบเสร็จอัตโนมัติ" onClear={clearDemo} />
 
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-        <StatsCard label="จับคู่แล้ว" value={`${matched}`} icon={<CheckCircle2 size={20} />} color="text-green-500" />
-        <StatsCard label="รอจับคู่" value={`${pending}`} icon={<Clock size={20} />} color="text-yellow-500" />
-        <StatsCard label="ไม่พบคู่" value={`${notFound}`} icon={<AlertTriangle size={20} />} color="text-red-500" />
+      <div className="grid grid-cols-3 gap-4">
+        {summaryCards.map((card) => (
+          <div key={card.label} className={"rounded-2xl border p-4 text-center " + cardCls}>
+            <p className={"text-3xl font-bold " + card.color}>{card.value}</p>
+            <p className={"text-sm mt-1 " + ts}>{card.label}</p>
+          </div>
+        ))}
       </div>
 
       {pairs.length === 0 ? (
