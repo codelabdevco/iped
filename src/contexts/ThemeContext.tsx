@@ -35,6 +35,7 @@ export function ThemeProvider({ children }: { children: ReactNode }) {
       "--color-border",
       theme === "dark" ? "rgba(255,255,255,0.06)" : "rgba(0,0,0,0.06)"
     );
+    document.documentElement.setAttribute("data-theme", theme);
   }, [theme, mounted]);
 
   return (
