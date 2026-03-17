@@ -28,6 +28,7 @@ export default async function ReceiptsPage() {
     storeName: r.storeName || "ไม่ระบุร้าน",
     amount: r.amount || 0,
     category: r.category || "ไม่ระบุ",
+    rawDate: r.date ? new Date(r.date).toISOString().slice(0,10) : new Date(r.createdAt).toISOString().slice(0,10),
     date: r.date
       ? new Date(r.date).toLocaleDateString("th-TH")
       : new Date(r.createdAt).toLocaleDateString("th-TH"),

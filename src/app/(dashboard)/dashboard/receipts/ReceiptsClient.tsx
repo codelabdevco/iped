@@ -19,6 +19,7 @@ interface ReceiptRow {
   amount: number;
   category: string;
   date: string;
+  rawDate?: string;
   time?: string;
   status: string;
   type: string;
@@ -38,6 +39,18 @@ const statusLabel: Record<string, string> = {
   pending: "รอตรวจสอบ",
   rejected: "ปฏิเสธ",
 };
+const CATEGORY_COLORS: Record<string, string> = {
+  "ช็อปปิ้ง": "#818CF8", "อาหาร": "#FB923C", "เดินทาง": "#60A5FA",
+  "สาธารณูปโภค": "#F472B6", "ของใช้ในบ้าน": "#C084FC", "สุขภาพ": "#34D399",
+  "การศึกษา": "#FBBF24", "บันเทิง": "#F87171", "ไม่ระบุ": "#9CA3AF",
+};
+const FALLBACK_COLORS = ["#818CF8","#FB923C","#60A5FA","#F472B6","#C084FC","#34D399","#FBBF24","#F87171"];
+function getCatColor(cat: string): string {
+  if (CATEGORY_COLORS[cat]) return CATEGORY_COLORS[cat];
+  const idx = cat.split("").reduce((a, c) => a + c.charCodeAt(0), 0) % FALLBACK_COLORS.length;
+  return FALLBACK_COLORS[idx];
+}
+
 const typeLabel: Record<string, string> = {
   receipt: "ใบเสร็จ",
   invoice: "ใบแจ้งหนี้",
@@ -88,7 +101,7 @@ export default function ReceiptsClient({ receipts: initialReceipts }: { receipts
 
   const handleEdit = (r: ReceiptRow) => {
     setEditingId(r._id);
-    setEditForm({ storeName: r.storeName, amount: r.amount, category: r.category, status: r.status, type: r.type });
+    setEditForm({ storeName: r.storeName, amount: r.amount, category: r.category, status: r.status, type: r.type, date: r.rawDate || r.date, source: r.source });
   };
 
   const handleSaveEdit = () => {
@@ -115,7 +128,12 @@ export default function ReceiptsClient({ receipts: initialReceipts }: { receipts
     },
     { key: "storeName", label: "ร้านค้า", render: (r) => <span className="font-medium">{r.storeName}</span> },
     { key: "type", label: "ประเภท", render: (r) => <span>{typeLabel[r.type] || r.type}</span> },
-    { key: "category", label: "หมวดหมู่" },
+    { key: "category", label: "หมวดหมู่", render: (r) => (
+      <span className="flex items-center gap-1.5">
+        <span className="w-2.5 h-2.5 rounded-full flex-shrink-0" style={{ backgroundColor: getCatColor(r.category) }} />
+        {r.category}
+      </span>
+    ) },
     { key: "amount", label: "จำนวนเงิน", align: "right", render: (r) => <span className="font-semibold">฿{r.amount.toLocaleString()}</span> },
     { key: "date", label: "วันที่" },
     { key: "time", label: "เวลา", render: (r) => <span className={muted}>{r.time || "-"}</span> },
@@ -156,50 +174,6 @@ export default function ReceiptsClient({ receipts: initialReceipts }: { receipts
   const expandRender = (r: ReceiptRow, dark: boolean) => {
     const items = r.items && r.items.length > 0 ? r.items : [{ name: r.storeName, qty: 1, price: r.amount }];
     const b = dark ? "border-[rgba(255,255,255,0.06)]" : "border-gray-200";
-    const inputC = dark ? "bg-[rgba(255,255,255,0.05)] border-[rgba(255,255,255,0.08)] text-white" : "bg-white border-gray-200 text-gray-900";
-
-    // If editing this row
-    if (editingId === r._id) {
-      return (
-        <div className="space-y-4">
-          <p className={`text-xs font-semibold ${dark ? "text-white/60" : "text-gray-600"}`}>แก้ไขข้อมูลใบเสร็จ</p>
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
-            <div>
-              <label className={`block text-xs ${dark ? "text-white/50" : "text-gray-500"} mb-1`}>ร้านค้า</label>
-              <input value={editForm.storeName || ""} onChange={(e) => setEditForm({ ...editForm, storeName: e.target.value })} className={`w-full h-9 px-3 ${inputC} border rounded-lg text-sm focus:outline-none focus:border-[#FA3633]/50`} />
-            </div>
-            <div>
-              <label className={`block text-xs ${dark ? "text-white/50" : "text-gray-500"} mb-1`}>จำนวนเงิน</label>
-              <input type="number" value={editForm.amount || 0} onChange={(e) => setEditForm({ ...editForm, amount: Number(e.target.value) })} className={`w-full h-9 px-3 ${inputC} border rounded-lg text-sm focus:outline-none focus:border-[#FA3633]/50`} />
-            </div>
-            <div>
-              <label className={`block text-xs ${dark ? "text-white/50" : "text-gray-500"} mb-1`}>หมวดหมู่</label>
-              <input value={editForm.category || ""} onChange={(e) => setEditForm({ ...editForm, category: e.target.value })} className={`w-full h-9 px-3 ${inputC} border rounded-lg text-sm focus:outline-none focus:border-[#FA3633]/50`} />
-            </div>
-            <div>
-              <label className={`block text-xs ${dark ? "text-white/50" : "text-gray-500"} mb-1`}>สถานะ</label>
-              <select value={editForm.status || "pending"} onChange={(e) => setEditForm({ ...editForm, status: e.target.value })} className={`w-full h-9 px-3 ${inputC} border rounded-lg text-sm focus:outline-none`}>
-                <option value="confirmed">ยืนยันแล้ว</option>
-                <option value="pending">รอตรวจสอบ</option>
-                <option value="rejected">ปฏิเสธ</option>
-              </select>
-            </div>
-            <div>
-              <label className={`block text-xs ${dark ? "text-white/50" : "text-gray-500"} mb-1`}>ประเภท</label>
-              <select value={editForm.type || "receipt"} onChange={(e) => setEditForm({ ...editForm, type: e.target.value })} className={`w-full h-9 px-3 ${inputC} border rounded-lg text-sm focus:outline-none`}>
-                {Object.entries(typeLabel).map(([k, v]) => <option key={k} value={k}>{v}</option>)}
-              </select>
-            </div>
-          </div>
-          <div className="flex gap-2 pt-2">
-            <button onClick={handleSaveEdit} className="px-4 py-2 rounded-xl text-sm font-medium bg-[#FA3633] text-white hover:bg-[#e0302d] transition-colors">บันทึก</button>
-            <button onClick={handleCancelEdit} className={`px-4 py-2 rounded-xl text-sm font-medium transition-colors ${dark ? "bg-white/5 text-white/60 hover:bg-white/10" : "bg-gray-100 text-gray-600 hover:bg-gray-200"}`}>ยกเลิก</button>
-          </div>
-        </div>
-      );
-    }
-
-    // Default: show line items
     return (
       <div className="space-y-2">
         <p className={`text-xs font-semibold ${dark ? "text-white/60" : "text-gray-600"}`}>รายละเอียดสินค้า/บริการ ({items.length} รายการ)</p>
@@ -224,8 +198,79 @@ export default function ReceiptsClient({ receipts: initialReceipts }: { receipts
     );
   };
 
+  const editingReceipt = editingId ? receipts.find((r) => r._id === editingId) : null;
+  const panelInput = isDark ? "bg-[rgba(255,255,255,0.05)] border-[rgba(255,255,255,0.08)] text-white" : "bg-white border-gray-200 text-gray-900";
+  const panelLabel = isDark ? "text-white/50" : "text-gray-500";
+
   return (
     <div className="space-y-6">
+      {/* Slide-in edit panel from left */}
+      {editingId && (
+        <>
+          <div className="fixed inset-0 z-40 bg-black/50" onClick={handleCancelEdit} />
+          <div className={`fixed inset-y-0 left-0 z-50 w-[400px] max-w-[90vw] ${card} border-r ${border} shadow-2xl overflow-y-auto transition-transform`}>
+            <div className="p-6 space-y-5">
+              <div className="flex items-center justify-between">
+                <h2 className={`text-lg font-bold ${txt}`}>แก้ไขใบเสร็จ</h2>
+                <button onClick={handleCancelEdit} className={`p-2 rounded-lg transition-colors ${isDark ? "hover:bg-white/5 text-white/40" : "hover:bg-gray-100 text-gray-400"}`}>&times;</button>
+              </div>
+
+              {editingReceipt?.imageUrl && (
+                <div className="w-full h-48 rounded-xl overflow-hidden bg-black/10">
+                  <img src={editingReceipt.imageUrl} alt="" className="w-full h-full object-contain" />
+                </div>
+              )}
+
+              <div className="space-y-4">
+                <div>
+                  <label className={`block text-xs ${panelLabel} mb-1.5`}>ร้านค้า</label>
+                  <input value={editForm.storeName || ""} onChange={(e) => setEditForm({ ...editForm, storeName: e.target.value })} className={`w-full h-10 px-3 ${panelInput} border rounded-lg text-sm focus:outline-none focus:border-[#FA3633]/50`} />
+                </div>
+                <div className="grid grid-cols-2 gap-3">
+                  <div>
+                    <label className={`block text-xs ${panelLabel} mb-1.5`}>จำนวนเงิน</label>
+                    <input type="number" value={editForm.amount || 0} onChange={(e) => setEditForm({ ...editForm, amount: Number(e.target.value) })} className={`w-full h-10 px-3 ${panelInput} border rounded-lg text-sm focus:outline-none focus:border-[#FA3633]/50`} />
+                  </div>
+                  <div>
+                    <label className={`block text-xs ${panelLabel} mb-1.5`}>วันที่</label>
+                    <input type="date" value={editForm.date || ""} onChange={(e) => setEditForm({ ...editForm, date: e.target.value })} className={`w-full h-10 px-3 ${panelInput} border rounded-lg text-sm focus:outline-none focus:border-[#FA3633]/50`} />
+                  </div>
+                </div>
+                <div>
+                  <label className={`block text-xs ${panelLabel} mb-1.5`}>หมวดหมู่</label>
+                  <input value={editForm.category || ""} onChange={(e) => setEditForm({ ...editForm, category: e.target.value })} className={`w-full h-10 px-3 ${panelInput} border rounded-lg text-sm focus:outline-none focus:border-[#FA3633]/50`} />
+                </div>
+                <div className="grid grid-cols-2 gap-3">
+                  <div>
+                    <label className={`block text-xs ${panelLabel} mb-1.5`}>สถานะ</label>
+                    <select value={editForm.status || "pending"} onChange={(e) => setEditForm({ ...editForm, status: e.target.value })} className={`w-full h-10 px-3 ${panelInput} border rounded-lg text-sm focus:outline-none`}>
+                      <option value="confirmed">ยืนยันแล้ว</option>
+                      <option value="pending">รอตรวจสอบ</option>
+                      <option value="rejected">ปฏิเสธ</option>
+                    </select>
+                  </div>
+                  <div>
+                    <label className={`block text-xs ${panelLabel} mb-1.5`}>ประเภท</label>
+                    <select value={editForm.type || "receipt"} onChange={(e) => setEditForm({ ...editForm, type: e.target.value })} className={`w-full h-10 px-3 ${panelInput} border rounded-lg text-sm focus:outline-none`}>
+                      {Object.entries(typeLabel).map(([k, v]) => <option key={k} value={k}>{v}</option>)}
+                    </select>
+                  </div>
+                </div>
+                <div>
+                  <label className={`block text-xs ${panelLabel} mb-1.5`}>แหล่งที่มา</label>
+                  <input value={editForm.source || ""} onChange={(e) => setEditForm({ ...editForm, source: e.target.value })} className={`w-full h-10 px-3 ${panelInput} border rounded-lg text-sm focus:outline-none focus:border-[#FA3633]/50`} />
+                </div>
+              </div>
+
+              <div className="flex gap-2 pt-2">
+                <button onClick={handleSaveEdit} className="flex-1 py-2.5 rounded-xl text-sm font-medium bg-[#FA3633] text-white hover:bg-[#e0302d] transition-colors">บันทึก</button>
+                <button onClick={handleCancelEdit} className={`flex-1 py-2.5 rounded-xl text-sm font-medium transition-colors ${isDark ? "bg-white/5 text-white/60 hover:bg-white/10" : "bg-gray-100 text-gray-600 hover:bg-gray-200"}`}>ยกเลิก</button>
+              </div>
+            </div>
+          </div>
+        </>
+      )}
+
       <PageHeader title="ใบเสร็จทั้งหมด" description={`${filtered.length} รายการ — รวม ฿${totalAmount.toLocaleString()}`} />
 
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
@@ -261,7 +306,7 @@ export default function ReceiptsClient({ receipts: initialReceipts }: { receipts
         </div>
       </div>
 
-      <DataTable dateField="date" columns={columns} data={filtered} rowKey={(r) => r._id} expandRender={expandRender} />
+      <DataTable dateField="rawDate" columns={columns} data={filtered} rowKey={(r) => r._id} expandRender={expandRender} />
     </div>
   );
 }
