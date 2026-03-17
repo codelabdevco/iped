@@ -185,6 +185,8 @@ function ChartSection({
                     <div className="w-full rounded-t-md overflow-hidden flex flex-col-reverse" style={{ height: `${barH}%`, minHeight: m.total > 0 ? "4px" : "0" }}>
                       {displayCats.map((cat) => {
                         const val = m.categories?.[cat] || 0;
+                        const monthCatTotal = Object.values(m.categories || {}).reduce((a: number, b: number) => a + (b as number), 0) || 1;
+                        const pct = monthCatTotal > 0 ? (val / monthCatTotal) * 100 : 0;
                         if (val === 0) return null;
                                                 return (
                           <div key={cat} className="w-full transition-all duration-150 cursor-pointer hover:brightness-125"
