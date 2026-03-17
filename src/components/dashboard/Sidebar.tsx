@@ -129,7 +129,6 @@ const businessNav: NavGroup[] = [
     items: [
       { label: "Admin Dashboard", href: "/dashboard/admin", icon: Building2 },
       { label: "Package & Billing", href: "/dashboard/billing", icon: Package },
-      { label: "PDPA & Audit Logs", href: "/dashboard/security", icon: Shield },
     ],
   },
 ];
