@@ -17,7 +17,7 @@ interface ReceiptRow {
   date: string; rawDate?: string; time?: string; status: string;
   type: string; source: string; paymentMethod?: string; note?: string;
   hasImage?: boolean; direction?: string; createdAt?: string;
-  emailSubject?: string; emailFrom?: string; ocrConfidence?: number;
+  emailSubject?: string; emailFrom?: string; emailAccount?: string; ocrConfidence?: number;
   fileIds?: string[]; files?: FileInfo[];
 }
 
@@ -76,6 +76,11 @@ export default function MatchingClient({
 
   const emailDocs = receipts.filter((r) => r.source === "email");
   const lineDocs = receipts.filter((r) => r.source === "line");
+  const [accountFilter, setAccountFilter] = useState<string>("all");
+
+  // Unique email accounts
+  const emailAccounts = [...new Set(emailDocs.map((r) => r.emailAccount).filter(Boolean))];
+  const filteredEmailDocs = accountFilter === "all" ? emailDocs : emailDocs.filter((r) => r.emailAccount === accountFilter);
   const pendingMatches = matches.filter((m) => m.status === "pending");
   const confirmedMatches = matches.filter((m) => m.status === "matched");
 
@@ -305,9 +310,23 @@ export default function MatchingClient({
       {/* ===== Email documents list ===== */}
       {emailDocs.length > 0 && (
         <div>
-          <h2 className={`text-lg font-semibold mb-3 ${txt}`}>เอกสารจากอีเมล ({emailDocs.length})</h2>
+          <div className="flex items-center justify-between mb-3">
+            <h2 className={`text-lg font-semibold ${txt}`}>เอกสารจากอีเมล ({filteredEmailDocs.length})</h2>
+            {emailAccounts.length > 1 && (
+              <div className="flex gap-1.5">
+                <button onClick={() => setAccountFilter("all")} className={`px-2.5 py-1 rounded-lg text-[11px] font-medium transition-colors ${accountFilter === "all" ? "bg-[#FA3633] text-white" : `${isDark ? "bg-white/5 text-white/40" : "bg-gray-100 text-gray-500"}`}`}>
+                  ทั้งหมด
+                </button>
+                {emailAccounts.map((acc) => (
+                  <button key={acc} onClick={() => setAccountFilter(acc!)} className={`px-2.5 py-1 rounded-lg text-[11px] font-medium transition-colors ${accountFilter === acc ? "bg-[#FA3633] text-white" : `${isDark ? "bg-white/5 text-white/40" : "bg-gray-100 text-gray-500"}`}`}>
+                    {acc}
+                  </button>
+                ))}
+              </div>
+            )}
+          </div>
           <div className="space-y-2">
-            {emailDocs.map((r) => {
+            {filteredEmailDocs.map((r) => {
               const match = matches.find((m) => (m.receiptA._id === r._id || m.receiptB._id === r._id) && m.status === "matched");
               const fileId = r.fileIds?.[0];
               return (
@@ -328,6 +347,9 @@ export default function MatchingClient({
                     <div className={`flex items-center gap-2 text-[11px] ${sub}`}>
                       {r.emailFrom && <span>{r.emailFrom}</span>}
                       {r.date && <span>{r.date}</span>}
+                      {emailAccounts.length > 1 && r.emailAccount && (
+                        <span className={`px-1.5 py-0.5 rounded text-[9px] ${isDark ? "bg-white/5 text-white/30" : "bg-gray-100 text-gray-400"}`}>{r.emailAccount}</span>
+                      )}
                     </div>
                   </div>
                   {/* Amount */}

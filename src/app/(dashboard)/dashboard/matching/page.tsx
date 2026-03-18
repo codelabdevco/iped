@@ -52,6 +52,7 @@ async function MatchingData() {
       direction: r.direction || "expense",
       emailSubject: r.emailSubject || "",
       emailFrom: r.emailFrom || "",
+      emailAccount: r.emailAccount || "",
       ocrConfidence: r.ocrConfidence || 0,
       fileIds: r.fileIds || [],
       createdAt: r.createdAt ? new Date(r.createdAt).toISOString() : "",

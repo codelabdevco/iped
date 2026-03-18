@@ -238,6 +238,7 @@ export async function POST(request: NextRequest) {
                   userId: userId,
                   emailSubject: subject,
                   emailFrom: cleanEmail(from),
+                  emailAccount: account.email,
                   note: `gmail:${messageId}`,
                 });
 
@@ -286,6 +287,7 @@ export async function POST(request: NextRequest) {
                   userId: userId,
                   emailSubject: subject,
                   emailFrom: cleanEmail(from),
+                  emailAccount: account.email,
                   note: `gmail:${messageId}`,
                 });
 
