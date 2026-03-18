@@ -115,15 +115,16 @@ function brandIconBox(key: string): any {
     cornerRadius: "20px",
     backgroundColor: b.bg,
     contents: [
+      { type: "filler" },
       {
         type: "text",
         text: b.label,
         size: "xxs",
         color: b.fg,
         align: "center",
-        gravity: "center",
         weight: "bold",
       },
+      { type: "filler" },
     ],
   };
 }
@@ -842,13 +843,9 @@ export function errorFlex(confidence?: number) {
                 cornerRadius: "28px",
                 backgroundColor: C.redBg,
                 contents: [
-                  {
-                    type: "text",
-                    text: "📸",
-                    size: "sm",
-                    align: "center",
-                    gravity: "center",
-                  },
+                  { type: "filler" },
+                  { type: "text", text: "📸", size: "sm", align: "center" },
+                  { type: "filler" },
                 ],
               },
               { type: "filler" },
@@ -944,13 +941,9 @@ export function notReceiptFlex() {
                 cornerRadius: "28px",
                 backgroundColor: C.amberBg,
                 contents: [
-                  {
-                    type: "text",
-                    text: "🖼️",
-                    size: "sm",
-                    align: "center",
-                    gravity: "center",
-                  },
+                  { type: "filler" },
+                  { type: "text", text: "🖼️", size: "sm", align: "center" },
+                  { type: "filler" },
                 ],
               },
               { type: "filler" },
