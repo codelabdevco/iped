@@ -100,9 +100,13 @@ export default function SavingsClient({ savings: initial }: { savings: SavingsRo
   const border = isDark ? "border-[rgba(255,255,255,0.06)]" : "border-gray-200";
 
   // Stats
-  const totalSaved = savings.filter((s) => s.status !== "cancelled").reduce((sum, s) => sum + s.amount, 0);
-  const thisMonthStart = new Date(new Date().getFullYear(), new Date().getMonth(), 1);
-  const thisMonth = savings.filter((s) => new Date(s.createdAt || s.rawDate || "") >= thisMonthStart && s.status !== "cancelled").reduce((sum, s) => sum + s.amount, 0);
+  const active = savings.filter((s) => s.status !== "cancelled");
+  const totalSaved = active.reduce((sum, s) => sum + s.amount, 0);
+  const now2 = new Date();
+  const thisMonthStart = new Date(now2.getFullYear(), now2.getMonth(), 1);
+  const lastMonthStart = new Date(now2.getFullYear(), now2.getMonth() - 1, 1);
+  const thisMonth = active.filter((s) => new Date(s.createdAt || s.rawDate || "") >= thisMonthStart).reduce((sum, s) => sum + s.amount, 0);
+  const lastMonth = active.filter((s) => { const d = new Date(s.createdAt || s.rawDate || ""); return d >= lastMonthStart && d < thisMonthStart; }).reduce((sum, s) => sum + s.amount, 0);
   const count = savings.length;
 
   const getCatColor = (cat: string) => SAVING_CATEGORIES.find((c) => c.value === cat)?.dot || "#ec4899";
@@ -282,9 +286,10 @@ export default function SavingsClient({ savings: initial }: { savings: SavingsRo
         </button>
       </div>
 
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
         <StatsCard label="ออมแล้วทั้งหมด" value={`฿${totalSaved.toLocaleString("th-TH", { minimumFractionDigits: 2 })}`} icon={<PiggyBank size={20} />} color="text-pink-500" />
         <StatsCard label="ออมเดือนนี้" value={`฿${thisMonth.toLocaleString("th-TH", { minimumFractionDigits: 2 })}`} icon={<TrendingUp size={20} />} color="text-green-500" />
+        <StatsCard label="เดือนที่แล้ว" value={`฿${lastMonth.toLocaleString("th-TH", { minimumFractionDigits: 2 })}`} icon={<Target size={20} />} color="text-blue-500" />
         <StatsCard label="จำนวนครั้ง" value={`${count} ครั้ง`} icon={<Target size={20} />} color="text-purple-500" />
       </div>
 

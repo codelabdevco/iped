@@ -76,7 +76,10 @@ export default function ExpensesClient({ expenses: initial }: { expenses: Expens
   const confirmed = expenses.filter((r) => r.status === "confirmed");
   const totalAmount = confirmed.reduce((s, r) => s + r.amount, 0);
   const count = expenses.length;
-  const avg = confirmed.length > 0 ? Math.round(totalAmount / confirmed.length) : 0;
+  const pending = expenses.filter((r) => r.status === "pending").length;
+  const now2 = new Date();
+  const thisMonthStart = new Date(now2.getFullYear(), now2.getMonth(), 1);
+  const thisMonth = confirmed.filter((r) => new Date(r.rawDate || r.createdAt || "") >= thisMonthStart).reduce((s, r) => s + r.amount, 0);
 
   const getCatColor = (cat: string) => EXPENSE_CATEGORIES.find((c) => c.value === cat)?.dot || "#78716C";
 
@@ -155,10 +158,11 @@ export default function ExpensesClient({ expenses: initial }: { expenses: Expens
         <PageHeader title="รายจ่าย" description={`${count} รายการ — ยืนยันแล้ว ฿${totalAmount.toLocaleString("th-TH", { minimumFractionDigits: 2 })}`} />
         <button onClick={handleAdd} className="flex items-center gap-2 px-4 py-2.5 rounded-xl text-sm font-medium bg-[#FA3633] text-white hover:bg-[#e0302d] transition-colors shadow-sm shadow-[#FA3633]/25"><Plus size={16} />เพิ่มรายจ่าย</button>
       </div>
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-        <StatsCard label="รายจ่าย (ยืนยัน)" value={`฿${totalAmount.toLocaleString("th-TH", { minimumFractionDigits: 2 })}`} icon={<TrendingDown size={20} />} color="text-[#FA3633]" />
-        <StatsCard label="จำนวนรายการ" value={`${count} รายการ`} icon={<Hash size={20} />} color="text-blue-500" />
-        <StatsCard label="เฉลี่ย/รายการ" value={`฿${avg.toLocaleString("th-TH", { minimumFractionDigits: 2 })}`} icon={<Calculator size={20} />} color="text-purple-500" />
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+        <StatsCard label="รายจ่ายทั้งหมด" value={`฿${totalAmount.toLocaleString("th-TH", { minimumFractionDigits: 2 })}`} icon={<TrendingDown size={20} />} color="text-[#FA3633]" />
+        <StatsCard label="เดือนนี้" value={`฿${thisMonth.toLocaleString("th-TH", { minimumFractionDigits: 2 })}`} icon={<Calculator size={20} />} color="text-blue-500" />
+        <StatsCard label="รอตรวจสอบ" value={`${pending} รายการ`} icon={<Hash size={20} />} color="text-yellow-500" />
+        <StatsCard label="จำนวนรายการ" value={`${count} รายการ`} icon={<Hash size={20} />} color="text-purple-500" />
       </div>
       <DataTable columns={columns} data={expenses} rowKey={(r) => r._id} dateField="rawDate" columnConfigKey="expenses" />
     </div>

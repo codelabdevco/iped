@@ -3,7 +3,7 @@
 import { useState, useMemo, useCallback, useRef, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { useTheme } from "@/contexts/ThemeContext";
-import { Wallet, TrendingUp, BarChart3, Plus, Pencil, Trash2, Loader2, MessageCircle, Globe } from "lucide-react";
+import { Wallet, TrendingUp, BarChart3, Hash, Plus, Pencil, Trash2, Loader2, MessageCircle, Globe } from "lucide-react";
 import PageHeader from "@/components/dashboard/PageHeader";
 import StatsCard from "@/components/dashboard/StatsCard";
 import DataTable, { Column } from "@/components/dashboard/DataTable";
@@ -69,6 +69,7 @@ export default function IncomeClient({ incomes: initial }: { incomes: IncomeRow[
   const lastMonthStart = new Date(now.getFullYear(), now.getMonth() - 1, 1);
   const confirmed = incomes.filter((r) => r.status !== "cancelled");
   const totalAmount = confirmed.reduce((s, r) => s + r.amount, 0);
+  const count = incomes.length;
   let thisMonth = 0, lastMonth = 0;
   confirmed.forEach((r) => { const d = new Date(r.rawDate || r.createdAt || ""); if (d >= thisMonthStart) thisMonth += r.amount; else if (d >= lastMonthStart) lastMonth += r.amount; });
 
@@ -149,10 +150,11 @@ export default function IncomeClient({ incomes: initial }: { incomes: IncomeRow[
         <PageHeader title="รายรับ" description={`${incomes.length} รายการ — รวม ฿${totalAmount.toLocaleString("th-TH", { minimumFractionDigits: 2 })}`} />
         <button onClick={handleAdd} className="flex items-center gap-2 px-4 py-2.5 rounded-xl text-sm font-medium bg-green-500 text-white hover:bg-green-600 transition-colors shadow-sm shadow-green-500/25"><Plus size={16} />เพิ่มรายรับ</button>
       </div>
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
         <StatsCard label="รายรับทั้งหมด" value={`฿${totalAmount.toLocaleString("th-TH", { minimumFractionDigits: 2 })}`} icon={<Wallet size={20} />} color="text-green-500" />
         <StatsCard label="เดือนนี้" value={`฿${thisMonth.toLocaleString("th-TH", { minimumFractionDigits: 2 })}`} icon={<TrendingUp size={20} />} color="text-blue-500" />
         <StatsCard label="เดือนที่แล้ว" value={`฿${lastMonth.toLocaleString("th-TH", { minimumFractionDigits: 2 })}`} icon={<BarChart3 size={20} />} color="text-purple-500" />
+        <StatsCard label="จำนวนรายการ" value={`${count} รายการ`} icon={<Hash size={20} />} color="text-orange-500" />
       </div>
       <DataTable columns={columns} data={incomes} rowKey={(r) => r._id} dateField="rawDate" columnConfigKey="income" />
     </div>
