@@ -24,25 +24,23 @@ interface MobileData {
 export default function MobileApp({ data }: { data: MobileData }) {
   const { isDark, toggleTheme } = useTheme();
   const [tab, setTab] = useState<Tab>("home");
-
-  const bg = isDark ? "bg-[#0a0a0a]" : "bg-gray-50";
-  const tabBg = isDark ? "bg-[#111]/95 border-white/10" : "bg-white/95 border-gray-200";
+  const { txt, sub, muted } = useStyles(isDark);
 
   return (
-    <div className={`min-h-screen ${bg}`}>
+    <div className="min-h-screen shell-theme">
       {/* Top bar */}
-      <header className={`sticky top-0 z-40 flex items-center justify-between px-4 h-14 ${isDark ? "bg-[#0a0a0a]/95" : "bg-gray-50/95"} backdrop-blur-xl`}>
+      <header className="sticky top-0 z-40 flex items-center justify-between px-4 h-14 shell-theme backdrop-blur-xl" style={{ opacity: 0.97 }}>
         <div className="flex items-center gap-2">
           <div className="w-7 h-7 rounded-lg bg-[#FA3633] flex items-center justify-center">
             <span className="text-white text-xs font-bold">i</span>
           </div>
-          <span className={`text-sm font-bold ${isDark ? "text-white" : "text-gray-900"}`}>iPED</span>
+          <span className={`text-sm font-bold ${txt}`}>iPED</span>
         </div>
         <button onClick={() => setTab("profile")}>
           {data.profile.lineProfilePic ? (
             <img src={data.profile.lineProfilePic} alt="" className="w-8 h-8 rounded-full object-cover" />
           ) : (
-            <div className={`w-8 h-8 rounded-full ${isDark ? "bg-white/10" : "bg-gray-200"} flex items-center justify-center text-xs font-bold`}>
+            <div className="w-8 h-8 rounded-full bg-[#FA3633]/20 flex items-center justify-center text-xs font-bold text-[#FA3633]">
               {(data.profile.name || "U")[0]}
             </div>
           )}
@@ -59,7 +57,7 @@ export default function MobileApp({ data }: { data: MobileData }) {
       </main>
 
       {/* Bottom Tab Bar */}
-      <nav className={`fixed bottom-0 left-0 right-0 z-50 ${tabBg} border-t backdrop-blur-xl`} style={{ paddingBottom: "env(safe-area-inset-bottom)" }}>
+      <nav className={`fixed bottom-0 left-0 right-0 z-50 border-t backdrop-blur-xl ${isDark ? "bg-[#111]/95 border-white/10" : "bg-white/95 border-gray-200"}`} style={{ paddingBottom: "env(safe-area-inset-bottom)" }}>
         <div className="flex items-center justify-around h-16 max-w-lg mx-auto">
           {([
             { id: "home" as Tab, icon: Home, label: "หน้าหลัก" },
