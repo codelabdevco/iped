@@ -561,77 +561,81 @@ export function receiptConfirmFlex(data: ReceiptFlexData) {
         type: "box",
         layout: "vertical",
         paddingAll: "16px",
-        spacing: "sm",
         contents: [
-          // Amount — HERO (prefix -/+ already indicates expense/income)
-          amountHero(data.amount, isExpense, amtColor),
-
-          // Merchant info
+          // ── Merchant + Amount ──
           merchantInfo(
             data.categoryIcon,
             data.merchant,
             data.category,
             { subtext: data.merchantTaxId || undefined, paymentMethod: data.paymentMethod || undefined },
           ),
+          amountHero(data.amount, isExpense, amtColor),
 
           sep(),
 
-          // Detail grid
+          // ── Date / Time (one row) ──
           {
             type: "box",
-            layout: "vertical",
-            spacing: "sm",
+            layout: "horizontal",
             margin: "md",
             contents: [
-              detailItem("วันที่", fmtDate(data.date)),
-              detailItem("เวลา", fmtTime(data.time)),
-              detailItem("ชำระ", PAY_NAMES[data.paymentMethod || ""] || data.paymentMethod || "—"),
-              ...(data.vat
-                ? [detailItem("VAT", `฿${fmtAmt(data.vat)}`)]
-                : []),
+              {
+                type: "text",
+                text: `${fmtDate(data.date)}  ${fmtTime(data.time)}`,
+                size: "xs",
+                color: C.sub,
+                flex: 1,
+              },
+              {
+                type: "text",
+                text: PAY_NAMES[data.paymentMethod || ""] || data.paymentMethod || "",
+                size: "xs",
+                color: C.textSec,
+                weight: "bold",
+                flex: 0,
+                align: "end",
+              },
             ],
           },
 
-          // Items (if any)
+          // ── VAT (if any) ──
+          ...(data.vat
+            ? [{
+                type: "box" as const,
+                layout: "horizontal" as const,
+                margin: "xs" as const,
+                contents: [
+                  { type: "text" as const, text: "VAT", size: "xs" as const, color: C.sub, flex: 1 },
+                  { type: "text" as const, text: `฿${fmtAmt(data.vat)}`, size: "xs" as const, color: C.textSec, flex: 0, align: "end" as const },
+                ],
+              }]
+            : []),
+
+          // ── Items (if any) ──
           ...(showItems.length > 0
             ? [
                 sep(),
-                {
-                  type: "box" as const,
-                  layout: "vertical" as const,
-                  spacing: "xs" as const,
-                  margin: "md" as const,
-                  contents: [
-                    {
+                ...showItems.map((item) => ({
+                  type: "text" as const,
+                  text: `• ${item}`,
+                  size: "xs" as const,
+                  color: C.textSec,
+                  wrap: true,
+                  margin: "xs" as const,
+                })),
+                ...(moreItems > 0
+                  ? [{
                       type: "text" as const,
-                      text: "รายการ",
-                      size: "xs" as const,
-                      color: C.sub,
-                    },
-                    ...showItems.map((item) => ({
-                      type: "text" as const,
-                      text: `• ${item}`,
-                      size: "xs" as const,
-                      color: C.textSec,
-                      wrap: true,
-                    })),
-                    ...(moreItems > 0
-                      ? [
-                          {
-                            type: "text" as const,
-                            text: `+ อีก ${moreItems} รายการ`,
-                            size: "xxs" as const,
-                            color: C.blue,
-                            margin: "xs" as const,
-                          },
-                        ]
-                      : []),
-                  ],
-                },
+                      text: `+ อีก ${moreItems} รายการ`,
+                      size: "xxs" as const,
+                      color: C.blue,
+                      margin: "xs" as const,
+                    }]
+                  : []),
               ]
             : []),
 
-          // Confidence bar
+          // ── Confidence ──
           confidenceBar(data.confidence, statusColor),
         ],
       },
