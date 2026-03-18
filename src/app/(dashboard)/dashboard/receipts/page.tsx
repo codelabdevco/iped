@@ -4,6 +4,7 @@ import { cookies } from "next/headers";
 
 import { connectDB } from "@/lib/mongodb";
 import Receipt from "@/models/Receipt";
+import Match from "@/models/Match";
 import User from "@/models/User";
 import ReceiptsClient from "./ReceiptsClient";
 import ReceiptsLoading from "./loading";
@@ -40,6 +41,37 @@ async function ReceiptsData() {
     }
   }
 
+  // Find matches for these receipts to show email link status
+  const receiptIds = receipts.map((r: any) => String(r._id));
+  const matches = await Match.find({
+    userId: decoded.userId,
+    status: "matched",
+    $or: [
+      { receiptA: { $in: receiptIds } },
+      { receiptB: { $in: receiptIds } },
+    ],
+  }).lean();
+
+  // Build map: receiptId → matched email receipt info
+  const matchedEmailIds = new Set<string>();
+  const matchMap: Record<string, string> = {}; // receiptId → matched email receiptId
+  for (const m of matches as any[]) {
+    matchMap[m.receiptA] = m.receiptB;
+    matchMap[m.receiptB] = m.receiptA;
+    matchedEmailIds.add(m.receiptA);
+    matchedEmailIds.add(m.receiptB);
+  }
+
+  // Get email receipt names for matched ones
+  const emailReceiptIds = [...matchedEmailIds].filter((id) => !receiptIds.includes(id));
+  const emailReceipts = emailReceiptIds.length > 0
+    ? await Receipt.find({ _id: { $in: emailReceiptIds } }).select("merchant emailSubject emailFrom").lean()
+    : [];
+  const emailMap: Record<string, { merchant: string; emailSubject: string }> = {};
+  for (const e of emailReceipts as any[]) {
+    emailMap[String(e._id)] = { merchant: e.merchant, emailSubject: e.emailSubject || "" };
+  }
+
   const data = receipts.map((r: any) => ({
     _id: String(r._id),
     storeName: r.storeName || r.merchant || "ไม่ระบุร้าน",
@@ -67,6 +99,13 @@ async function ReceiptsData() {
     createdAt: r.createdAt ? new Date(r.createdAt).toISOString() : "",
     submittedBy: userNameMap[r.userId] || "",
     direction: r.direction || "expense",
+    linkedEmail: (() => {
+      const id = String(r._id);
+      const matchedId = matchMap[id];
+      if (!matchedId) return null;
+      const email = emailMap[matchedId];
+      return email ? { merchant: email.merchant, subject: email.emailSubject } : { merchant: "อีเมล", subject: "" };
+    })(),
   }));
 
   return <ReceiptsClient receipts={data} />;

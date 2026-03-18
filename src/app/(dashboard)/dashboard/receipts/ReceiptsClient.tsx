@@ -2,7 +2,7 @@
 
 import { useState, useMemo, useCallback, useRef, useEffect } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
-import { Search, Filter, Receipt, FileText, CheckCircle, Clock, Pencil, Trash2, ImageIcon, Cloud, CloudOff, HardDrive, Upload, X, MessageCircle, Globe, User, Plus, Loader2 } from "lucide-react";
+import { Search, Filter, Receipt, FileText, CheckCircle, Clock, Pencil, Trash2, ImageIcon, Cloud, CloudOff, HardDrive, Upload, X, MessageCircle, Globe, User, Plus, Loader2, Mail, Link2 } from "lucide-react";
 import BrandIcon from "@/components/dashboard/BrandIcon";
 import Select from "@/components/dashboard/Select";
 import DatePicker from "@/components/dashboard/DatePicker";
@@ -645,6 +645,22 @@ export default function ReceiptsClient({ receipts: initialReceipts }: { receipts
           </div>
         </div>
       ),
+    },
+    {
+      key: "linkedEmail" as any,
+      label: "อีเมล",
+      render: (r) => {
+        if (!r.linkedEmail) return <span className={isDark ? "text-white/15" : "text-gray-300"}>-</span>;
+        return (
+          <div className="flex items-center gap-1.5">
+            <Link2 size={11} className="text-blue-400 flex-shrink-0" />
+            <div className="min-w-0">
+              <p className="text-[11px] font-medium text-blue-400 truncate">{r.linkedEmail.merchant}</p>
+              {r.linkedEmail.subject && <p className={`text-[9px] truncate ${isDark ? "text-white/25" : "text-gray-400"}`}>{r.linkedEmail.subject}</p>}
+            </div>
+          </div>
+        );
+      },
     },
     {
       key: "status",
