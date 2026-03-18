@@ -69,9 +69,10 @@ const STATUS_DOTS: Record<string, string> = {
 };
 const STATUS_OPTIONS = Object.entries(statusLabel).map(([k, v]) => ({ value: k, label: v, dot: STATUS_DOTS[k] }));
 const CATEGORY_COLORS: Record<string, string> = {
-  "ช็อปปิ้ง": "#818CF8", "อาหาร": "#FB923C", "เดินทาง": "#60A5FA",
+  "อาหาร": "#FB923C", "เดินทาง": "#60A5FA", "ช็อปปิ้ง": "#818CF8",
   "สาธารณูปโภค": "#F472B6", "ของใช้ในบ้าน": "#C084FC", "สุขภาพ": "#34D399",
-  "การศึกษา": "#FBBF24", "บันเทิง": "#F87171", "ไม่ระบุ": "#9CA3AF",
+  "การศึกษา": "#FBBF24", "บันเทิง": "#F87171", "ที่พัก": "#A78BFA",
+  "คมนาคม": "#38BDF8", "ธุรกิจ": "#F59E0B", "อื่นๆ": "#78716C", "ไม่ระบุ": "#9CA3AF",
 };
 const FALLBACK_COLORS = ["#818CF8","#FB923C","#60A5FA","#F472B6","#C084FC","#34D399","#FBBF24","#F87171"];
 
@@ -338,11 +339,37 @@ export default function ReceiptsClient({ receipts: initialReceipts }: { receipts
         }),
       });
       if (res.ok) {
+        const json = await res.json();
+        const now = new Date().toISOString();
+        // Add to local state immediately
+        const newReceipt: ReceiptRow = {
+          _id: json.receipt?._id || `temp-${Date.now()}`,
+          storeName: editForm.storeName || "",
+          amount: total,
+          category: editForm.category || "ไม่ระบุ",
+          date: new Date(editForm.date || now).toLocaleDateString("th-TH"),
+          rawDate: editForm.date || now.slice(0, 10),
+          status: "pending",
+          type: editForm.type || "receipt",
+          source: "web",
+          paymentMethod: editForm.paymentMethod || "cash",
+          note: editForm.note || "",
+          vat,
+          wht,
+          documentNumber: editForm.documentNumber || "",
+          merchantTaxId: editForm.merchantTaxId || "",
+          imageUrl: slipPreview || "",
+          driveUploaded: !!slipPreview,
+          items: editItems,
+          itemCount: editItems.length,
+          createdAt: now,
+          updatedAt: now,
+        };
+        setReceipts((prev) => [newReceipt, ...prev]);
         setIsAdding(false);
         setEditForm({});
         setEditItems([]);
         setSlipPreview(null);
-        router.refresh();
       }
     } catch {} finally {
       setSaving(false);
@@ -351,6 +378,19 @@ export default function ReceiptsClient({ receipts: initialReceipts }: { receipts
 
   const paymentLabel: Record<string, string> = {};
   PAYMENT_METHODS.forEach((p) => { paymentLabel[p.value] = p.label; });
+
+  // Dynamic category options — predefined + any from data
+  const categoryOptions = useMemo(() => {
+    const opts = Object.entries(CATEGORY_COLORS).map(([c, color]) => ({ value: c, label: c, dot: color }));
+    const existing = new Set(opts.map((o) => o.value));
+    receipts.forEach((r) => {
+      if (r.category && !existing.has(r.category)) {
+        existing.add(r.category);
+        opts.push({ value: r.category, label: r.category, dot: getCatColor(r.category) });
+      }
+    });
+    return opts;
+  }, [receipts]);
 
   const columns: Column<ReceiptRow>[] = useMemo(() => [
     {
@@ -374,7 +414,23 @@ export default function ReceiptsClient({ receipts: initialReceipts }: { receipts
       </span>
     ) },
     { key: "amount", label: "จำนวนเงิน", align: "right", render: (r) => <Baht value={r.amount} className="font-semibold" /> },
-    { key: "date", label: "วันที่" },
+    {
+      key: "createdAt",
+      label: "แนบเมื่อ",
+      render: (r) => {
+        const iso = r.createdAt || r.rawDate;
+        if (!iso) return <span className={muted}>-</span>;
+        const d = new Date(iso);
+        const date = d.toLocaleDateString("th-TH", { day: "2-digit", month: "short" });
+        const time = d.toLocaleTimeString("th-TH", { hour: "2-digit", minute: "2-digit" });
+        return (
+          <div className="leading-tight">
+            <div className="text-sm">{date}</div>
+            <div className={`text-[11px] ${muted}`}>{time}</div>
+          </div>
+        );
+      },
+    },
     {
       key: "source",
       label: "ที่มา",
@@ -414,6 +470,7 @@ export default function ReceiptsClient({ receipts: initialReceipts }: { receipts
       },
       defaultVisible: false,
     },
+    { key: "date", label: "วันที่เอกสาร", defaultVisible: false },
     { key: "time", label: "เวลา", render: (r) => <span className={muted}>{r.time || "-"}</span>, defaultVisible: false },
     {
       key: "paymentMethod",
@@ -612,7 +669,7 @@ export default function ReceiptsClient({ receipts: initialReceipts }: { receipts
               </div>
               <div className="grid grid-cols-2 gap-3">
                 <div><label className={lbl}>หมวดหมู่</label>
-                  <Select value={editForm.category || "ไม่ระบุ"} onChange={(v) => setEditForm({ ...editForm, category: v })} options={Object.entries(CATEGORY_COLORS).map(([c, color]) => ({ value: c, label: c, dot: color }))} />
+                  <Select value={editForm.category || "ไม่ระบุ"} onChange={(v) => setEditForm({ ...editForm, category: v })} options={categoryOptions} />
                 </div>
                 <div><label className={lbl}>สถานะ</label>
                   <Select value={editForm.status || "pending"} onChange={(v) => setEditForm({ ...editForm, status: v })} options={STATUS_OPTIONS} />
