@@ -2,7 +2,7 @@ import { Suspense } from "react";
 import { getSession } from "@/lib/auth";
 import { redirect } from "next/navigation";
 import { connectDB } from "@/lib/mongodb";
-import Document from "@/models/Document";
+import Receipt from "@/models/Receipt";
 import User from "@/models/User";
 import EmailScannerClient from "./EmailScannerClient";
 
@@ -12,34 +12,41 @@ async function EmailScannerData() {
 
   await connectDB();
 
-  // Get user for Google connection status
-  const user = await User.findById(session.userId)
-    .select("googleEmail googleConnectedAt")
-    .lean<{ googleEmail?: string; googleConnectedAt?: Date }>();
-
-  // Query email-sourced documents
-  const docs = await Document.find({ userId: session.userId, source: "email" })
-    .select("emailSubject emailFrom date status ocrConfidence")
-    .sort({ date: -1 })
-    .limit(50)
-    .lean();
+  const [user, docs] = await Promise.all([
+    User.findById(session.userId)
+      .select("googleEmail googleConnectedAt lastGmailScan autoGmailScan")
+      .lean() as any,
+    // Query from Receipt model (where Gmail scan actually saves data)
+    Receipt.find({ userId: session.userId, source: "email" })
+      .select("emailSubject emailFrom merchant amount date status ocrConfidence category note")
+      .sort({ date: -1 })
+      .limit(100)
+      .lean(),
+  ]);
 
   const totalScanned = docs.length;
   const totalWithOcr = docs.filter((d: any) => d.ocrConfidence && d.ocrConfidence > 0).length;
 
   const data = docs.map((d: any) => ({
     _id: String(d._id),
-    emailSubject: d.emailSubject || "ไม่มีหัวข้อ",
-    emailFrom: d.emailFrom || "ไม่ระบุ",
+    emailSubject: d.emailSubject || d.note?.replace("จาก email: ", "") || d.merchant || "ไม่มีหัวข้อ",
+    emailFrom: d.emailFrom || "",
+    merchant: d.merchant || "",
+    amount: d.amount || 0,
+    category: d.category || "",
     date: d.date ? new Date(d.date).toLocaleDateString("th-TH") : "",
+    rawDate: d.date ? new Date(d.date).toISOString().slice(0, 10) : "",
     status: d.status || "pending",
+    ocrConfidence: d.ocrConfidence || 0,
   }));
 
   return (
     <EmailScannerClient
       emails={data}
       googleEmail={user?.googleEmail || null}
-      googleConnected={!!user?.googleConnectedAt}
+      googleConnected={!!user?.googleEmail}
+      lastGmailScan={user?.lastGmailScan ? new Date(user.lastGmailScan).toISOString() : null}
+      autoGmailScan={user?.autoGmailScan || false}
       totalScanned={totalScanned}
       totalWithOcr={totalWithOcr}
     />
