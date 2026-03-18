@@ -133,8 +133,8 @@ export async function POST(request: NextRequest) {
     }
 
     try {
-      // Search ALL emails (last 30 days)
-      const query = encodeURIComponent("newer_than:30d");
+      // Search financial emails (last 90 days) — broad but focused on money-related
+      const query = encodeURIComponent("(receipt OR invoice OR payment OR billing OR order OR subscription OR ใบเสร็จ OR สลิป OR โอนเงิน OR ชำระเงิน OR ใบแจ้งหนี้ OR ใบกำกับภาษี OR declined OR refund OR charge OR statement OR confirmation) newer_than:90d");
       let listRes = await fetch(
         `https://gmail.googleapis.com/gmail/v1/users/me/messages?q=${query}&maxResults=50`,
         { headers: { Authorization: `Bearer ${accessToken}` } }
