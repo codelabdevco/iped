@@ -52,6 +52,8 @@ const stMap: Record<string, { label: string; cls: string }> = {
   matched: { label: "จับคู่แล้ว", cls: "bg-purple-500/10 text-purple-400" },
   cancelled: { label: "ยกเลิก", cls: "bg-gray-500/10 text-gray-400" },
   duplicate: { label: "ซ้ำ", cls: "bg-orange-500/10 text-orange-400" },
+  no_attachment: { label: "ไม่มีไฟล์แนบ", cls: "bg-gray-500/10 text-gray-400" },
+  ocr_failed: { label: "OCR ล้มเหลว", cls: "bg-red-500/10 text-red-400" },
 };
 
 export default function EmailScannerClient({
