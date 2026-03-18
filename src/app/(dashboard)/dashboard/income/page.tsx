@@ -1,47 +1,45 @@
-import { redirect } from "next/navigation";
+import { Suspense } from "react";
 import { getSession } from "@/lib/auth";
+import { redirect } from "next/navigation";
 import { connectDB } from "@/lib/mongodb";
-import DocumentModel from "@/models/Document";
+import Receipt from "@/models/Receipt";
 import IncomeClient from "./IncomeClient";
 
-export default async function IncomePage() {
+async function IncomeData() {
   const session = await getSession();
   if (!session) redirect("/login");
 
   await connectDB();
-
-  const documents = await DocumentModel.find({
-    userId: session.userId,
-    direction: "income",
-  })
-    .sort({ date: -1 })
+  const receipts = await Receipt.find({ userId: session.userId, direction: "income" })
+    .select("-imageUrl -ocrRawText")
+    .sort({ createdAt: -1 })
     .limit(100)
     .lean();
 
-  // Calculate this month and last month totals
-  const now = new Date();
-  const thisMonthStart = new Date(now.getFullYear(), now.getMonth(), 1);
-  const lastMonthStart = new Date(now.getFullYear(), now.getMonth() - 1, 1);
-
-  let thisMonth = 0;
-  let lastMonth = 0;
-  for (const d of documents) {
-    const date = new Date(d.date);
-    if (date >= thisMonthStart) thisMonth += d.amount;
-    else if (date >= lastMonthStart) lastMonth += d.amount;
-  }
-
-  const incomes = documents.map((d) => ({
-    _id: String(d._id),
-    date: d.date.toISOString(),
-    merchant: d.merchant,
-    category: d.category,
-    categoryIcon: d.categoryIcon || "💰",
-    amount: d.amount,
-    note: d.note || undefined,
-    paymentMethod: d.paymentMethod || undefined,
-    createdAt: d.createdAt ? new Date(d.createdAt).toISOString() : undefined,
+  const data = receipts.map((r: any) => ({
+    _id: String(r._id),
+    storeName: r.merchant || r.storeName || "ไม่ระบุ",
+    amount: r.amount || 0,
+    category: r.category || "อื่นๆ",
+    rawDate: r.date ? new Date(r.date).toISOString().slice(0, 10) : "",
+    date: r.date ? new Date(r.date).toLocaleDateString("th-TH") : "",
+    time: r.time || "",
+    status: r.status || "confirmed",
+    source: r.source || "web",
+    paymentMethod: r.paymentMethod || "",
+    note: r.note || "",
+    hasImage: !!r.imageHash,
+    createdAt: r.createdAt ? new Date(r.createdAt).toISOString() : "",
+    updatedAt: r.updatedAt ? new Date(r.updatedAt).toISOString() : "",
   }));
 
-  return <IncomeClient incomes={incomes} thisMonth={thisMonth} lastMonth={lastMonth} />;
+  return <IncomeClient incomes={data} />;
+}
+
+export default function IncomePage() {
+  return (
+    <Suspense fallback={<div className="space-y-6 animate-pulse"><div className="h-8 w-32 rounded-lg bg-white/[0.06]" /><div className="h-40 rounded-2xl bg-white/[0.04]" /></div>}>
+      <IncomeData />
+    </Suspense>
+  );
 }
