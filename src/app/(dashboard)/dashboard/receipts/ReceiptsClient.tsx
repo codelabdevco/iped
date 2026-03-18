@@ -1,7 +1,7 @@
 "use client";
 
-import { useState, useMemo, useCallback, memo } from "react";
-import { Search, Filter, Receipt, FileText, CheckCircle, Clock, Pencil, Trash2, ImageIcon, Cloud, CloudOff, HardDrive } from "lucide-react";
+import { useState, useMemo, useCallback, useRef } from "react";
+import { Search, Filter, Receipt, FileText, CheckCircle, Clock, Pencil, Trash2, ImageIcon, Cloud, CloudOff, HardDrive, Upload, X } from "lucide-react";
 import Select from "@/components/dashboard/Select";
 import DatePicker from "@/components/dashboard/DatePicker";
 import FileAttachments, { Attachment } from "@/components/dashboard/FileAttachments";
@@ -113,6 +113,9 @@ export default function ReceiptsClient({ receipts: initialReceipts }: { receipts
   const [whtEnabled, setWhtEnabled] = useState(false);
   const [attachments, setAttachments] = useState<Attachment[]>([]);
   const [txType, setTxType] = useState<"income" | "expense">("expense");
+  const [slipPreview, setSlipPreview] = useState<string | null>(null);
+  const [slipDragging, setSlipDragging] = useState(false);
+  const slipInputRef = useRef<HTMLInputElement>(null);
 
   const filtered = useMemo(() => {
     return receipts.filter((r) => {
@@ -151,6 +154,31 @@ export default function ReceiptsClient({ receipts: initialReceipts }: { receipts
     setVatEnabled(false);
     setWhtEnabled(false);
     setAttachments([]);
+    setSlipPreview(r.imageUrl || null);
+  };
+
+  const handleSlipUpload = (file: File) => {
+    if (!file.type.startsWith("image/")) return;
+    const reader = new FileReader();
+    reader.onload = (e) => setSlipPreview(e.target?.result as string);
+    reader.readAsDataURL(file);
+  };
+
+  const handleSlipInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (file) handleSlipUpload(file);
+    if (slipInputRef.current) slipInputRef.current.value = "";
+  };
+
+  const handleSlipDrop = (e: React.DragEvent) => {
+    e.preventDefault();
+    setSlipDragging(false);
+    const file = e.dataTransfer.files?.[0];
+    if (file) handleSlipUpload(file);
+  };
+
+  const handleSlipRemove = () => {
+    setSlipPreview(null);
   };
 
   const handleSaveEdit = () => {
@@ -159,10 +187,11 @@ export default function ReceiptsClient({ receipts: initialReceipts }: { receipts
     const vat = vatEnabled ? Math.round(itemsTotal * 0.07) : 0;
     const wht = whtEnabled ? Math.round(itemsTotal * 0.03) : 0;
     const total = itemsTotal + vat - wht;
-    setReceipts((prev) => prev.map((r) => r._id === editingId ? { ...r, ...editForm, amount: total, items: editItems } : r));
+    setReceipts((prev) => prev.map((r) => r._id === editingId ? { ...r, ...editForm, amount: total, items: editItems, imageUrl: slipPreview || r.imageUrl } : r));
     setEditingId(null);
     setEditForm({});
     setEditItems([]);
+    setSlipPreview(null);
   };
 
   const handleCancelEdit = () => {
@@ -277,14 +306,29 @@ export default function ReceiptsClient({ receipts: initialReceipts }: { receipts
               <button onClick={handleCancelEdit} className="w-8 h-8 rounded-lg hover:bg-white/5 text-white/40 hover:text-white flex items-center justify-center text-xl transition-colors">&times;</button>
             </div>
 
-            {/* Slip image */}
-            <div className="w-full h-52 rounded-xl overflow-hidden bg-white/5 border border-white/10 flex items-center justify-center">
-              {editingReceipt.imageUrl ? (
-                <img src={editingReceipt.imageUrl} alt="" className="w-full h-full object-contain" />
-              ) : (
-                <div className="text-center"><ImageIcon size={36} className="text-white/15 mx-auto mb-2" /><p className="text-xs text-white/30">ไม่มีรูปสลิป</p></div>
-              )}
-            </div>
+            {/* Slip image — upload / preview */}
+            <input ref={slipInputRef} type="file" accept="image/*" onChange={handleSlipInputChange} className="hidden" />
+            {slipPreview ? (
+              <div className="relative w-full rounded-xl overflow-hidden bg-white/5 border border-white/10 group">
+                <img src={slipPreview} alt="สลิป" className="w-full max-h-72 object-contain" />
+                <div className="absolute inset-0 bg-black/0 group-hover:bg-black/40 transition-colors flex items-center justify-center gap-2 opacity-0 group-hover:opacity-100">
+                  <button onClick={() => slipInputRef.current?.click()} className="px-3 py-1.5 rounded-lg text-xs font-medium bg-white/20 text-white hover:bg-white/30 transition-colors">เปลี่ยนรูป</button>
+                  <button onClick={handleSlipRemove} className="p-1.5 rounded-lg bg-red-500/20 text-red-400 hover:bg-red-500/30 transition-colors"><X size={14} /></button>
+                </div>
+              </div>
+            ) : (
+              <div
+                onClick={() => slipInputRef.current?.click()}
+                onDragOver={(e) => { e.preventDefault(); setSlipDragging(true); }}
+                onDragLeave={() => setSlipDragging(false)}
+                onDrop={handleSlipDrop}
+                className={`w-full h-44 rounded-xl border-2 border-dashed cursor-pointer transition-colors flex flex-col items-center justify-center gap-2 ${slipDragging ? "border-[#FA3633]/50 bg-[#FA3633]/5" : "border-white/10 bg-white/[0.02] hover:border-white/20 hover:bg-white/[0.04]"}`}
+              >
+                <Upload size={28} className="text-white/20" />
+                <p className="text-xs text-white/40">คลิกหรือลากรูปสลิปมาวาง</p>
+                <p className="text-[10px] text-white/20">PNG, JPG, WEBP</p>
+              </div>
+            )}
 
             {/* Income / Expense toggle */}
             <div className="flex p-1 rounded-xl bg-white/5">
