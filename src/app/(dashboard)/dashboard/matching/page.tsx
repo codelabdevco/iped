@@ -4,6 +4,7 @@ import { redirect } from "next/navigation";
 import { connectDB } from "@/lib/mongodb";
 import Receipt from "@/models/Receipt";
 import Match from "@/models/Match";
+import User from "@/models/User";
 import MatchingClient from "./MatchingClient";
 
 async function MatchingData() {
@@ -12,7 +13,7 @@ async function MatchingData() {
 
   await connectDB();
 
-  const [receipts, matches] = await Promise.all([
+  const [receipts, matches, user] = await Promise.all([
     Receipt.find({ userId: session.userId })
       .select("-imageUrl -ocrRawText")
       .sort({ createdAt: -1 })
@@ -22,6 +23,9 @@ async function MatchingData() {
       .sort({ createdAt: -1 })
       .limit(50)
       .lean(),
+    User.findById(session.userId)
+      .select("googleEmail googleConnectedAt lastGmailScan autoGmailScan")
+      .lean() as any,
   ]);
 
   const receiptMap: Record<string, any> = {};
@@ -58,7 +62,15 @@ async function MatchingData() {
     createdAt: m.createdAt ? new Date(m.createdAt).toISOString() : "",
   }));
 
-  return <MatchingClient receipts={data} matches={matchData} />;
+  // Gmail settings
+  const gmailSettings = {
+    connected: !!user?.googleEmail,
+    email: user?.googleEmail || null,
+    lastGmailScan: user?.lastGmailScan ? new Date(user.lastGmailScan).toISOString() : null,
+    autoGmailScan: user?.autoGmailScan || false,
+  };
+
+  return <MatchingClient receipts={data} matches={matchData} gmailSettings={gmailSettings} />;
 }
 
 export default function MatchingPage() {

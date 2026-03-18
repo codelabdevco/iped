@@ -103,6 +103,8 @@ const UserSchema = new Schema<IUser>(
     googleRefreshToken: String,
     googleEmail: String,
     googleConnectedAt: Date,
+    lastGmailScan: Date,
+    autoGmailScan: { type: Boolean, default: false },
 
     lastLogin: Date,
     loginCount: { type: Number, default: 0 },

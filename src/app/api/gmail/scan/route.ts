@@ -130,6 +130,9 @@ export async function POST(request: NextRequest) {
       }
     }
 
+    // Save last scan time
+    await User.findByIdAndUpdate(session.userId, { lastGmailScan: new Date() });
+
     return NextResponse.json({
       success: true,
       scanned: messages.length,

@@ -1,9 +1,12 @@
 "use client";
 
-import { useState, useMemo, useCallback, useRef, useEffect } from "react";
+import { useState, useMemo, useCallback, useRef } from "react";
 import { useRouter } from "next/navigation";
 import { useTheme } from "@/contexts/ThemeContext";
-import { Search, ScanLine, CheckCircle2, Copy, Upload, Loader2, ArrowRight, Check, X, MessageCircle, Globe, ImageIcon } from "lucide-react";
+import {
+  ScanLine, CheckCircle2, Copy, Upload, Loader2, ArrowRight, Check, X,
+  Mail, Clock, ToggleLeft, ToggleRight, RefreshCw,
+} from "lucide-react";
 import PageHeader from "@/components/dashboard/PageHeader";
 import StatsCard from "@/components/dashboard/StatsCard";
 import DataTable, { Column } from "@/components/dashboard/DataTable";
@@ -23,22 +26,48 @@ interface MatchRow {
   matchScore: number; matchType: string; matchReason: string; status: string; createdAt?: string;
 }
 
+interface GmailSettings {
+  connected: boolean;
+  email: string | null;
+  lastGmailScan: string | null;
+  autoGmailScan: boolean;
+}
+
 function Baht({ value, className = "" }: { value: number; className?: string }) {
   const whole = Math.floor(Math.abs(value)).toLocaleString();
   const dec = (Math.abs(value) % 1).toFixed(2).slice(1);
   return <span className={className}>฿{whole}<span className="text-[0.75em] opacity-50">{dec}</span></span>;
 }
 
+function formatTimeAgo(dateStr: string): string {
+  const diff = Date.now() - new Date(dateStr).getTime();
+  const mins = Math.floor(diff / 60000);
+  if (mins < 1) return "เมื่อสักครู่";
+  if (mins < 60) return `${mins} นาทีที่แล้ว`;
+  const hrs = Math.floor(mins / 60);
+  if (hrs < 24) return `${hrs} ชั่วโมงที่แล้ว`;
+  const days = Math.floor(hrs / 24);
+  return `${days} วันที่แล้ว`;
+}
+
 const DIR_CLR: Record<string, string> = { expense: "#FA3633", income: "#22c55e", savings: "#ec4899" };
 const DIR_LABEL: Record<string, string> = { expense: "รายจ่าย", income: "รายรับ", savings: "เงินออม" };
 
-export default function MatchingClient({ receipts, matches: initialMatches }: { receipts: ReceiptRow[]; matches: MatchRow[] }) {
+export default function MatchingClient({
+  receipts, matches: initialMatches, gmailSettings: initialGmail,
+}: {
+  receipts: ReceiptRow[];
+  matches: MatchRow[];
+  gmailSettings: GmailSettings;
+}) {
   const { isDark } = useTheme();
   const router = useRouter();
   const [matches, setMatches] = useState(initialMatches);
-  const [tab, setTab] = useState<"scan" | "matches">("scan");
+  const [tab, setTab] = useState<"email" | "all" | "matches">("email");
   const [uploading, setUploading] = useState(false);
   const [scanning, setScanning] = useState(false);
+  const [autoScan, setAutoScan] = useState(initialGmail.autoGmailScan);
+  const [lastScan, setLastScan] = useState(initialGmail.lastGmailScan);
   const [scans, setScans] = useState<{ id: string; name: string; amount: number; status: string }[]>([]);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
@@ -48,9 +77,26 @@ export default function MatchingClient({ receipts, matches: initialMatches }: { 
   const card = isDark ? "bg-[rgba(255,255,255,0.04)]" : "bg-white";
   const border = isDark ? "border-[rgba(255,255,255,0.06)]" : "border-gray-200";
 
+  // Split receipts by source
+  const emailReceipts = useMemo(() => receipts.filter((r) => r.source === "email"), [receipts]);
+  const systemReceipts = useMemo(() => receipts.filter((r) => r.source !== "email"), [receipts]);
+
   const totalAmount = receipts.filter((r) => r.status === "confirmed").reduce((s, r) => s + r.amount, 0);
   const confirmed = matches.filter((m) => m.status === "matched").length;
   const pending = matches.filter((m) => m.status === "pending").length;
+
+  // Toggle auto-scan
+  const handleToggleAutoScan = async () => {
+    const newVal = !autoScan;
+    setAutoScan(newVal);
+    try {
+      await fetch("/api/gmail/settings", {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ autoGmailScan: newVal }),
+      });
+    } catch { setAutoScan(!newVal); }
+  };
 
   // Upload
   const handleUpload = useCallback(async (file: File) => {
@@ -80,7 +126,8 @@ export default function MatchingClient({ receipts, matches: initialMatches }: { 
       const json = await res.json();
       if (json.expired) { window.location.href = "/api/auth/google"; return; }
       if (json.error) { alert(json.error); return; }
-      json.results?.forEach((r: any) => setScans((prev) => [{ id: `GM-${Date.now()}`, name: r.subject, amount: 0, status: r.status === "saved" ? "matched" : "failed" }, ...prev]));
+      json.results?.forEach((r: any) => setScans((prev) => [{ id: `GM-${Date.now()}-${Math.random()}`, name: r.subject, amount: 0, status: r.status === "saved" ? "matched" : r.status === "duplicate" ? "duplicate" : "failed" }, ...prev]));
+      setLastScan(new Date().toISOString());
       router.refresh();
     } catch { alert("เกิดข้อผิดพลาด"); } finally { setScanning(false); }
   };
@@ -91,7 +138,7 @@ export default function MatchingClient({ receipts, matches: initialMatches }: { 
     setMatches((prev) => prev.map((m) => m._id === id ? { ...m, status } : m));
   };
 
-  // Receipt columns (same as receipts page)
+  // Receipt columns
   const receiptColumns: Column<ReceiptRow>[] = useMemo(() => [
     {
       key: "storeName",
@@ -126,15 +173,35 @@ export default function MatchingClient({ receipts, matches: initialMatches }: { 
         const mon = ["ม.ค.","ก.พ.","มี.ค.","เม.ย.","พ.ค.","มิ.ย.","ก.ค.","ส.ค.","ก.ย.","ต.ค.","พ.ย.","ธ.ค."][d.getMonth()];
         const yr = d.getFullYear() + 543;
         const isLine = r.source === "line";
+        const isEmail = r.source === "email";
         return (
           <div className="leading-tight">
             <div className="text-sm whitespace-nowrap">{day} {mon} {yr}{r.time ? <span className={`text-[11px] ml-1 ${muted}`}>{r.time}</span> : ""}</div>
             <div className="flex items-center gap-1 mt-0.5 text-[11px]">
-              <BrandIcon brand={isLine ? "line" : "web"} size={11} />
-              <span className={isLine ? "text-green-500" : "text-blue-400"}>{isLine ? "LINE" : "เว็บ"}</span>
+              <BrandIcon brand={isLine ? "line" : isEmail ? "gmail" : "web"} size={11} />
+              <span className={isLine ? "text-green-500" : isEmail ? "text-red-400" : "text-blue-400"}>{isLine ? "LINE" : isEmail ? "Gmail" : "เว็บ"}</span>
             </div>
           </div>
         );
+      },
+    },
+    {
+      key: "matchStatus",
+      label: "จับคู่",
+      render: (r) => {
+        const match = matches.find((m) => (m.receiptA._id === r._id || m.receiptB._id === r._id) && m.status === "matched");
+        if (match) {
+          const other = match.receiptA._id === r._id ? match.receiptB : match.receiptA;
+          return (
+            <div className="leading-tight">
+              <span className="px-2 py-0.5 rounded-lg text-[10px] font-medium bg-green-500/10 text-green-400">ตรงกัน {match.matchScore}%</span>
+              <div className={`text-[10px] mt-0.5 ${muted}`}>{other.storeName}</div>
+            </div>
+          );
+        }
+        const pendingMatch = matches.find((m) => (m.receiptA._id === r._id || m.receiptB._id === r._id) && m.status === "pending");
+        if (pendingMatch) return <span className="px-2 py-0.5 rounded-lg text-[10px] font-medium bg-amber-500/10 text-amber-400">รอยืนยัน</span>;
+        return <span className={`text-[10px] ${muted}`}>-</span>;
       },
     },
     {
@@ -147,35 +214,51 @@ export default function MatchingClient({ receipts, matches: initialMatches }: { 
           duplicate: { l: "สลิปซ้ำ", c: "bg-orange-500/10 text-orange-400" },
           cancelled: { l: "ยกเลิก", c: "bg-gray-500/10 text-gray-400" },
           edited: { l: "แก้ไข", c: "bg-blue-500/10 text-blue-400" },
+          matched: { l: "จับคู่แล้ว", c: "bg-green-500/10 text-green-400" },
         };
         const st = cfg[r.status] || cfg.pending;
         return <span className={`px-2 py-1 rounded-lg text-[10px] font-medium ${st.c}`}>{st.l}</span>;
       },
     },
-  ], [muted]);
+  ], [muted, matches]);
 
   // Match columns
   const matchColumns: Column<MatchRow>[] = useMemo(() => [
     {
       key: "docA",
-      label: "เอกสาร A",
-      render: (m) => (
-        <div className="leading-tight">
-          <div className={`text-sm font-medium ${txt}`}>{m.receiptA?.storeName || "?"}</div>
-          <div className={`text-[11px] ${muted}`}><Baht value={m.receiptA?.amount || 0} className="" /></div>
-        </div>
-      ),
+      label: "เอกสารจาก Email",
+      render: (m) => {
+        const isEmailA = receipts.find((r) => r._id === m.receiptA._id)?.source === "email";
+        const emailDoc = isEmailA ? m.receiptA : m.receiptB;
+        return (
+          <div className="leading-tight">
+            <div className="flex items-center gap-1.5">
+              <BrandIcon brand="gmail" size={12} />
+              <span className={`text-sm font-medium ${txt}`}>{emailDoc?.storeName || "?"}</span>
+            </div>
+            <div className={`text-[11px] ${muted}`}><Baht value={emailDoc?.amount || 0} className="" /></div>
+          </div>
+        );
+      },
     },
     { key: "arrow", label: "", render: () => <ArrowRight size={12} className={muted} /> },
     {
       key: "docB",
-      label: "เอกสาร B",
-      render: (m) => (
-        <div className="leading-tight">
-          <div className={`text-sm font-medium ${txt}`}>{m.receiptB?.storeName || "?"}</div>
-          <div className={`text-[11px] ${muted}`}><Baht value={m.receiptB?.amount || 0} className="" /></div>
-        </div>
-      ),
+      label: "สลิปบนระบบ",
+      render: (m) => {
+        const isEmailA = receipts.find((r) => r._id === m.receiptA._id)?.source === "email";
+        const sysDoc = isEmailA ? m.receiptB : m.receiptA;
+        const src = receipts.find((r) => r._id === sysDoc._id)?.source;
+        return (
+          <div className="leading-tight">
+            <div className="flex items-center gap-1.5">
+              <BrandIcon brand={src === "line" ? "line" : "web"} size={12} />
+              <span className={`text-sm font-medium ${txt}`}>{sysDoc?.storeName || "?"}</span>
+            </div>
+            <div className={`text-[11px] ${muted}`}><Baht value={sysDoc?.amount || 0} className="" /></div>
+          </div>
+        );
+      },
     },
     {
       key: "score",
@@ -188,7 +271,7 @@ export default function MatchingClient({ receipts, matches: initialMatches }: { 
       key: "status",
       label: "สถานะ",
       render: (m) => {
-        if (m.status === "matched") return <span className="px-2 py-0.5 rounded-lg text-[10px] font-medium bg-green-500/10 text-green-400">ยืนยัน</span>;
+        if (m.status === "matched") return <span className="px-2 py-0.5 rounded-lg text-[10px] font-medium bg-green-500/10 text-green-400">ตรงกัน</span>;
         if (m.status === "rejected") return <span className="px-2 py-0.5 rounded-lg text-[10px] font-medium bg-gray-500/10 text-gray-400">ปฏิเสธ</span>;
         return <span className="px-2 py-0.5 rounded-lg text-[10px] font-medium bg-amber-500/10 text-amber-400">รอยืนยัน</span>;
       },
@@ -202,7 +285,7 @@ export default function MatchingClient({ receipts, matches: initialMatches }: { 
         </div>
       ) : null,
     },
-  ], [txt, sub, muted]);
+  ], [txt, sub, muted, receipts]);
 
   const scanStatusCls: Record<string, string> = { processing: "bg-amber-500/10 text-amber-500", matched: "bg-green-500/10 text-green-500", duplicate: "bg-orange-500/10 text-orange-400", failed: "bg-red-500/10 text-red-400" };
 
@@ -213,7 +296,7 @@ export default function MatchingClient({ receipts, matches: initialMatches }: { 
       <div className="flex items-center justify-between">
         <PageHeader title="สแกน & จับคู่เอกสาร" description={`${receipts.length} รายการ — รวม ฿${totalAmount.toLocaleString("th-TH", { minimumFractionDigits: 2 })}`} />
         <div className="flex gap-2">
-          <button onClick={handleGmail} disabled={scanning} className={`flex items-center gap-2 px-3 py-2.5 rounded-xl text-sm font-medium transition-colors disabled:opacity-50 ${isDark ? "bg-white/5 text-white/60 hover:bg-white/10" : "bg-gray-100 text-gray-600 hover:bg-gray-200"}`}>
+          <button onClick={handleGmail} disabled={scanning || !initialGmail.connected} className={`flex items-center gap-2 px-3 py-2.5 rounded-xl text-sm font-medium transition-colors disabled:opacity-50 ${isDark ? "bg-white/5 text-white/60 hover:bg-white/10" : "bg-gray-100 text-gray-600 hover:bg-gray-200"}`}>
             {scanning ? <Loader2 size={14} className="animate-spin" /> : <BrandIcon brand="gmail" size={16} />}
             {scanning ? "สแกน..." : "สแกน Gmail"}
           </button>
@@ -224,11 +307,65 @@ export default function MatchingClient({ receipts, matches: initialMatches }: { 
         </div>
       </div>
 
+      {/* Gmail Settings Card */}
+      <div className={`${card} border ${border} rounded-2xl p-4`}>
+        <div className="flex items-center justify-between">
+          <div className="flex items-center gap-4">
+            <div className={`w-10 h-10 rounded-xl flex items-center justify-center ${initialGmail.connected ? "bg-green-500/10" : "bg-gray-500/10"}`}>
+              <BrandIcon brand="gmail" size={20} />
+            </div>
+            <div>
+              <div className="flex items-center gap-2">
+                <span className={`font-medium ${txt}`}>
+                  {initialGmail.connected ? initialGmail.email : "ยังไม่ได้เชื่อมต่อ Gmail"}
+                </span>
+                <span className={`px-2 py-0.5 rounded-full text-[10px] font-medium ${initialGmail.connected ? "bg-green-500/10 text-green-400" : "bg-gray-500/10 text-gray-400"}`}>
+                  {initialGmail.connected ? "เชื่อมต่อแล้ว" : "ไม่ได้เชื่อมต่อ"}
+                </span>
+              </div>
+              {lastScan && (
+                <div className={`flex items-center gap-1.5 mt-1 text-xs ${sub}`}>
+                  <Clock size={11} />
+                  <span>สแกนล่าสุด: {formatTimeAgo(lastScan)}</span>
+                  <span className={muted}>({new Date(lastScan).toLocaleString("th-TH")})</span>
+                </div>
+              )}
+              {!lastScan && initialGmail.connected && (
+                <p className={`text-xs mt-1 ${sub}`}>ยังไม่เคยสแกน — กด &quot;สแกน Gmail&quot; เพื่อเริ่ม</p>
+              )}
+            </div>
+          </div>
+
+          <div className="flex items-center gap-3">
+            {/* Auto-scan toggle */}
+            {initialGmail.connected && (
+              <button
+                onClick={handleToggleAutoScan}
+                className={`flex items-center gap-2 px-3 py-2 rounded-xl text-sm transition-colors ${
+                  autoScan
+                    ? "bg-green-500/10 text-green-400"
+                    : isDark ? "bg-white/5 text-white/40" : "bg-gray-100 text-gray-400"
+                }`}
+              >
+                {autoScan ? <ToggleRight size={18} /> : <ToggleLeft size={18} />}
+                <span className="font-medium">{autoScan ? "สแกนอัตโนมัติ" : "สแกนเอง"}</span>
+              </button>
+            )}
+
+            {!initialGmail.connected && (
+              <a href="/api/auth/google" className="flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-medium bg-blue-500/10 text-blue-400 hover:bg-blue-500/20 transition-colors">
+                <Mail size={14} /> เชื่อมต่อ Gmail
+              </a>
+            )}
+          </div>
+        </div>
+      </div>
+
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+        <StatsCard label="จากอีเมล" value={`${emailReceipts.length} รายการ`} icon={<Mail size={20} />} color="text-red-500" />
         <StatsCard label="เอกสารทั้งหมด" value={`${receipts.length} รายการ`} icon={<ScanLine size={20} />} color="text-blue-500" />
         <StatsCard label="จับคู่แล้ว" value={`${confirmed} คู่`} icon={<CheckCircle2 size={20} />} color="text-green-500" />
         <StatsCard label="รอยืนยัน" value={`${pending} คู่`} icon={<Copy size={20} />} color="text-amber-500" />
-        <StatsCard label="สแกนวันนี้" value={`${scans.length} รายการ`} icon={<Upload size={20} />} color="text-purple-500" />
       </div>
 
       {/* Scan results chips */}
@@ -243,10 +380,13 @@ export default function MatchingClient({ receipts, matches: initialMatches }: { 
         </div>
       )}
 
-      {/* Tab switcher */}
+      {/* Tab switcher: Email-first */}
       <div className={`${card} border ${border} rounded-xl p-1 flex`}>
-        <button onClick={() => setTab("scan")} className={`flex-1 py-2.5 rounded-lg text-sm font-semibold transition-all ${tab === "scan" ? "bg-[#FA3633] text-white shadow-sm" : `${sub} hover:text-white/70`}`}>
-          เอกสารทั้งหมด ({receipts.length})
+        <button onClick={() => setTab("email")} className={`flex-1 py-2.5 rounded-lg text-sm font-semibold transition-all ${tab === "email" ? "bg-[#FA3633] text-white shadow-sm" : `${sub} hover:text-white/70`}`}>
+          เอกสารจากอีเมล ({emailReceipts.length})
+        </button>
+        <button onClick={() => setTab("all")} className={`flex-1 py-2.5 rounded-lg text-sm font-semibold transition-all ${tab === "all" ? "bg-[#FA3633] text-white shadow-sm" : `${sub} hover:text-white/70`}`}>
+          ทั้งหมด ({receipts.length})
         </button>
         <button onClick={() => setTab("matches")} className={`flex-1 py-2.5 rounded-lg text-sm font-semibold transition-all ${tab === "matches" ? "bg-[#FA3633] text-white shadow-sm" : `${sub} hover:text-white/70`}`}>
           คู่เอกสาร ({matches.length})
@@ -254,10 +394,25 @@ export default function MatchingClient({ receipts, matches: initialMatches }: { 
       </div>
 
       {/* Content */}
-      {tab === "scan" ? (
+      {tab === "email" ? (
+        <DataTable
+          columns={receiptColumns}
+          data={emailReceipts}
+          rowKey={(r) => r._id}
+          dateField="rawDate"
+          columnConfigKey="matching-email"
+          emptyText="ยังไม่มีเอกสารจากอีเมล — กด สแกน Gmail เพื่อดึงเอกสาร"
+        />
+      ) : tab === "all" ? (
         <DataTable columns={receiptColumns} data={receipts} rowKey={(r) => r._id} dateField="rawDate" columnConfigKey="matching-receipts" />
       ) : (
-        <DataTable columns={matchColumns} data={matches} rowKey={(m) => m._id} columnConfigKey="matching-pairs" emptyText="ยังไม่มีคู่เอกสาร — อัปโหลดหรือสแกน Gmail เพื่อเริ่มจับคู่" />
+        <DataTable
+          columns={matchColumns}
+          data={matches}
+          rowKey={(m) => m._id}
+          columnConfigKey="matching-pairs"
+          emptyText="ยังไม่มีคู่เอกสาร — อัปโหลดหรือสแกน Gmail เพื่อเริ่มจับคู่"
+        />
       )}
     </div>
   );
