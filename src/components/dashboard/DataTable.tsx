@@ -183,7 +183,7 @@ export default function DataTable<T>({ columns, data, rowKey, emptyText = "à¹„à¸
 
   const card = isDark ? "bg-[rgba(255,255,255,0.04)]" : "bg-white";
   const border = isDark ? "border-[rgba(255,255,255,0.06)]" : "border-gray-200";
-  const txt = isDark ? "text-white" : "text-gray-900";
+  const txt = isDark ? "text-white" : "text-gray-800";
   const sub = isDark ? "text-white/50" : "text-gray-500";
   const headBg = isDark ? "bg-[rgba(255,255,255,0.03)]" : "bg-gray-50";
   const rowHover = isDark ? "hover:bg-[rgba(255,255,255,0.03)]" : "hover:bg-gray-50";

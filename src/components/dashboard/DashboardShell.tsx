@@ -24,7 +24,7 @@ function ShellInner({ displayName, pictureUrl, pendingReceipts, children }: Shel
   }
 
   return (
-    <div className={`flex h-screen overflow-hidden ${isDark ? "bg-[#0a0a0a] text-white" : "bg-gray-50 text-gray-900"}`}>
+    <div className="flex h-screen overflow-hidden shell-theme">
       {/* Desktop sidebar */}
       <div className="hidden md:flex h-full">
         <Sidebar badges={badges} />
