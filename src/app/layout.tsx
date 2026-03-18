@@ -9,7 +9,7 @@ export const metadata: Metadata = {
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
-    <html lang="th" data-theme="dark" style={{ backgroundColor: "#0a0a0a" }}>
+    <html lang="th" suppressHydrationWarning>
       <head>
         <link
           href="https://fonts.googleapis.com/css2?family=Noto+Sans+Thai:wght@300;400;500;600;700&display=swap"
@@ -19,8 +19,9 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
           (function(){
             try {
               var t = localStorage.getItem('iped-theme') || 'dark';
-              document.documentElement.setAttribute('data-theme', t);
-              document.documentElement.style.backgroundColor = t === 'dark' ? '#0a0a0a' : '#f7f7f7';
+              var d = document.documentElement;
+              d.setAttribute('data-theme', t);
+              d.style.cssText = 'background-color:' + (t === 'dark' ? '#0a0a0a' : '#f7f7f7') + ';color:' + (t === 'dark' ? '#fff' : '#111');
             } catch(e){}
           })();
         `}} />

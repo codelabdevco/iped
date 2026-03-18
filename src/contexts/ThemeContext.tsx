@@ -13,13 +13,22 @@ interface ThemeContextType {
 
 const ThemeContext = createContext<ThemeContextType | undefined>(undefined);
 
+function getInitialTheme(): Theme {
+  if (typeof window !== "undefined") {
+    // Read from data-theme set by inline script, or localStorage, or default dark
+    const attr = document.documentElement.getAttribute("data-theme") as Theme;
+    if (attr === "light" || attr === "dark") return attr;
+    const saved = localStorage.getItem("iped-theme") as Theme;
+    if (saved) return saved;
+  }
+  return "dark";
+}
+
 export function ThemeProvider({ children }: { children: ReactNode }) {
-  const [theme, setTheme] = useState<Theme>("dark");
+  const [theme, setTheme] = useState<Theme>(getInitialTheme);
   const [mounted, setMounted] = useState(false);
 
   useEffect(() => {
-    const s = localStorage.getItem("iped-theme") as Theme;
-    if (s) setTheme(s);
     setMounted(true);
   }, []);
 
@@ -27,15 +36,16 @@ export function ThemeProvider({ children }: { children: ReactNode }) {
     const n = theme === "dark" ? "light" : "dark";
     setTheme(n);
     localStorage.setItem("iped-theme", n);
+    document.documentElement.setAttribute("data-theme", n);
+    document.documentElement.style.backgroundColor = n === "dark" ? "#0a0a0a" : "#f7f7f7";
+    document.documentElement.style.color = n === "dark" ? "#fff" : "#111";
   };
 
   useEffect(() => {
     if (!mounted) return;
-    document.documentElement.style.setProperty(
-      "--color-border",
-      theme === "dark" ? "rgba(255,255,255,0.06)" : "rgba(0,0,0,0.06)"
-    );
     document.documentElement.setAttribute("data-theme", theme);
+    document.documentElement.style.backgroundColor = theme === "dark" ? "#0a0a0a" : "#f7f7f7";
+    document.documentElement.style.color = theme === "dark" ? "#fff" : "#111";
   }, [theme, mounted]);
 
   return (
