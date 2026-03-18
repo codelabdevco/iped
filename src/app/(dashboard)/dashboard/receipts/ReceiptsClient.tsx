@@ -1,6 +1,7 @@
 "use client";
 
-import { useState, useMemo, useCallback, useRef } from "react";
+import { useState, useMemo, useCallback, useRef, useEffect } from "react";
+import { useRouter } from "next/navigation";
 import { Search, Filter, Receipt, FileText, CheckCircle, Clock, Pencil, Trash2, ImageIcon, Cloud, CloudOff, HardDrive, Upload, X } from "lucide-react";
 import Select from "@/components/dashboard/Select";
 import DatePicker from "@/components/dashboard/DatePicker";
@@ -117,7 +118,38 @@ const typeLabel: Record<string, string> = {
 
 export default function ReceiptsClient({ receipts: initialReceipts }: { receipts: ReceiptRow[] }) {
   const { isDark } = useTheme();
+  const router = useRouter();
   const [receipts, setReceipts] = useState(initialReceipts);
+  const pollRef = useRef<{ count: number; latestId: string | null }>({
+    count: initialReceipts.length,
+    latestId: initialReceipts[0]?._id || null,
+  });
+
+  // Sync when server re-renders with new data
+  useEffect(() => {
+    setReceipts(initialReceipts);
+    pollRef.current = {
+      count: initialReceipts.length,
+      latestId: initialReceipts[0]?._id || null,
+    };
+  }, [initialReceipts]);
+
+  // Poll for changes every 5s
+  useEffect(() => {
+    const interval = setInterval(async () => {
+      try {
+        const res = await fetch("/api/receipts/poll");
+        if (!res.ok) return;
+        const data = await res.json();
+        const prev = pollRef.current;
+        if (data.count !== prev.count || data.latestId !== prev.latestId) {
+          pollRef.current = { count: data.count, latestId: data.latestId };
+          router.refresh();
+        }
+      } catch {}
+    }, 5000);
+    return () => clearInterval(interval);
+  }, [router]);
   const [search, setSearch] = useState("");
   const [statusFilter, setStatusFilter] = useState("all");
   const [typeFilter, setTypeFilter] = useState("all");
