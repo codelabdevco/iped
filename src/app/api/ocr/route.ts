@@ -104,6 +104,13 @@ export async function POST(request: NextRequest) {
       accountType: session.accountType || "personal",
     });
 
+    // Auto-match
+    try {
+      const { findMatches } = await import("@/lib/auto-match");
+      const matches = await findMatches(String(receipt._id), session.userId);
+      console.log("Auto-match:", matches.length, "found for", receipt._id);
+    } catch (e) { console.error("Auto-match error:", e); }
+
     return NextResponse.json({
       success: true,
       data: { ...result, imageUrl, imageHash },
