@@ -1,0 +1,133 @@
+"use client";
+
+import { useState, useEffect } from "react";
+import { useTheme } from "@/contexts/ThemeContext";
+import { Target, Pencil, Check, X } from "lucide-react";
+
+interface GoalCardProps {
+  /** localStorage key e.g. "goal-income" */
+  storageKey: string;
+  /** Current actual amount */
+  current: number;
+  /** Label e.g. "เป้ารายรับ" */
+  label: string;
+  /** Color theme */
+  color: "green" | "red" | "pink";
+  /** Period label e.g. "เดือนนี้" */
+  period?: string;
+}
+
+const colorMap = {
+  green: { bar: "#22c55e", bg: "bg-green-500/10", border: "border-green-500/20", text: "text-green-500", ring: "focus:border-green-500/50" },
+  red: { bar: "#FA3633", bg: "bg-[#FA3633]/10", border: "border-[#FA3633]/20", text: "text-[#FA3633]", ring: "focus:border-[#FA3633]/50" },
+  pink: { bar: "#ec4899", bg: "bg-pink-500/10", border: "border-pink-500/20", text: "text-pink-500", ring: "focus:border-pink-500/50" },
+};
+
+export default function GoalCard({ storageKey, current, label, color, period = "เดือนนี้" }: GoalCardProps) {
+  const { isDark } = useTheme();
+  const [goal, setGoal] = useState<number>(0);
+  const [editing, setEditing] = useState(false);
+  const [input, setInput] = useState("");
+  const [loaded, setLoaded] = useState(false);
+
+  useEffect(() => {
+    try {
+      const saved = localStorage.getItem(storageKey);
+      if (saved) setGoal(Number(saved));
+    } catch {}
+    setLoaded(true);
+  }, [storageKey]);
+
+  const saveGoal = () => {
+    const val = Number(input);
+    if (val > 0) {
+      setGoal(val);
+      localStorage.setItem(storageKey, String(val));
+    }
+    setEditing(false);
+  };
+
+  const clearGoal = () => {
+    setGoal(0);
+    localStorage.removeItem(storageKey);
+    setEditing(false);
+  };
+
+  if (!loaded) return null;
+
+  const c = colorMap[color];
+  const pct = goal > 0 ? Math.min((current / goal) * 100, 100) : 0;
+  const remaining = goal > 0 ? Math.max(0, goal - current) : 0;
+  const exceeded = goal > 0 && current > goal;
+
+  const cardBg = isDark ? "bg-[rgba(255,255,255,0.04)]" : "bg-white";
+  const cardBorder = isDark ? "border-[rgba(255,255,255,0.06)]" : "border-gray-200";
+  const sub = isDark ? "text-white/50" : "text-gray-500";
+  const txt = isDark ? "text-white" : "text-gray-900";
+  const muted = isDark ? "text-white/30" : "text-gray-400";
+  const inputCls = `h-8 px-2 rounded-lg text-sm border ${isDark ? "bg-white/5 border-white/10 text-white" : "bg-gray-50 border-gray-200 text-gray-900"} focus:outline-none ${c.ring}`;
+
+  // No goal set — show set button
+  if (goal === 0) {
+    return (
+      <div className={`${cardBg} border ${cardBorder} rounded-xl p-4`}>
+        {editing ? (
+          <div className="flex items-center gap-2">
+            <Target size={16} className={c.text} />
+            <span className={`text-sm ${sub}`}>{label}:</span>
+            <input type="number" value={input} onChange={(e) => setInput(e.target.value)} placeholder="฿0" className={`${inputCls} w-28`} autoFocus onKeyDown={(e) => e.key === "Enter" && saveGoal()} />
+            <button onClick={saveGoal} className={`p-1.5 rounded-lg ${c.bg} ${c.text}`}><Check size={14} /></button>
+            <button onClick={() => setEditing(false)} className={`p-1.5 rounded-lg ${isDark ? "hover:bg-white/5 text-white/30" : "hover:bg-gray-100 text-gray-400"}`}><X size={14} /></button>
+          </div>
+        ) : (
+          <button onClick={() => { setInput(""); setEditing(true); }} className={`flex items-center gap-2 text-sm ${sub} hover:${c.text} transition-colors w-full`}>
+            <Target size={16} />
+            <span>ตั้ง{label} ({period})</span>
+          </button>
+        )}
+      </div>
+    );
+  }
+
+  // Goal is set — show progress
+  return (
+    <div className={`${cardBg} border ${cardBorder} rounded-xl p-4`}>
+      <div className="flex items-center justify-between mb-2">
+        <div className="flex items-center gap-2">
+          <Target size={16} className={c.text} />
+          <span className={`text-sm font-medium ${sub}`}>{label} ({period})</span>
+        </div>
+        <button onClick={() => { setInput(String(goal)); setEditing(true); }} className={`p-1 rounded-lg transition-colors ${isDark ? "hover:bg-white/5 text-white/30" : "hover:bg-gray-100 text-gray-400"}`}>
+          <Pencil size={12} />
+        </button>
+      </div>
+
+      {editing ? (
+        <div className="flex items-center gap-2 mb-2">
+          <input type="number" value={input} onChange={(e) => setInput(e.target.value)} className={`${inputCls} w-28`} autoFocus onKeyDown={(e) => e.key === "Enter" && saveGoal()} />
+          <button onClick={saveGoal} className={`p-1.5 rounded-lg ${c.bg} ${c.text}`}><Check size={14} /></button>
+          <button onClick={clearGoal} className={`p-1.5 rounded-lg ${isDark ? "hover:bg-white/5" : "hover:bg-gray-100"} ${muted} text-xs`}>ลบเป้า</button>
+        </div>
+      ) : (
+        <div className="flex items-baseline justify-between mb-2">
+          <span className={`text-lg font-bold ${txt}`}>฿{current.toLocaleString("th-TH", { minimumFractionDigits: 2 })}</span>
+          <span className={`text-sm ${muted}`}>/ ฿{goal.toLocaleString("th-TH", { minimumFractionDigits: 2 })}</span>
+        </div>
+      )}
+
+      {/* Progress bar */}
+      <div className="h-2.5 rounded-full overflow-hidden" style={{ background: isDark ? "rgba(255,255,255,0.06)" : "rgba(0,0,0,0.06)" }}>
+        <div className="h-full rounded-full transition-all duration-500" style={{ width: `${pct}%`, backgroundColor: exceeded ? "#ef4444" : c.bar }} />
+      </div>
+
+      <div className="flex items-center justify-between mt-1.5">
+        <span className={`text-[11px] ${muted}`}>
+          {exceeded
+            ? `เกินเป้า ฿${(current - goal).toLocaleString("th-TH", { minimumFractionDigits: 2 })}`
+            : `เหลืออีก ฿${remaining.toLocaleString("th-TH", { minimumFractionDigits: 2 })}`}
+        </span>
+        <span className={`text-[11px] font-semibold`} style={{ color: exceeded ? "#ef4444" : c.bar }}>{pct.toFixed(0)}%</span>
+      </div>
+    </div>
+  );
+}

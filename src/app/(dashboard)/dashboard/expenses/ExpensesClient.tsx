@@ -4,6 +4,7 @@ import { useState, useMemo, useCallback, useRef, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { useTheme } from "@/contexts/ThemeContext";
 import { TrendingDown, Hash, Calculator, Plus, Pencil, Trash2, Loader2, MessageCircle, Globe } from "lucide-react";
+import GoalCard from "@/components/dashboard/GoalCard";
 import PageHeader from "@/components/dashboard/PageHeader";
 import StatsCard from "@/components/dashboard/StatsCard";
 import DataTable, { Column } from "@/components/dashboard/DataTable";
@@ -164,6 +165,7 @@ export default function ExpensesClient({ expenses: initial }: { expenses: Expens
         <StatsCard label="รอตรวจสอบ" value={`${pending} รายการ`} icon={<Hash size={20} />} color="text-yellow-500" />
         <StatsCard label="จำนวนรายการ" value={`${count} รายการ`} icon={<Hash size={20} />} color="text-purple-500" />
       </div>
+      <GoalCard storageKey="goal-expense" current={thisMonth} label="งบรายจ่าย" color="red" />
       <DataTable columns={columns} data={expenses} rowKey={(r) => r._id} dateField="rawDate" columnConfigKey="expenses" />
     </div>
   );

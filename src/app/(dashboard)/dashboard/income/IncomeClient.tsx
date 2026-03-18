@@ -4,6 +4,7 @@ import { useState, useMemo, useCallback, useRef, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { useTheme } from "@/contexts/ThemeContext";
 import { Wallet, TrendingUp, BarChart3, Hash, Plus, Pencil, Trash2, Loader2, MessageCircle, Globe } from "lucide-react";
+import GoalCard from "@/components/dashboard/GoalCard";
 import PageHeader from "@/components/dashboard/PageHeader";
 import StatsCard from "@/components/dashboard/StatsCard";
 import DataTable, { Column } from "@/components/dashboard/DataTable";
@@ -156,6 +157,7 @@ export default function IncomeClient({ incomes: initial }: { incomes: IncomeRow[
         <StatsCard label="เดือนที่แล้ว" value={`฿${lastMonth.toLocaleString("th-TH", { minimumFractionDigits: 2 })}`} icon={<BarChart3 size={20} />} color="text-purple-500" />
         <StatsCard label="จำนวนรายการ" value={`${count} รายการ`} icon={<Hash size={20} />} color="text-orange-500" />
       </div>
+      <GoalCard storageKey="goal-income" current={thisMonth} label="เป้ารายรับ" color="green" />
       <DataTable columns={columns} data={incomes} rowKey={(r) => r._id} dateField="rawDate" columnConfigKey="income" />
     </div>
   );

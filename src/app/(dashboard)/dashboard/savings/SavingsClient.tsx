@@ -4,6 +4,7 @@ import { useState, useMemo, useCallback, useRef, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { useTheme } from "@/contexts/ThemeContext";
 import { PiggyBank, Target, TrendingUp, Plus, Pencil, Trash2, Loader2, ImageIcon, MessageCircle, Globe } from "lucide-react";
+import GoalCard from "@/components/dashboard/GoalCard";
 import PageHeader from "@/components/dashboard/PageHeader";
 import StatsCard from "@/components/dashboard/StatsCard";
 import DataTable, { Column } from "@/components/dashboard/DataTable";
@@ -293,6 +294,7 @@ export default function SavingsClient({ savings: initial }: { savings: SavingsRo
         <StatsCard label="จำนวนครั้ง" value={`${count} ครั้ง`} icon={<Target size={20} />} color="text-purple-500" />
       </div>
 
+      <GoalCard storageKey="goal-savings" current={thisMonth} label="เป้าออม" color="pink" />
       <DataTable columns={columns} data={savings} rowKey={(r) => r._id} dateField="rawDate" columnConfigKey="savings" />
     </div>
   );
