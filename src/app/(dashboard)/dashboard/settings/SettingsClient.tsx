@@ -2,19 +2,38 @@
 
 import { useState, useEffect } from "react";
 import { User, Bell, Palette, Shield, Link2, Building2, Trash2, Download, Smartphone, Monitor, Eye, MessageCircle, FileSpreadsheet, Mail, HardDrive, Sheet, BookOpen, Clock, Users, CheckSquare, Receipt as ReceiptIcon, Globe, FolderOpen, Plus, Pencil, AlertTriangle } from "lucide-react";
-import Image from "next/image";
 import Select from "@/components/dashboard/Select";
 import DatePicker from "@/components/dashboard/DatePicker";
 import { useTheme } from "@/contexts/ThemeContext";
 import PageHeader from "@/components/dashboard/PageHeader";
 
 interface Profile {
-  displayName: string;
-  pictureUrl: string;
+  _id: string;
+  name: string;
+  lineDisplayName: string;
+  lineProfilePic: string;
+  email: string;
+  phone: string;
   birthDate: string;
   gender: string;
   occupation: string;
   accountType: string;
+  businessName: string;
+  monthlyBudget: number;
+  googleEmail: string;
+  googleConnectedAt: string;
+  settings: {
+    language: string;
+    currency: string;
+    timezone: string;
+    lineAlerts: boolean;
+    emailAlerts: boolean;
+    budgetWarning: number;
+    dailySummary: boolean;
+    dailySummaryTime: string;
+    pdpaConsent: boolean;
+    dataRetentionDays: number;
+  };
 }
 
 const allTabs = [
@@ -44,7 +63,18 @@ export default function SettingsClient({ profile, categoryStats = [] }: { profil
   const { isDark } = useTheme();
   const [activeTab, setActiveTab] = useState<TabId>("profile");
   const [saving, setSaving] = useState(false);
+  const [saved, setSaved] = useState(false);
   const [mode, setMode] = useState<Mode>("personal");
+  const [form, setForm] = useState({
+    name: profile.name,
+    phone: profile.phone,
+    occupation: profile.occupation,
+    gender: profile.gender,
+    birthDate: profile.birthDate,
+    accountType: profile.accountType,
+    businessName: profile.businessName,
+    monthlyBudget: profile.monthlyBudget,
+  });
 
   useEffect(() => {
     const m = localStorage.getItem("iped-mode");
@@ -64,7 +94,24 @@ export default function SettingsClient({ profile, categoryStats = [] }: { profil
   const itemCls = `flex items-center justify-between p-4 rounded-xl border ${border} ${isDark ? "hover:bg-white/3" : "hover:bg-gray-50"} transition-colors`;
   const sectionTitle = `text-sm font-semibold ${txt}`;
 
-  const handleSave = async () => { setSaving(true); await new Promise((r) => setTimeout(r, 1000)); setSaving(false); };
+  const handleSave = async () => {
+    setSaving(true);
+    setSaved(false);
+    try {
+      const res = await fetch("/api/user", {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(form),
+      });
+      if (res.ok) setSaved(true);
+      else alert("บันทึกไม่สำเร็จ");
+    } catch {
+      alert("เกิดข้อผิดพลาด");
+    } finally {
+      setSaving(false);
+      setTimeout(() => setSaved(false), 2000);
+    }
+  };
 
   const Toggle = ({ on = true }: { on?: boolean }) => {
     const [checked, setChecked] = useState(on);
@@ -93,8 +140,8 @@ export default function SettingsClient({ profile, categoryStats = [] }: { profil
   );
 
   const SaveBtn = () => (
-    <button onClick={handleSave} disabled={saving} className="px-6 py-2.5 bg-[#FA3633] text-white rounded-xl text-sm font-medium hover:bg-[#e0302d] disabled:opacity-50 transition-colors">
-      {saving ? "กำลังบันทึก..." : "บันทึก"}
+    <button onClick={handleSave} disabled={saving} className={`px-6 py-2.5 ${saved ? "bg-green-500" : "bg-[#FA3633]"} text-white rounded-xl text-sm font-medium hover:bg-[#e0302d] disabled:opacity-50 transition-colors`}>
+      {saving ? "กำลังบันทึก..." : saved ? "✓ บันทึกแล้ว" : "บันทึก"}
     </button>
   );
 
@@ -121,23 +168,45 @@ export default function SettingsClient({ profile, categoryStats = [] }: { profil
         {activeTab === "profile" && (
           <div className="space-y-6">
             <div className="flex items-center gap-4">
-              {profile.pictureUrl ? (
-                <Image src={profile.pictureUrl} alt="" width={64} height={64} className="rounded-full" />
+              {profile.lineProfilePic ? (
+                <img src={profile.lineProfilePic} alt="" width={64} height={64} className="rounded-full" />
               ) : (
-                <div className="w-16 h-16 rounded-full bg-[#FA3633]/20 text-[#FA3633] flex items-center justify-center text-xl font-bold">{profile.displayName.charAt(0)}</div>
+                <div className="w-16 h-16 rounded-full bg-[#FA3633]/20 text-[#FA3633] flex items-center justify-center text-xl font-bold">{(profile.name || "U")[0]}</div>
               )}
               <div>
-                <h3 className={`font-medium ${txt}`}>{profile.displayName}</h3>
+                <h3 className={`font-medium ${txt}`}>{profile.lineDisplayName || profile.name}</h3>
                 <p className={`text-sm ${sub}`}>{isBiz ? "บัญชีธุรกิจ" : "บัญชีส่วนตัว"}</p>
+                {profile.email && <p className={`text-xs ${muted}`}>{profile.email}</p>}
               </div>
             </div>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <div><label className={`block text-sm ${labelCls} mb-1.5`}>วันเกิด</label><DatePicker value={profile.birthDate} onChange={() => {}} /></div>
-              <SelectField label="เพศ" options={[["male", "ชาย"], ["female", "หญิง"], ["other", "อื่นๆ"]]} />
-              <InputField label="อาชีพ" value={profile.occupation} />
-              <SelectField label="ประเภทบัญชี" options={[["personal", "ส่วนตัว"], ["business", "ธุรกิจ"]]} />
-              {isBiz && <InputField label="ตำแหน่งในบริษัท" value="ผู้จัดการฝ่ายการเงิน" />}
-              {isBiz && <InputField label="แผนก" value="การเงิน" />}
+              <div>
+                <label className={`block text-sm ${labelCls} mb-1.5`}>ชื่อ</label>
+                <input value={form.name} onChange={(e) => setForm({ ...form, name: e.target.value })} className={`w-full h-10 px-3 ${inputCls} border rounded-lg text-sm focus:outline-none focus:border-[#FA3633]/50`} />
+              </div>
+              <div>
+                <label className={`block text-sm ${labelCls} mb-1.5`}>เบอร์โทร</label>
+                <input value={form.phone} onChange={(e) => setForm({ ...form, phone: e.target.value })} className={`w-full h-10 px-3 ${inputCls} border rounded-lg text-sm focus:outline-none focus:border-[#FA3633]/50`} />
+              </div>
+              <div><label className={`block text-sm ${labelCls} mb-1.5`}>วันเกิด</label><DatePicker value={form.birthDate} onChange={(v) => setForm({ ...form, birthDate: v })} /></div>
+              <div>
+                <label className={`block text-sm ${labelCls} mb-1.5`}>เพศ</label>
+                <Select value={form.gender || "other"} onChange={(v) => setForm({ ...form, gender: v })} options={[{ value: "male", label: "ชาย" }, { value: "female", label: "หญิง" }, { value: "other", label: "อื่นๆ" }]} />
+              </div>
+              <div>
+                <label className={`block text-sm ${labelCls} mb-1.5`}>อาชีพ</label>
+                <input value={form.occupation} onChange={(e) => setForm({ ...form, occupation: e.target.value })} className={`w-full h-10 px-3 ${inputCls} border rounded-lg text-sm focus:outline-none focus:border-[#FA3633]/50`} />
+              </div>
+              <div>
+                <label className={`block text-sm ${labelCls} mb-1.5`}>งบประมาณ/เดือน</label>
+                <input type="number" value={form.monthlyBudget || ""} onChange={(e) => setForm({ ...form, monthlyBudget: Number(e.target.value) || 0 })} placeholder="฿0" className={`w-full h-10 px-3 ${inputCls} border rounded-lg text-sm focus:outline-none focus:border-[#FA3633]/50`} />
+              </div>
+              {isBiz && (
+                <div className="col-span-full">
+                  <label className={`block text-sm ${labelCls} mb-1.5`}>ชื่อธุรกิจ</label>
+                  <input value={form.businessName} onChange={(e) => setForm({ ...form, businessName: e.target.value })} className={`w-full h-10 px-3 ${inputCls} border rounded-lg text-sm focus:outline-none focus:border-[#FA3633]/50`} />
+                </div>
+              )}
             </div>
             <SaveBtn />
           </div>

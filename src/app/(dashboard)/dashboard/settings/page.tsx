@@ -28,14 +28,35 @@ async function SettingsData() {
   ]);
 
   if (!user) return null;
+  const u = user as any;
 
   const profile = {
-    displayName: (user as any).displayName || "",
-    pictureUrl: (user as any).pictureUrl || "",
-    birthDate: (user as any).birthDate || "",
-    gender: (user as any).gender || "",
-    occupation: (user as any).occupation || "",
-    accountType: (user as any).accountType || "personal",
+    _id: String(u._id),
+    name: u.name || "",
+    lineDisplayName: u.lineDisplayName || "",
+    lineProfilePic: u.lineProfilePic || "",
+    email: u.email || "",
+    phone: u.phone || "",
+    birthDate: u.birthDate ? new Date(u.birthDate).toISOString().slice(0, 10) : "",
+    gender: u.gender || "",
+    occupation: u.occupation || "",
+    accountType: u.accountType || "personal",
+    businessName: u.businessName || "",
+    monthlyBudget: u.monthlyBudget || 0,
+    googleEmail: u.googleEmail || "",
+    googleConnectedAt: u.googleConnectedAt ? new Date(u.googleConnectedAt).toISOString() : "",
+    settings: {
+      language: u.settings?.language || "th",
+      currency: u.settings?.currency || "THB",
+      timezone: u.settings?.timezone || "Asia/Bangkok",
+      lineAlerts: u.settings?.notifications?.lineAlerts ?? true,
+      emailAlerts: u.settings?.notifications?.emailAlerts ?? false,
+      budgetWarning: u.settings?.notifications?.budgetWarning ?? 80,
+      dailySummary: u.settings?.notifications?.dailySummary ?? true,
+      dailySummaryTime: u.settings?.notifications?.dailySummaryTime || "20:00",
+      pdpaConsent: u.settings?.pdpaConsent ?? false,
+      dataRetentionDays: u.settings?.dataRetentionDays ?? 365,
+    },
   };
 
   const categoryStats = catAgg.map((item: any) => ({
