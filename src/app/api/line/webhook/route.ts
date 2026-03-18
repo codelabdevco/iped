@@ -260,12 +260,36 @@ export async function POST(request: NextRequest) {
           console.log("Status", status.type, status.emoji);
           
           if (status.type === "duplicate") {
-            const rid = Date.now().toString(36) + Math.random().toString(36).slice(2, 8);
+            // Still save with "duplicate" status so it shows in dashboard
+            const mongoUidDup = await resolveUserId(uid || "");
+            let dupImageUrl: string | undefined;
+            if (imageBuffer) dupImageUrl = `data:image/jpeg;base64,${imageBuffer.toString("base64")}`;
+            const dupReceipt = await Receipt.create({
+              type: ocr.documentType === "tax_invoice" ? "invoice" : "receipt",
+              source: "line",
+              merchant: ocr.merchant,
+              merchantTaxId: ocr.merchantTaxId || undefined,
+              date: new Date(ocr.date),
+              amount: ocr.amount,
+              vat: ocr.vat || undefined,
+              category: ocr.category,
+              categoryIcon: ocr.categoryIcon || "\ud83d\udcdd",
+              paymentMethod: ocr.paymentMethod || undefined,
+              status: "duplicate",
+              imageUrl: dupImageUrl,
+              imageHash: imgHash,
+              ocrConfidence: (ocr.confidence || 0) / 100,
+              ocrRawText: ocr.items || "",
+              userId: mongoUidDup,
+              note: `พบสลิปซ้ำกับ ${dup.merchant} (${dup.date ? new Date(dup.date).toLocaleDateString("th-TH") : ""})`,
+            });
+            console.log("Saved duplicate:", dupReceipt._id);
+
             const dupFlex = duplicateWarningFlex({
               merchant: ocr.merchant,
               amount: ocr.amount,
               originalDate: dup.date ? new Date(dup.date).toLocaleDateString("th-TH") : ocr.date,
-              receiptId: rid,
+              receiptId: String(dupReceipt._id),
             });
             await replyMessage(rt, [
               { type: "text", text: status.emoji + " " + status.title + "\n" + status.sub, quoteToken: qt },
