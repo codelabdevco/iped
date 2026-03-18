@@ -38,6 +38,8 @@ interface ReceiptRow {
   merchantTaxId?: string;
   ocrConfidence?: number | null;
   itemCount?: number;
+  updatedAt?: string;
+  createdAt?: string;
 }
 
 const statusStyle: Record<string, string> = {
@@ -255,6 +257,18 @@ export default function ReceiptsClient({ receipts: initialReceipts }: { receipts
     ) },
     { key: "amount", label: "จำนวนเงิน", align: "right", render: (r) => <span className="font-semibold">฿{r.amount.toLocaleString()}</span> },
     { key: "date", label: "วันที่" },
+    {
+      key: "updatedAt",
+      label: "อัปเดตล่าสุด",
+      render: (r) => {
+        if (!r.updatedAt) return <span className={muted}>-</span>;
+        const d = new Date(r.updatedAt);
+        const date = d.toLocaleDateString("th-TH", { day: "2-digit", month: "short", year: "2-digit" });
+        const time = d.toLocaleTimeString("th-TH", { hour: "2-digit", minute: "2-digit" });
+        return <span className={`text-xs ${muted}`}>{date} {time}</span>;
+      },
+      defaultVisible: false,
+    },
     { key: "time", label: "เวลา", render: (r) => <span className={muted}>{r.time || "-"}</span>, defaultVisible: false },
     {
       key: "paymentMethod",

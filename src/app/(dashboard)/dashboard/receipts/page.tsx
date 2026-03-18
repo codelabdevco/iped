@@ -46,6 +46,8 @@ export default async function ReceiptsPage() {
     driveUploaded: !!r.imageUrl,
     items: Array.isArray(r.items) ? r.items : [],
     itemCount: Array.isArray(r.items) ? r.items.length : 0,
+    updatedAt: r.updatedAt ? new Date(r.updatedAt).toISOString() : "",
+    createdAt: r.createdAt ? new Date(r.createdAt).toISOString() : "",
   }));
 
   return <ReceiptsClient receipts={data} />;

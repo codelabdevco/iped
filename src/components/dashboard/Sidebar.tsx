@@ -131,7 +131,7 @@ const businessNav: NavGroup[] = [
   },
 ];
 
-export default function Sidebar({ onNavigate }: { onNavigate?: () => void }) {
+export default function Sidebar({ onNavigate, badges = {} }: { onNavigate?: () => void; badges?: Record<string, number> }) {
   const [collapsed, setCollapsed] = useState(false);
   const [mode, setMode] = useState<Mode>("personal");
   const [collapsedGroups, setCollapsedGroups] = useState<Record<string, boolean>>({});
@@ -297,6 +297,7 @@ export default function Sidebar({ onNavigate }: { onNavigate?: () => void }) {
                 group.items.map((item) => {
                   const Icon = item.icon;
                   const active = isActive(item.href);
+                  const badge = badges[item.href];
                   return (
                     <Link
                       key={item.href}
@@ -305,10 +306,22 @@ export default function Sidebar({ onNavigate }: { onNavigate?: () => void }) {
                       className={`flex items-center gap-3 px-3 py-2 rounded-lg text-[13px] font-medium transition-colors whitespace-nowrap overflow-hidden ${
                         active ? activeCls : txt
                       }`}
-                      title={collapsed ? item.label : undefined}
+                      title={collapsed ? `${item.label}${badge ? ` (${badge})` : ""}` : undefined}
                     >
-                      <Icon size={18} className="shrink-0" />
-                      <span style={fadeStyle()}>{item.label}</span>
+                      <div className="relative shrink-0">
+                        <Icon size={18} />
+                        {collapsed && badge ? (
+                          <span className="absolute -top-1.5 -right-1.5 min-w-[16px] h-4 px-1 flex items-center justify-center rounded-full bg-[#FA3633] text-white text-[9px] font-bold leading-none">
+                            {badge > 99 ? "99+" : badge}
+                          </span>
+                        ) : null}
+                      </div>
+                      <span className="flex-1" style={fadeStyle()}>{item.label}</span>
+                      {!collapsed && badge ? (
+                        <span className="ml-auto px-1.5 py-0.5 min-w-[20px] text-center rounded-full bg-[#FA3633] text-white text-[10px] font-bold leading-none" style={fadeStyle()}>
+                          {badge > 99 ? "99+" : badge}
+                        </span>
+                      ) : null}
                     </Link>
                   );
                 })}
