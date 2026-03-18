@@ -10,6 +10,7 @@ export interface OCRResult {
   merchantAddress?: string;
   documentNumber?: string;
   date: string;
+  time?: string;
   dueDate?: string;
   amount: number;
   subtotal?: number;
@@ -55,7 +56,8 @@ export async function processOCR(imageBase64: string, mimeType: string): Promise
   "merchantBranch": "branch name/number",
   "merchantAddress": "address if visible",
   "documentNumber": "receipt/invoice number",
-  "date": "YYYY-MM-DD",
+  "date": "YYYY-MM-DD (IMPORTANT: Thai year พ.ศ. = ค.ศ. + 543, convert to AD year. e.g. พ.ศ.2568=2025, พ.ศ.2569=2026)",
+  "time": "HH:MM (24hr format from receipt/slip, null if not shown)",
   "dueDate": "YYYY-MM-DD if applicable",
   "amount": total_amount_number,
   "subtotal": subtotal_before_vat,
@@ -94,6 +96,7 @@ Use null for fields not found. Amount should be the final total. Date in YYYY-MM
       merchantAddress: parsed.merchantAddress || undefined,
       documentNumber: parsed.documentNumber || undefined,
       date: parsed.date || new Date().toISOString().split("T")[0],
+      time: parsed.time || undefined,
       dueDate: parsed.dueDate || undefined,
       amount: parsed.amount || 0,
       subtotal: parsed.subtotal || undefined,

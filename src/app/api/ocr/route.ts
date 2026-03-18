@@ -49,6 +49,7 @@ export async function POST(request: NextRequest) {
       const dup = await Receipt.create({
         merchant: result.merchant,
         date: result.date || new Date(),
+        time: result.time || undefined,
         amount: result.amount || 0,
         vat: result.vat,
         wht: result.wht,

@@ -64,7 +64,8 @@ If it IS a receipt/invoice/bill, extract and return ONLY this JSON:
   "isReceipt": true,
   "merchant": "store/company name in original language",
   "merchantTaxId": "tax ID if visible or null",
-  "date": "YYYY-MM-DD",
+  "date": "YYYY-MM-DD (IMPORTANT: Thai year พ.ศ. = ค.ศ. + 543, so พ.ศ. 2568 = 2025, พ.ศ. 2569 = 2026. Convert to AD/CE year)",
+  "time": "HH:MM (24hr format from receipt/slip, or null if not shown)",
   "amount": total_amount_as_number,
   "vat": vat_amount_or_null,
   "category": "category name in Thai (e.g. \u0e2d\u0e32\u0e2b\u0e32\u0e23, \u0e04\u0e21\u0e19\u0e32\u0e04\u0e21, \u0e2a\u0e32\u0e18\u0e32\u0e23\u0e13\u0e39\u0e1b\u0e42\u0e20\u0e04, \u0e40\u0e14\u0e34\u0e19\u0e17\u0e32\u0e07, \u0e17\u0e35\u0e48\u0e1e\u0e31\u0e01, \u0e0a\u0e47\u0e2d\u0e1b\u0e1b\u0e34\u0e49\u0e07, \u0e2a\u0e38\u0e02\u0e20\u0e32\u0e1e, \u0e1a\u0e31\u0e19\u0e40\u0e17\u0e34\u0e07, \u0e01\u0e32\u0e23\u0e28\u0e36\u0e01\u0e29\u0e32, \u0e2d\u0e37\u0e48\u0e19\u0e46)",
@@ -138,6 +139,7 @@ async function saveReceipt(ocr: any, lineUserId: string, imgHash: string, imageB
       merchant: ocr.merchant,
       merchantTaxId: ocr.merchantTaxId || undefined,
       date: new Date(ocr.date),
+      time: ocr.time || undefined,
       amount: ocr.amount,
       vat: ocr.vat || undefined,
       category: ocr.category,
@@ -150,7 +152,7 @@ async function saveReceipt(ocr: any, lineUserId: string, imgHash: string, imageB
       ocrRawText: ocr.items || "",
       userId: mongoUserId,
     });
-    console.log("Saved receipt:", r._id, "userId:", mongoUserId);
+    console.log("Saved receipt:", r._id, "userId:", mongoUserId, "time:", ocr.time);
     return r._id.toString();
   } catch (e: any) {
     console.error("Save error:", e.message);
@@ -270,6 +272,7 @@ export async function POST(request: NextRequest) {
               merchant: ocr.merchant,
               merchantTaxId: ocr.merchantTaxId || undefined,
               date: new Date(ocr.date),
+              time: ocr.time || undefined,
               amount: ocr.amount,
               vat: ocr.vat || undefined,
               category: ocr.category,

@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import { Search, Filter, Receipt, FileText, CheckCircle, Clock, Pencil, Trash2, ImageIcon, Cloud, CloudOff, HardDrive, Upload, X, MessageCircle, Globe, User, Plus, Loader2 } from "lucide-react";
 import Select from "@/components/dashboard/Select";
 import DatePicker from "@/components/dashboard/DatePicker";
+import TimePicker from "@/components/dashboard/TimePicker";
 import FileAttachments, { Attachment } from "@/components/dashboard/FileAttachments";
 import { useTheme } from "@/contexts/ThemeContext";
 import PageHeader from "@/components/dashboard/PageHeader";
@@ -42,6 +43,8 @@ interface ReceiptRow {
   updatedAt?: string;
   createdAt?: string;
   submittedBy?: string;
+  savingsAmount?: string;
+  savingsGoal?: string;
 }
 
 const statusStyle: Record<string, string> = {
@@ -729,7 +732,7 @@ export default function ReceiptsClient({ receipts: initialReceipts }: { receipts
               <div><label className={lbl}>หมายเหตุ</label><textarea rows={2} value={editForm.note || ""} onChange={(e) => setEditForm({ ...editForm, note: e.target.value })} placeholder="หมายเหตุ, รายละเอียดเพิ่มเติม..." className={`${inp} h-auto py-2`} /></div>
               <div className="grid grid-cols-3 gap-3">
                 <div><label className={lbl}>วันที่จ่าย</label><DatePicker value={editForm.date || ""} onChange={(v) => setEditForm({ ...editForm, date: v })} /></div>
-                <div><label className={lbl}>เวลา</label><input type="time" value={editForm.time || ""} onChange={(e) => setEditForm({ ...editForm, time: e.target.value })} className={inp} /></div>
+                <div><label className={lbl}>เวลา</label><TimePicker value={editForm.time || ""} onChange={(v) => setEditForm({ ...editForm, time: v })} /></div>
                 <div><label className={lbl}>วิธีจ่าย</label>
                   <Select value={editForm.paymentMethod || "cash"} onChange={(v) => setEditForm({ ...editForm, paymentMethod: v })} options={PAYMENT_METHODS} />
                 </div>
@@ -802,6 +805,15 @@ export default function ReceiptsClient({ receipts: initialReceipts }: { receipts
               {whtEnabled && (
                 <div className="flex justify-between text-sm pl-1"><span className="text-white/40">WHT 3%</span><span className="text-orange-400 font-medium">-฿{whtAmount.toLocaleString("th-TH", { minimumFractionDigits: 2 })}</span></div>
               )}
+            </div>
+
+            {/* Savings */}
+            <div className="rounded-xl bg-white/[0.03] border border-white/10 p-4 space-y-3">
+              <p className="text-xs font-semibold text-white/50">เงินออม</p>
+              <div className="grid grid-cols-2 gap-3">
+                <div><label className={lbl}>หักเข้าออม (฿)</label><input type="number" value={editForm.savingsAmount || ""} onChange={(e) => setEditForm({ ...editForm, savingsAmount: e.target.value })} placeholder="0" className={inp} /></div>
+                <div><label className={lbl}>เป้าหมาย</label><input value={editForm.savingsGoal || ""} onChange={(e) => setEditForm({ ...editForm, savingsGoal: e.target.value })} placeholder="เช่น ท่องเที่ยว" className={inp} /></div>
+              </div>
             </div>
 
             {/* Grand total */}
