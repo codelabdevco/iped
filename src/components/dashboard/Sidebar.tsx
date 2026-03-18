@@ -114,6 +114,16 @@ export default function Sidebar({ onNavigate, badges = {} }: { onNavigate?: () =
   const router = useRouter();
   const { isDark, toggleTheme } = useTheme();
 
+  // Check if a pathname is valid for a given mode
+  const isValidRoute = (path: string, m: Mode) => {
+    const nav = m === "personal" ? personalNav : businessNav;
+    const allHrefs = nav.flatMap((g) => g.items.map((i) => i.href));
+    const alwaysValid = ["/dashboard/settings"];
+    return allHrefs.some(
+      (href) => path === href || (href !== "/dashboard" && path.startsWith(href))
+    ) || alwaysValid.some((p) => path.startsWith(p));
+  };
+
   useEffect(() => {
     const saved = localStorage.getItem("iped-mode") as Mode | null;
     if (saved) setMode(saved);
@@ -121,26 +131,28 @@ export default function Sidebar({ onNavigate, badges = {} }: { onNavigate?: () =
     const handleModeChange = (e: Event) => {
       const newMode = (e as CustomEvent).detail as Mode;
       setMode(newMode);
-      // Redirect check is handled by switchMode; external events
-      // only need to update state — the emitter handles redirect
+      if (!isValidRoute(pathname, newMode)) router.push("/dashboard");
     };
     window.addEventListener("iped-mode-change", handleModeChange);
     return () => window.removeEventListener("iped-mode-change", handleModeChange);
-  }, []);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [pathname]);
+
+  // Route guard: redirect if current page doesn't belong to current mode
+  // Runs on every pathname change (nav, back/forward, direct URL)
+  useEffect(() => {
+    const currentMode = (localStorage.getItem("iped-mode") as Mode) || "personal";
+    if (!isValidRoute(pathname, currentMode)) {
+      router.push("/dashboard");
+    }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [pathname]);
 
   const switchMode = (m: Mode) => {
     setMode(m);
     localStorage.setItem("iped-mode", m);
     window.dispatchEvent(new CustomEvent("iped-mode-change", { detail: m }));
-    // Redirect if current page doesn't exist in the new mode's nav
-    const newNav = m === "personal" ? personalNav : businessNav;
-    const allHrefs = newNav.flatMap((g) => g.items.map((i) => i.href));
-    // Settings page is always valid in both modes
-    const alwaysValid = ["/dashboard/settings"];
-    const currentValid = allHrefs.some(
-      (href) => pathname === href || (href !== "/dashboard" && pathname.startsWith(href))
-    ) || alwaysValid.some((p) => pathname.startsWith(p));
-    if (!currentValid) router.push("/dashboard");
+    if (!isValidRoute(pathname, m)) router.push("/dashboard");
   };
 
   const toggleGroup = (label: string) => {
@@ -187,7 +199,7 @@ export default function Sidebar({ onNavigate, badges = {} }: { onNavigate?: () =
       {/* Logo */}
       <div className={`h-16 flex items-center px-4 border-b ${borderCls} overflow-hidden`}>
         <div className="flex items-center gap-2.5 whitespace-nowrap">
-          <img src="/logo.png" alt="iPED" className="w-9 h-9 rounded-lg shrink-0 object-cover" />
+          <img src="/logo-cropped.png" alt="iPED" className="w-10 h-10 rounded-xl shrink-0 object-cover" />
           <span className="text-lg font-semibold tracking-tight" style={fadeStyle()}>
             iPED
           </span>
