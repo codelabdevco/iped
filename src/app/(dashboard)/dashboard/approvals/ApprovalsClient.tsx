@@ -39,7 +39,7 @@ export default function ApprovalsClient({ approvals: initial }: { approvals: App
   const columns: Column<ApprovalRow>[] = [
     { key: "requester", label: "ผู้ขอ" },
     { key: "item", label: "รายการ" },
-    { key: "amount", label: "จำนวนเงิน", render: (r) => <span className="font-medium">฿{r.amount.toLocaleString()}</span> },
+    { key: "amount", label: "จำนวนเงิน", render: (r) => <Baht value={r.amount} direction="expense" /> },
     { key: "category", label: "หมวดหมู่" },
     { key: "date", label: "วันที่ขอ" },
     { key: "status", label: "สถานะ", render: (r) => <span className={`px-2 py-1 rounded-full text-xs ${statusStyle[r.status]}`}>{r.status}</span> },

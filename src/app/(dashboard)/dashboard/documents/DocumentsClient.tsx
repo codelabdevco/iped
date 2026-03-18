@@ -5,6 +5,7 @@ import { FileText, FileCheck, FileSpreadsheet, File } from "lucide-react";
 import PageHeader from "@/components/dashboard/PageHeader";
 import DataTable, { Column } from "@/components/dashboard/DataTable";
 import StatsCard from "@/components/dashboard/StatsCard";
+import Baht from "@/components/dashboard/Baht";
 
 interface DocEntry {
   _id: string;
@@ -73,7 +74,7 @@ export default function DocumentsClient({ documents, stats }: Props) {
       key: "amount",
       label: "จำนวนเงิน",
       align: "right",
-      render: (r) => <span className="font-semibold">฿{r.amount.toLocaleString()}</span>,
+      render: (r) => <Baht value={r.amount} />,
     },
     {
       key: "status",

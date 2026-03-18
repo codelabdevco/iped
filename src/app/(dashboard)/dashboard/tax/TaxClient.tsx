@@ -4,6 +4,7 @@ import { Receipt, Calculator, FileText } from "lucide-react";
 import PageHeader from "@/components/dashboard/PageHeader";
 import DataTable, { Column } from "@/components/dashboard/DataTable";
 import StatsCard from "@/components/dashboard/StatsCard";
+import Baht from "@/components/dashboard/Baht";
 
 interface WhtRow {
   _id: string;
@@ -25,7 +26,7 @@ export default function TaxClient({ vat, wht }: TaxClientProps) {
   const columns: Column<WhtRow>[] = [
     { key: "name", label: "ผู้ถูกหัก" },
     { key: "rate", label: "อัตรา%", align: "right", render: (r) => <>{r.rate}%</> },
-    { key: "amount", label: "จำนวนเงิน", align: "right", render: (r) => <>฿{r.amount.toLocaleString()}</> },
+    { key: "amount", label: "จำนวนเงิน", align: "right", render: (r) => <Baht value={r.amount} direction="expense" /> },
     { key: "date", label: "วันที่" },
     { key: "status", label: "สถานะ", render: (r) => <span className={`px-2 py-1 rounded-full text-xs ${r.status === "ยื่นแล้ว" ? "bg-green-500/10 text-green-400" : "bg-yellow-500/10 text-yellow-400"}`}>{r.status}</span> },
   ];

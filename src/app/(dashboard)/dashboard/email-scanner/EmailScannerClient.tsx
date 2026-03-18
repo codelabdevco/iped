@@ -7,6 +7,7 @@ import { Mail, FileText, CheckCircle, Search, Loader2, Clock, ToggleLeft, Toggle
 import PageHeader from "@/components/dashboard/PageHeader";
 import DataTable, { Column } from "@/components/dashboard/DataTable";
 import StatsCard from "@/components/dashboard/StatsCard";
+import Baht from "@/components/dashboard/Baht";
 import BrandIcon from "@/components/dashboard/BrandIcon";
 
 interface EmailRow {
@@ -140,9 +141,7 @@ export default function EmailScannerClient({
       label: "จำนวนเงิน",
       align: "right",
       render: (r) => (
-        <span className={`font-semibold ${t}`}>
-          {r.amount > 0 ? `฿${r.amount.toLocaleString("th-TH", { minimumFractionDigits: 2 })}` : "-"}
-        </span>
+        r.amount > 0 ? <Baht value={r.amount} /> : <span className={`font-semibold ${t}`}>-</span>
       ),
     },
     { key: "date", label: "วันที่" },

@@ -4,6 +4,7 @@ import { TrendingUp, TrendingDown, Hash } from "lucide-react";
 import PageHeader from "@/components/dashboard/PageHeader";
 import DataTable, { Column } from "@/components/dashboard/DataTable";
 import StatsCard from "@/components/dashboard/StatsCard";
+import Baht from "@/components/dashboard/Baht";
 
 interface RecurringEntry {
   id: string;
@@ -26,7 +27,7 @@ export default function RecurringClient({ data, incomeTotal, expenseTotal, activ
   const columns: Column<RecurringEntry>[] = [
     { key: "name", label: "ชื่อรายการ", render: (r, isDark) => <span className={`font-medium ${isDark ? "text-white" : "text-gray-900"}`}>{r.name}</span> },
     { key: "type", label: "ประเภท", render: (r) => <span className={`px-2.5 py-1 rounded-lg text-xs font-medium ${r.type === "income" ? "bg-green-500/10 text-green-400" : "bg-red-500/10 text-red-400"}`}>{r.type === "income" ? "รายรับ" : "รายจ่าย"}</span> },
-    { key: "amount", label: "จำนวนเงิน", align: "right", render: (r) => <span className={`font-semibold ${r.type === "income" ? "text-green-500" : "text-red-500"}`}>{r.type === "income" ? "+" : "-"}฿{r.amount.toLocaleString()}</span> },
+    { key: "amount", label: "จำนวนเงิน", align: "right", render: (r) => <Baht value={r.amount} direction={r.type === "income" ? "income" : "expense"} /> },
     { key: "cycle", label: "รอบ" },
     { key: "next", label: "วันถัดไป" },
     { key: "active", label: "สถานะ", render: (r) => <span className={`px-2.5 py-1 rounded-lg text-xs font-medium ${r.active ? "bg-green-500/10 text-green-400" : "bg-yellow-500/10 text-yellow-400"}`}>{r.active ? "ใช้งาน" : "หยุดชั่วคราว"}</span> },

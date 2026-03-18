@@ -261,16 +261,11 @@ export default function ReceiptsClient({ receipts: initialReceipts }: { receipts
     setWhtEnabled((r.wht || 0) > 0);
     setTxType((r.direction === "income" ? "income" : r.direction === "savings" ? "savings" : "expense") as any);
     setAttachments([]);
-    // Load image for edit panel
+    // Load image for edit panel — use API URL directly (no fetch needed)
     if (r.imageUrl) {
       setSlipPreview(r.imageUrl);
     } else if (r.hasImage) {
-      // Show loading placeholder, then fetch
-      setSlipPreview("loading");
-      fetch(`/api/receipts/image?id=${r._id}`)
-        .then((res) => res.json())
-        .then((d) => setSlipPreview(d.imageUrl || null))
-        .catch(() => setSlipPreview(null));
+      setSlipPreview(`/api/receipts/image?id=${r._id}`);
     } else {
       setSlipPreview(null);
     }

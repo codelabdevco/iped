@@ -5,6 +5,7 @@ import { Users, Search, UserPlus, Banknote } from "lucide-react";
 import PageHeader from "@/components/dashboard/PageHeader";
 import DataTable, { Column } from "@/components/dashboard/DataTable";
 import StatsCard from "@/components/dashboard/StatsCard";
+import Baht from "@/components/dashboard/Baht";
 
 interface CustomerRow {
   _id: string;
@@ -29,7 +30,7 @@ export default function CustomersClient({ customers: initial }: { customers: Cus
   const columns: Column<CustomerRow>[] = [
     { key: "name", label: "ชื่อ", render: (r, isDark) => <span className={`font-medium ${isDark ? "text-white" : "text-gray-900"}`}>{r.name}</span> },
     { key: "count", label: "จำนวนรายการ", render: (r) => <span>{r.count} รายการ</span> },
-    { key: "total", label: "ยอดสะสม", align: "right", render: (r, isDark) => <span className={`font-semibold ${isDark ? "text-white" : "text-gray-900"}`}>฿{r.total.toLocaleString()}</span> },
+    { key: "total", label: "ยอดสะสม", align: "right", render: (r) => <Baht value={r.total} /> },
     { key: "lastDate", label: "ล่าสุด" },
   ];
 

@@ -21,6 +21,10 @@ export interface IReceipt extends Document {
   imageUrl?: string;
   imageHash?: string;
   note?: string;
+  emailSubject?: string;
+  emailFrom?: string;
+  emailAccount?: string;
+  fileIds?: string[];
   ocrConfidence?: number;
   ocrRawText?: string;
   lineItems?: { description: string; quantity: number; unitPrice: number; amount: number }[];

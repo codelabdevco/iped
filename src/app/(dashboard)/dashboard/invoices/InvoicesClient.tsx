@@ -5,6 +5,7 @@ import { Clock, FileText, AlertTriangle, Wallet } from "lucide-react";
 import PageHeader from "@/components/dashboard/PageHeader";
 import DataTable, { Column } from "@/components/dashboard/DataTable";
 import StatsCard from "@/components/dashboard/StatsCard";
+import Baht from "@/components/dashboard/Baht";
 
 interface InvoiceRow {
   _id: string;
@@ -36,7 +37,7 @@ export default function InvoicesClient({ invoices: initial }: { invoices: Invoic
     { key: "id", label: "เลขที่", render: (r, isDark) => <span className={`font-mono ${isDark ? "text-white" : "text-gray-900"}`}>{r.id}</span> },
     { key: "customer", label: "ลูกค้า", render: (r, isDark) => <span className={isDark ? "text-white" : "text-gray-900"}>{r.customer}</span> },
     { key: "item", label: "รายการ" },
-    { key: "amount", label: "จำนวนเงิน", render: (r, isDark) => <span className={`font-medium ${isDark ? "text-white" : "text-gray-900"}`}>฿{r.amount.toLocaleString()}</span> },
+    { key: "amount", label: "จำนวนเงิน", render: (r) => <Baht value={r.amount} direction="income" /> },
     { key: "issued", label: "ออก" },
     { key: "due", label: "ครบกำหนด" },
     { key: "status", label: "สถานะ", render: (r) => <span className={`px-2 py-1 rounded-full text-xs ${statusStyle[r.status]}`}>{r.status}</span> },

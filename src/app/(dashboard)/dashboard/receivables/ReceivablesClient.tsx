@@ -4,6 +4,7 @@ import { useTheme } from "@/contexts/ThemeContext";
 import { DollarSign, Clock, Users, AlertTriangle } from "lucide-react";
 import PageHeader from "@/components/dashboard/PageHeader";
 import DataTable, { Column } from "@/components/dashboard/DataTable";
+import Baht from "@/components/dashboard/Baht";
 
 interface ARItem {
   _id: string;
@@ -46,7 +47,7 @@ export default function ReceivablesClient({ items }: ReceivablesClientProps) {
   const columns: Column<ARItem>[] = [
     { key: "customer", label: "ลูกค้า" },
     { key: "invoiceNo", label: "เลขที่ใบแจ้งหนี้", render: (r) => <span className="font-mono text-xs">{r.invoiceNo}</span> },
-    { key: "amount", label: "จำนวนเงิน", align: "right", render: (r) => <span className="font-medium">฿{fmt(r.amount)}</span> },
+    { key: "amount", label: "จำนวนเงิน", align: "right", render: (r) => <Baht value={r.amount} direction="income" /> },
     { key: "dueDate", label: "ครบกำหนด" },
     { key: "overdueDays", label: "เกินกำหนด (วัน)", align: "right", render: (r) => <span className={r.overdueDays > 0 ? "font-semibold text-red-500" : ""}>{r.overdueDays > 0 ? r.overdueDays : "-"}</span> },
     { key: "status", label: "สถานะ", render: (r) => <span className={statusColor(r.status)}>{r.status}</span> },

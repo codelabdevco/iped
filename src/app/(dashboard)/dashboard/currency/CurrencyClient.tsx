@@ -2,6 +2,7 @@
 import { useTheme } from "@/contexts/ThemeContext";
 import PageHeader from "@/components/dashboard/PageHeader";
 import DataTable, { Column } from "@/components/dashboard/DataTable";
+import Baht from "@/components/dashboard/Baht";
 
 const RATES = [
   { code: "THB", name: "บาท", flag: "🇹🇭", rate: 1, isDefault: true },
@@ -36,7 +37,7 @@ export default function CurrencyClient({ transactions }: CurrencyClientProps) {
     { key: "desc", label: "รายการ", render: (r, isDark) => <span className={`font-medium ${isDark ? "text-white" : "text-gray-900"}`}>{r.desc}</span> },
     { key: "currency", label: "สกุลเงิน", render: (r, isDark) => <span className={`font-medium ${isDark ? "text-white" : "text-gray-900"}`}>{r.currency}</span> },
     { key: "amount", label: "จำนวนเงิน", align: "right" },
-    { key: "thb", label: "เทียบ THB", align: "right", render: (r) => <span className="font-semibold text-red-500">-฿{r.thb.toLocaleString()}</span> },
+    { key: "thb", label: "เทียบ THB", align: "right", render: (r) => <Baht value={r.thb} direction="expense" /> },
   ];
 
   return (
