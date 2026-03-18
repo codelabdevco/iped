@@ -1,72 +1,72 @@
-"use client";
-import { useState } from "react";
-import { useTheme } from "@/contexts/ThemeContext";
-import { Trash2, Users, UserPlus, Receipt, DollarSign, Activity } from "lucide-react";
-import PageHeader from "@/components/dashboard/PageHeader";
-import DataTable, { Column } from "@/components/dashboard/DataTable";
-import StatsCard from "@/components/dashboard/StatsCard";
+import { Suspense } from "react";
+import { getSession, canViewAdmin } from "@/lib/auth";
+import { redirect } from "next/navigation";
+import { connectDB } from "@/lib/mongodb";
+import User from "@/models/User";
+import Receipt from "@/models/Receipt";
+import AdminClient from "./AdminClient";
 
-const initStats = { totalUsers: 1247, newMonth: 89, totalReceipts: 15834, revenue: 285000 };
-const initUsers = [
-  { id: 1, name: "สมชาย สุขใจ", email: "somchai@email.com", plan: "Pro", date: "2026-01-15", status: "ใช้งาน" },
-  { id: 2, name: "พิมพ์ใจ แก้วมณี", email: "pimjai@email.com", plan: "Business", date: "2026-01-20", status: "ใช้งาน" },
-  { id: 3, name: "วิทยา จันทร์เพ็ญ", email: "wittaya@email.com", plan: "Free", date: "2026-02-01", status: "ใช้งาน" },
-  { id: 4, name: "นภา ศรีสวัสดิ์", email: "napa@email.com", plan: "Pro", date: "2026-02-10", status: "ระงับ" },
-  { id: 5, name: "ธนา กิจเจริญ", email: "thana@email.com", plan: "Business", date: "2026-02-14", status: "ใช้งาน" },
-  { id: 6, name: "อรุณ แสงทอง", email: "arun@email.com", plan: "Free", date: "2026-02-28", status: "ใช้งาน" },
-  { id: 7, name: "กมล รักษ์ไทย", email: "kamol@email.com", plan: "Pro", date: "2026-03-05", status: "ใช้งาน" },
-  { id: 8, name: "ปรียา วงศ์งาม", email: "preeya@email.com", plan: "Free", date: "2026-03-12", status: "ระงับ" },
-];
-const initHealth = [
-  { name: "API Server", value: 99.9 }, { name: "Database", value: 100 },
-  { name: "Storage", value: 98.5 }, { name: "AI OCR", value: 99.2 },
-];
+async function AdminData() {
+  const session = await getSession();
+  if (!session) redirect("/login");
+  if (!canViewAdmin(session.role)) redirect("/dashboard");
 
-export default function Page() {
-  const { isDark } = useTheme();
-  const [stats, setStats] = useState(initStats);
-  const [users, setUsers] = useState(initUsers);
-  const [health, setHealth] = useState(initHealth);
-  const card = `rounded-xl border p-5 ${isDark ? "bg-[rgba(255,255,255,0.04)] border-[rgba(255,255,255,0.06)]" : "bg-white border-gray-200"}`;
-  const txt = isDark ? "text-white" : "text-gray-900";
-  const sub = isDark ? "text-white/50" : "text-gray-500";
+  await connectDB();
 
-  const clearDemo = () => { setStats({ totalUsers: 0, newMonth: 0, totalReceipts: 0, revenue: 0 }); setUsers([]); setHealth([]); };
+  // Count total users
+  const totalUsers = await User.countDocuments();
 
-  const planColor: Record<string, string> = { Free: "bg-gray-500/10 text-gray-400", Pro: "bg-blue-500/10 text-blue-400", Business: "bg-purple-500/10 text-purple-400" };
+  // Count users created this month
+  const now = new Date();
+  const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1);
+  const newThisMonth = await User.countDocuments({ createdAt: { $gte: startOfMonth } });
 
-  const columns: Column<typeof users[number]>[] = [
-    { key: "name", label: "ชื่อ" },
-    { key: "email", label: "อีเมล" },
-    { key: "plan", label: "แพ็กเกจ", render: (r) => <span className={`px-2 py-1 rounded-full text-xs ${planColor[r.plan] || ""}`}>{r.plan}</span> },
-    { key: "date", label: "วันสมัคร" },
-    { key: "status", label: "สถานะ", render: (r) => <span className={`px-2 py-1 rounded-full text-xs ${r.status === "ใช้งาน" ? "bg-green-500/10 text-green-400" : "bg-red-500/10 text-red-400"}`}>{r.status}</span> },
-  ];
+  // Count total receipts
+  const totalReceipts = await Receipt.countDocuments();
+
+  // Get users with package info
+  const users = await User.find()
+    .select("name email role status packageId createdAt")
+    .populate("packageId", "tier name")
+    .sort({ createdAt: -1 })
+    .limit(200)
+    .lean();
+
+  const userData = users.map((u: any) => ({
+    _id: String(u._id),
+    name: u.name || "ไม่ระบุ",
+    email: u.email || "-",
+    plan: u.packageId?.tier
+      ? u.packageId.tier.charAt(0).toUpperCase() + u.packageId.tier.slice(1)
+      : "Free",
+    date: u.createdAt ? new Date(u.createdAt).toISOString().slice(0, 10) : "",
+    status: u.status === "active" ? "ใช้งาน" : u.status === "suspended" ? "ระงับ" : u.status === "inactive" ? "ไม่ใช้งาน" : "รอดำเนินการ",
+  }));
 
   return (
-    <div className="space-y-6">
-      <PageHeader title="Admin Dashboard" description="ภาพรวมระบบและผู้ใช้ทั้งหมด" onClear={clearDemo} />
+    <AdminClient
+      stats={{ totalUsers, newMonth: newThisMonth, totalReceipts }}
+      users={userData}
+    />
+  );
+}
 
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-        <StatsCard label="ผู้ใช้ทั้งหมด" value={stats.totalUsers.toLocaleString()} icon={<Users size={20} />} color="text-blue-500" />
-        <StatsCard label="ใหม่เดือนนี้" value={stats.newMonth.toLocaleString()} icon={<UserPlus size={20} />} color="text-green-500" />
-        <StatsCard label="ใบเสร็จทั้งระบบ" value={stats.totalReceipts.toLocaleString()} icon={<Receipt size={20} />} color="text-purple-500" />
-        <StatsCard label="รายได้แพ็กเกจ" value={`฿${stats.revenue.toLocaleString()}`} icon={<DollarSign size={20} />} color="text-orange-500" />
-      </div>
-
-      <DataTable dateField="date" columns={columns} data={users} rowKey={(r) => r.id} />
-
-      <div className={card}>
-        <h2 className="text-lg font-semibold mb-4 flex items-center gap-2"><Activity size={18} /> System Health</h2>
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-          {health.map((h) => (
-            <div key={h.name} className="text-center">
-              <p className={`text-sm ${sub}`}>{h.name}</p>
-              <p className={`text-2xl font-bold mt-1 ${h.value >= 99.5 ? "text-green-400" : "text-yellow-400"}`}>{h.value}%</p>
-            </div>
-          ))}
+export default function AdminPage() {
+  return (
+    <Suspense
+      fallback={
+        <div className="space-y-6 animate-pulse">
+          <div className="h-8 w-48 rounded-lg bg-white/[0.06]" />
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+            {[...Array(4)].map((_, i) => (
+              <div key={i} className="h-28 rounded-xl bg-white/[0.04]" />
+            ))}
+          </div>
+          <div className="h-64 rounded-2xl bg-white/[0.04]" />
         </div>
-      </div>
-    </div>
+      }
+    >
+      <AdminData />
+    </Suspense>
   );
 }

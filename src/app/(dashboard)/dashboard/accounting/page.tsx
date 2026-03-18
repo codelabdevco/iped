@@ -1,63 +1,53 @@
-"use client";
-import { useState } from "react";
-import { useTheme } from "@/contexts/ThemeContext";
-import { Trash2, Link2, RefreshCw, CheckCircle, XCircle, Clock } from "lucide-react";
-import PageHeader from "@/components/dashboard/PageHeader";
-import DataTable, { Column } from "@/components/dashboard/DataTable";
+import { Suspense } from "react";
+import { getSession } from "@/lib/auth";
+import { redirect } from "next/navigation";
+import { connectDB } from "@/lib/mongodb";
+import AuditLog from "@/models/AuditLog";
+import AccountingClient from "./AccountingClient";
 
-const initIntegrations = [
-  { id: 1, name: "PEAK", status: "connected", lastSync: "2026-03-17 09:30", records: 1245 },
-  { id: 2, name: "FlowAccount", status: "connected", lastSync: "2026-03-17 08:15", records: 892 },
-  { id: 3, name: "Express Accounting", status: "disconnected", lastSync: "-", records: 0 },
-  { id: 4, name: "QuickBooks", status: "disconnected", lastSync: "-", records: 0 },
-];
-const initLogs = [
-  { id: 1, time: "2026-03-17 09:30", system: "PEAK", event: "ซิงค์ใบเสร็จ 45 รายการ", status: "สำเร็จ" },
-  { id: 2, time: "2026-03-17 08:15", system: "FlowAccount", event: "ซิงค์ใบกำกับภาษี 12 รายการ", status: "สำเร็จ" },
-  { id: 3, time: "2026-03-16 18:00", system: "PEAK", event: "ซิงค์รายจ่าย 28 รายการ", status: "สำเร็จ" },
-  { id: 4, time: "2026-03-16 14:22", system: "FlowAccount", event: "ซิงค์ผู้ติดต่อ 8 รายการ", status: "ผิดพลาด" },
-  { id: 5, time: "2026-03-16 09:00", system: "PEAK", event: "ซิงค์ใบเสร็จ 33 รายการ", status: "สำเร็จ" },
-];
+async function AccountingData() {
+  const session = await getSession();
+  if (!session) redirect("/login");
 
-export default function Page() {
-  const { isDark } = useTheme();
-  const [integrations, setIntegrations] = useState(initIntegrations);
-  const [logs, setLogs] = useState(initLogs);
-  const card = `rounded-xl border p-5 ${isDark ? "bg-[rgba(255,255,255,0.04)] border-[rgba(255,255,255,0.06)]" : "bg-white border-gray-200"}`;
-  const txt = isDark ? "text-white" : "text-gray-900";
-  const sub = isDark ? "text-white/50" : "text-gray-500";
+  await connectDB();
 
-  const clearDemo = () => { setIntegrations([]); setLogs([]); };
+  const logs = await AuditLog.find({
+    $or: [
+      { category: "system" },
+      { action: { $regex: /sync/i } },
+    ],
+  })
+    .sort({ createdAt: -1 })
+    .limit(20)
+    .lean();
 
-  const columns: Column<typeof logs[number]>[] = [
-    { key: "time", label: "เวลา" },
-    { key: "system", label: "ระบบ" },
-    { key: "event", label: "เหตุการณ์" },
-    { key: "status", label: "สถานะ", render: (r) => <span className={`px-2 py-1 rounded-full text-xs ${r.status === "สำเร็จ" ? "bg-green-500/10 text-green-400" : "bg-red-500/10 text-red-400"}`}>{r.status}</span> },
-  ];
+  const syncLogs = logs.map((log: any) => ({
+    _id: String(log._id),
+    time: new Date(log.createdAt).toLocaleString("th-TH", { timeZone: "Asia/Bangkok" }),
+    system: log.metadata?.system || log.action || "-",
+    event: log.description || "-",
+    status: log.level === "error" || log.level === "critical" ? "ผิดพลาด" : "สำเร็จ",
+  }));
 
+  return <AccountingClient syncLogs={syncLogs} />;
+}
+
+export default function AccountingPage() {
   return (
-    <div className="space-y-6">
-      <PageHeader title="เชื่อมโปรแกรมบัญชี" description="เชื่อมต่อกับซอฟต์แวร์บัญชี" onClear={clearDemo} />
-
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-        {integrations.map((i) => (
-          <div key={i.id} className={card}>
-            <div className="flex items-center justify-between mb-3">
-              <h3 className="font-semibold text-lg">{i.name}</h3>
-              {i.status === "connected" ? <CheckCircle size={20} className="text-green-400" /> : <XCircle size={20} className="text-red-400" />}
-            </div>
-            <p className={`text-sm ${sub}`}>สถานะ: <span className={i.status === "connected" ? "text-green-400" : "text-red-400"}>{i.status === "connected" ? "เชื่อมต่อแล้ว" : "ยังไม่เชื่อมต่อ"}</span></p>
-            <p className={`text-sm ${sub} mt-1`}>ซิงค์ล่าสุด: {i.lastSync}</p>
-            <p className={`text-sm ${sub} mt-1`}>รายการ: {i.records.toLocaleString()}</p>
-            <button className="mt-3 w-full flex items-center justify-center gap-2 px-3 py-2 rounded-lg bg-blue-500/10 text-blue-400 hover:bg-blue-500/20 text-sm">
-              {i.status === "connected" ? <><RefreshCw size={14} /> ซิงค์</> : <><Link2 size={14} /> เชื่อมต่อ</>}
-            </button>
+    <Suspense
+      fallback={
+        <div className="space-y-6 animate-pulse">
+          <div className="h-8 w-48 bg-gray-200 dark:bg-white/10 rounded" />
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+            {[1, 2, 3, 4].map((i) => (
+              <div key={i} className="h-40 rounded-xl bg-gray-200 dark:bg-white/10" />
+            ))}
           </div>
-        ))}
-      </div>
-
-      <DataTable columns={columns} data={logs} rowKey={(r) => r.id} />
-    </div>
+          <div className="h-48 rounded-xl bg-gray-200 dark:bg-white/10" />
+        </div>
+      }
+    >
+      <AccountingData />
+    </Suspense>
   );
 }

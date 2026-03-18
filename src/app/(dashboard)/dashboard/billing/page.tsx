@@ -1,78 +1,104 @@
-"use client";
-import { useState } from "react";
-import { useTheme } from "@/contexts/ThemeContext";
-import { Trash2, CreditCard, Check, Star, Zap } from "lucide-react";
-import PageHeader from "@/components/dashboard/PageHeader";
-import DataTable, { Column } from "@/components/dashboard/DataTable";
+import { Suspense } from "react";
+import { getSession } from "@/lib/auth";
+import { redirect } from "next/navigation";
+import { connectDB } from "@/lib/mongodb";
+import User from "@/models/User";
+import Package from "@/models/Package";
+import BillingClient from "./BillingClient";
 
-const initPlans = [
-  { id: 1, name: "Free", price: 0, features: ["ใบเสร็จ 50 ใบ/เดือน", "OCR พื้นฐาน", "รายงานสรุป", "ผู้ใช้ 1 คน"], current: false },
-  { id: 2, name: "Pro", price: 299, features: ["ใบเสร็จ 500 ใบ/เดือน", "OCR + AI วิเคราะห์", "รายงานภาษี", "ผู้ใช้ 5 คน", "เชื่อมบัญชี"], current: true },
-  { id: 3, name: "Business", price: 899, features: ["ใบเสร็จไม่จำกัด", "OCR + AI ขั้นสูง", "รายงานทุกประเภท", "ผู้ใช้ไม่จำกัด", "เชื่อมบัญชี", "API Access", "Priority Support"], current: false },
-];
-const initInvoices = [
-  { id: 1, date: "2026-03-01", desc: "Pro Plan - มีนาคม 2026", amount: 299, status: "ชำระแล้ว" },
-  { id: 2, date: "2026-02-01", desc: "Pro Plan - กุมภาพันธ์ 2026", amount: 299, status: "ชำระแล้ว" },
-  { id: 3, date: "2026-01-01", desc: "Pro Plan - มกราคม 2026", amount: 299, status: "ชำระแล้ว" },
-  { id: 4, date: "2025-12-01", desc: "Pro Plan - ธันวาคม 2025", amount: 299, status: "ชำระแล้ว" },
-  { id: 5, date: "2025-11-01", desc: "Pro Plan - พฤศจิกายน 2025", amount: 299, status: "ชำระแล้ว" },
-];
+const FEATURE_LABELS: Record<string, string> = {
+  aiOcr: "OCR + AI วิเคราะห์",
+  lineBot: "LINE Bot",
+  emailScanner: "Email Scanner",
+  documentMatching: "จับคู่เอกสาร",
+  budgetAlerts: "แจ้งเตือนงบประมาณ",
+  multiCurrency: "หลายสกุลเงิน",
+  apiAccess: "API Access",
+  prioritySupport: "Priority Support",
+  export: "ส่งออก PDF/CSV",
+  googleSync: "เชื่อม Google",
+  approval: "ระบบอนุมัติ",
+};
 
-export default function Page() {
-  const { isDark } = useTheme();
-  const [plans, setPlans] = useState(initPlans);
-  const [invoices, setInvoices] = useState(initInvoices);
-  const card = `rounded-xl border p-5 ${isDark ? "bg-[rgba(255,255,255,0.04)] border-[rgba(255,255,255,0.06)]" : "bg-white border-gray-200"}`;
-  const txt = isDark ? "text-white" : "text-gray-900";
-  const sub = isDark ? "text-white/50" : "text-gray-500";
+async function BillingData() {
+  const session = await getSession();
+  if (!session) redirect("/login");
 
-  const clearDemo = () => { setPlans([]); setInvoices([]); };
+  await connectDB();
 
-  const columns: Column<typeof invoices[number]>[] = [
-    { key: "date", label: "วันที่" },
-    { key: "desc", label: "รายละเอียด" },
-    { key: "amount", label: "จำนวน", align: "right", render: (r) => <>฿{r.amount}</> },
-    { key: "status", label: "สถานะ", render: (r) => <span className="px-2 py-1 rounded-full text-xs bg-green-500/10 text-green-400">{r.status}</span> },
-  ];
+  const user = await User.findById(session.userId)
+    .populate("packageId")
+    .lean<any>();
+
+  const packages = await Package.find({ status: "active" })
+    .sort({ sortOrder: 1 })
+    .lean<any[]>();
+
+  const currentPkg = user?.packageId;
+  const currentPkgId = currentPkg?._id ? String(currentPkg._id) : null;
+
+  const plans = packages.map((pkg: any) => {
+    // Build feature list from boolean flags
+    const features: string[] = [];
+    if (pkg.features) {
+      for (const [key, value] of Object.entries(pkg.features)) {
+        if (value && FEATURE_LABELS[key]) {
+          features.push(FEATURE_LABELS[key]);
+        }
+      }
+    }
+    // Add limit-based features
+    if (pkg.limits?.documentsPerMonth) {
+      const docs = pkg.limits.documentsPerMonth >= 999999
+        ? "ใบเสร็จไม่จำกัด"
+        : `ใบเสร็จ ${pkg.limits.documentsPerMonth.toLocaleString()} ใบ/เดือน`;
+      features.unshift(docs);
+    }
+    if (pkg.limits?.usersPerOrg) {
+      const users = pkg.limits.usersPerOrg >= 999999
+        ? "ผู้ใช้ไม่จำกัด"
+        : `ผู้ใช้ ${pkg.limits.usersPerOrg} คน`;
+      features.splice(1, 0, users);
+    }
+
+    return {
+      _id: String(pkg._id),
+      name: pkg.name,
+      tier: pkg.tier,
+      priceMonthly: pkg.price?.monthly || 0,
+      features,
+      isPopular: pkg.isPopular || false,
+      isCurrent: currentPkgId === String(pkg._id),
+    };
+  });
+
+  const currentPackageName = currentPkg?.name || "Free";
+  const currentPackagePrice = currentPkg?.price?.monthly || 0;
+  const packageExpiry = user?.packageExpiry
+    ? new Date(user.packageExpiry).toLocaleDateString("th-TH")
+    : null;
 
   return (
-    <div className="space-y-6">
-      <PageHeader title="Package & Billing" description="จัดการแพ็กเกจและการชำระเงิน" onClear={clearDemo} />
+    <BillingClient
+      currentPackageName={currentPackageName}
+      currentPackagePrice={currentPackagePrice}
+      packageExpiry={packageExpiry}
+      plans={plans}
+    />
+  );
+}
 
-      <div className={`${card} flex items-center gap-4`}>
-        <div className="p-3 rounded-xl bg-blue-500/10"><Star size={24} className="text-blue-400" /></div>
-        <div>
-          <p className={sub}>แพ็กเกจปัจจุบัน</p>
-          <p className="text-xl font-bold">Pro Plan — ฿299/เดือน</p>
+export default function BillingPage() {
+  return (
+    <Suspense
+      fallback={
+        <div className="space-y-6 animate-pulse">
+          <div className="h-8 w-32 rounded-lg bg-white/[0.06]" />
+          <div className="h-40 rounded-2xl bg-white/[0.04]" />
         </div>
-      </div>
-
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-        {plans.map((p) => (
-          <div key={p.id} className={`${card} ${p.current ? "ring-2 ring-blue-500" : ""}`}>
-            <h3 className="text-lg font-bold mb-1">{p.name}</h3>
-            <p className="text-2xl font-bold mb-4">฿{p.price.toLocaleString()}<span className={`text-sm font-normal ${sub}`}>/เดือน</span></p>
-            <ul className="space-y-2 mb-4">
-              {p.features.map((f) => (
-                <li key={f} className="flex items-center gap-2 text-sm"><Check size={14} className="text-green-400 shrink-0" />{f}</li>
-              ))}
-            </ul>
-            <button className={`w-full py-2 rounded-lg text-sm font-medium ${p.current ? "bg-blue-500 text-white" : "bg-blue-500/10 text-blue-400 hover:bg-blue-500/20"}`}>
-              {p.current ? "แพ็กเกจปัจจุบัน" : "เลือกแพ็กเกจ"}
-            </button>
-          </div>
-        ))}
-      </div>
-
-      <div className={card}>
-        <div className="flex items-center gap-3 mb-4">
-          <CreditCard size={18} className="text-blue-400" />
-          <span className="font-semibold">วิธีชำระเงิน</span>
-          <span className={`text-sm ${sub}`}>Visa **** 4242</span>
-        </div>
-      </div>
-
-      <DataTable dateField="date" columns={columns} data={invoices} rowKey={(r) => r.id} />
-    </div>
+      }
+    >
+      <BillingData />
+    </Suspense>
   );
 }
