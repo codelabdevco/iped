@@ -1,141 +1,117 @@
-"use client";
+import { Suspense } from "react";
+import { getSession } from "@/lib/auth";
+import { redirect } from "next/navigation";
+import { connectDB } from "@/lib/mongodb";
+import Receipt from "@/models/Receipt";
+import DuplicatesClient from "./DuplicatesClient";
 
-import { useState } from "react";
-import { useTheme } from "@/contexts/ThemeContext";
-import { Copy, Trash2, Merge, Archive, AlertCircle, ImageIcon, CheckCircle } from "lucide-react";
-import PageHeader from "@/components/dashboard/PageHeader";
-import StatsCard from "@/components/dashboard/StatsCard";
+async function DuplicatesData() {
+  const session = await getSession();
+  if (!session) redirect("/login");
 
-interface DuplicateDoc {
-  id: string;
-  shop: string;
-  amount: number;
-  date: string;
-  similarity: number;
+  await connectDB();
+
+  // Find potential duplicates: same amount + similar merchant + within 3 days
+  const receipts = await Receipt.find({ userId: session.userId, status: { $ne: "cancelled" } })
+    .select("merchant amount date time status source imageHash category createdAt")
+    .sort({ date: -1 })
+    .limit(200)
+    .lean();
+
+  // Group by amount + date proximity
+  const groups: { receipts: any[]; similarity: number }[] = [];
+  const used = new Set<string>();
+
+  for (let i = 0; i < receipts.length; i++) {
+    const a = receipts[i] as any;
+    if (used.has(String(a._id))) continue;
+
+    const matches: any[] = [a];
+    for (let j = i + 1; j < receipts.length; j++) {
+      const b = receipts[j] as any;
+      if (used.has(String(b._id))) continue;
+
+      // Same amount
+      if (a.amount !== b.amount || a.amount === 0) continue;
+
+      // Date within 3 days
+      const dateA = a.date ? new Date(a.date) : new Date(a.createdAt);
+      const dateB = b.date ? new Date(b.date) : new Date(b.createdAt);
+      const daysDiff = Math.abs(dateA.getTime() - dateB.getTime()) / (1000 * 60 * 60 * 24);
+      if (daysDiff > 3) continue;
+
+      // Merchant similarity
+      const sim = merchantSimilarity(a.merchant || "", b.merchant || "");
+      if (sim < 0.5) continue;
+
+      matches.push(b);
+    }
+
+    if (matches.length > 1) {
+      matches.forEach((m) => used.add(String(m._id)));
+      const sim = matches.length === 2
+        ? Math.round(merchantSimilarity(matches[0].merchant || "", matches[1].merchant || "") * 100)
+        : 90;
+      groups.push({ receipts: matches, similarity: Math.max(sim, 80) });
+    }
+  }
+
+  // Also include receipts already marked as "duplicate"
+  const markedDups = receipts.filter((r: any) => r.status === "duplicate" && !used.has(String(r._id)));
+
+  const data = groups.map((g, i) => ({
+    id: `DG-${i}`,
+    similarity: g.similarity,
+    docs: g.receipts.map((r: any) => ({
+      _id: String(r._id),
+      merchant: r.merchant || "ไม่ระบุ",
+      amount: r.amount || 0,
+      date: r.date ? new Date(r.date).toLocaleDateString("th-TH", { day: "2-digit", month: "short", year: "2-digit" }) : "",
+      time: r.time || "",
+      status: r.status || "pending",
+      source: r.source || "web",
+      hasImage: !!r.imageHash,
+    })),
+  }));
+
+  // Add standalone duplicates
+  markedDups.forEach((r: any, i: number) => {
+    data.push({
+      id: `DS-${i}`,
+      similarity: 100,
+      docs: [{
+        _id: String(r._id),
+        merchant: r.merchant || "ไม่ระบุ",
+        amount: r.amount || 0,
+        date: r.date ? new Date(r.date).toLocaleDateString("th-TH", { day: "2-digit", month: "short", year: "2-digit" }) : "",
+        time: r.time || "",
+        status: "duplicate",
+        source: r.source || "web",
+        hasImage: !!r.imageHash,
+      }],
+    });
+  });
+
+  return <DuplicatesClient groups={data} />;
 }
 
-interface DuplicateGroup {
-  id: string;
-  docs: DuplicateDoc[];
-  resolved: boolean;
+function merchantSimilarity(a: string, b: string): number {
+  if (!a || !b) return 0;
+  const al = a.toLowerCase().trim();
+  const bl = b.toLowerCase().trim();
+  if (al === bl) return 1;
+  const bigrams = (s: string) => { const set = new Set<string>(); for (let i = 0; i < s.length - 1; i++) set.add(s.slice(i, i + 2)); return set; };
+  const aSet = bigrams(al);
+  const bSet = bigrams(bl);
+  let intersection = 0;
+  aSet.forEach((bg) => { if (bSet.has(bg)) intersection++; });
+  return aSet.size + bSet.size > 0 ? (2 * intersection) / (aSet.size + bSet.size) : 0;
 }
-
-const initialGroups: DuplicateGroup[] = [
-  {
-    id: "DG001",
-    resolved: false,
-    docs: [
-      { id: "D001a", shop: "เซเว่นอีเลฟเว่น สาขาสีลม", amount: 245.0, date: "2026-03-17 10:32", similarity: 98 },
-      { id: "D001b", shop: "เซเว่นอีเลฟเว่น สาขาสีลม", amount: 245.0, date: "2026-03-17 10:33", similarity: 98 },
-    ],
-  },
-  {
-    id: "DG002",
-    resolved: false,
-    docs: [
-      { id: "D002a", shop: "แม็คโคร สาขาจรัญฯ", amount: 3820.5, date: "2026-03-15 09:15", similarity: 95 },
-      { id: "D002b", shop: "แม็คโคร จรัญสนิทวงศ์", amount: 3820.5, date: "2026-03-15 09:16", similarity: 95 },
-      { id: "D002c", shop: "แม็คโคร สาขาจรัญฯ", amount: 3820.5, date: "2026-03-15 14:20", similarity: 91 },
-    ],
-  },
-  {
-    id: "DG003",
-    resolved: false,
-    docs: [
-      { id: "D003a", shop: "Cafe Amazon สาขาสีลม", amount: 120.0, date: "2026-03-14 08:30", similarity: 92 },
-      { id: "D003b", shop: "คาเฟ่ อเมซอน สาขาอโศก", amount: 120.0, date: "2026-03-14 08:31", similarity: 92 },
-    ],
-  },
-  {
-    id: "DG004",
-    resolved: false,
-    docs: [
-      { id: "D004a", shop: "บริษัท ไทยพาณิชย์ จำกัด", amount: 5600.0, date: "2026-03-13 15:00", similarity: 88 },
-      { id: "D004b", shop: "บ. ไทยพาณิชย์ จก.", amount: 5600.0, date: "2026-03-13 15:01", similarity: 88 },
-      { id: "D004c", shop: "Thai Panich Co Ltd", amount: 5600.0, date: "2026-03-13 15:02", similarity: 85 },
-    ],
-  },
-];
 
 export default function DuplicatesPage() {
-  const { theme } = useTheme();
-  const isDark = theme === "dark";
-  const [groups, setGroups] = useState<DuplicateGroup[]>(initialGroups);
-
-  const clearDemo = () => setGroups([]);
-  const resolveGroup = (groupId: string) => setGroups((prev) => prev.map((g) => (g.id === groupId ? { ...g, resolved: true } : g)));
-
-  const cardCls = isDark ? "bg-[rgba(255,255,255,0.04)] border-[rgba(255,255,255,0.06)]" : "bg-white border-gray-200";
-  const tp = isDark ? "text-white" : "text-gray-900";
-  const ts = isDark ? "text-gray-400" : "text-gray-500";
-  const tm = isDark ? "text-gray-500" : "text-gray-400";
-  const subBg = isDark ? "bg-[rgba(255,255,255,0.06)]" : "bg-gray-100";
-  const btnCls = isDark ? "bg-[rgba(255,255,255,0.04)] border border-[rgba(255,255,255,0.06)] text-gray-300 hover:bg-[rgba(255,255,255,0.08)]" : "bg-white border border-gray-200 text-gray-600 hover:bg-gray-50";
-
   return (
-    <div className="space-y-6">
-      <PageHeader title="ตรวจเอกสารซ้ำ" description="ตรวจจับและจัดการเอกสารที่อาจซ้ำกัน" onClear={clearDemo} />
-
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-        <StatsCard label="กลุ่มที่พบ" value={`${groups.length}`} icon={<Copy size={20} />} color="text-orange-500" />
-        <StatsCard label="จัดการแล้ว" value={`${groups.filter((g) => g.resolved).length}`} icon={<CheckCircle size={20} />} color="text-green-500" />
-      </div>
-
-      {groups.length === 0 ? (
-        <div className={"rounded-2xl border p-12 text-center " + cardCls}>
-          <p className={tm}>ไม่มีข้อมูลตัวอย่าง</p>
-        </div>
-      ) : (
-        <div className="space-y-4">
-          {groups.map((group) => (
-            <div key={group.id} className={"rounded-2xl border p-5 " + cardCls + (group.resolved ? " opacity-50" : "")}>
-              <div className="flex items-center justify-between mb-4">
-                <div className="flex items-center gap-2">
-                  <AlertCircle className="w-5 h-5 text-orange-500" />
-                  <span className={tp + " font-medium"}>{"พบเอกสารคล้ายกัน " + group.docs.length + " รายการ"}</span>
-                  {group.resolved && (
-                    <span className="px-2 py-0.5 rounded-md text-xs font-medium bg-emerald-500/10 text-emerald-500">จัดการแล้ว</span>
-                  )}
-                </div>
-                <span className={"text-sm " + ts}>{"ความคล้าย ~" + group.docs[0].similarity + "%"}</span>
-              </div>
-
-              <div className="space-y-2 mb-4">
-                {group.docs.map((doc) => (
-                  <div key={doc.id} className={"flex items-center gap-3 rounded-xl p-3 " + subBg}>
-                    <div className={"w-10 h-10 rounded-lg flex items-center justify-center flex-shrink-0 " + (isDark ? "bg-[rgba(255,255,255,0.04)]" : "bg-white")}>
-                      <ImageIcon className={"w-5 h-5 " + tm} />
-                    </div>
-                    <div className="flex-1 min-w-0">
-                      <p className={"text-sm font-medium truncate " + tp}>{doc.shop}</p>
-                      <p className={"text-xs " + ts}>{doc.date}</p>
-                    </div>
-                    <p className={"text-sm font-semibold " + tp}>{"฿" + doc.amount.toLocaleString("th-TH", { minimumFractionDigits: 2 })}</p>
-                    <span className={"text-xs px-2 py-0.5 rounded-md font-medium " + (doc.similarity >= 95 ? "bg-red-500/10 text-red-500" : "bg-amber-500/10 text-amber-500")}>{doc.similarity + "%"}</span>
-                  </div>
-                ))}
-              </div>
-
-              {!group.resolved && (
-                <div className="flex items-center gap-2">
-                  <button onClick={() => resolveGroup(group.id)} className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-sm font-medium bg-blue-500 text-white hover:bg-blue-600 transition-colors">
-                    <Merge className="w-4 h-4" />
-                    รวม
-                  </button>
-                  <button onClick={() => resolveGroup(group.id)} className={"flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-sm font-medium transition-colors " + (isDark ? "bg-[rgba(255,255,255,0.06)] text-gray-300 hover:bg-[rgba(255,255,255,0.1)]" : "bg-gray-100 text-gray-600 hover:bg-gray-200")}>
-                    <Archive className="w-4 h-4" />
-                    เก็บทั้งหมด
-                  </button>
-                  <button onClick={() => resolveGroup(group.id)} className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-sm font-medium bg-red-500/10 text-red-500 hover:bg-red-500/20 transition-colors">
-                    <Trash2 className="w-4 h-4" />
-                    ลบซ้ำ
-                  </button>
-                </div>
-              )}
-            </div>
-          ))}
-        </div>
-      )}
-    </div>
+    <Suspense fallback={<div className="space-y-6 animate-pulse"><div className="h-8 w-40 rounded-lg bg-white/[0.06]" /><div className="h-40 rounded-2xl bg-white/[0.04]" /></div>}>
+      <DuplicatesData />
+    </Suspense>
   );
 }
