@@ -59,7 +59,7 @@ export default async function ReceiptsPage() {
     wht: r.wht || 0,
     documentNumber: r.documentNumber || "",
     merchantTaxId: r.merchantTaxId || "",
-    ocrConfidence: r.ocrConfidence ?? null,
+    ocrConfidence: r.ocrConfidence != null ? (r.ocrConfidence > 1 ? r.ocrConfidence / 100 : r.ocrConfidence) : null,
     imageUrl: r.imageUrl || "",
     driveUploaded: !!r.imageUrl,
     items: Array.isArray(r.items) ? r.items : (Array.isArray(r.lineItems) ? r.lineItems.map((li: any) => ({ name: li.description, qty: li.quantity, price: li.unitPrice })) : []),

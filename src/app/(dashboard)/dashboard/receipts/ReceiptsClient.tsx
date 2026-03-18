@@ -101,6 +101,19 @@ const PAYMENT_METHODS = [
   { value: "ewallet-shopee", label: "ShopeePay" },
   { value: "other", label: "อื่นๆ" },
 ];
+/** Format currency with .00 in smaller muted style */
+function Baht({ value, className = "" }: { value: number; className?: string }) {
+  const abs = Math.abs(value);
+  const whole = Math.floor(abs).toLocaleString();
+  const dec = (abs % 1).toFixed(2).slice(1); // ".00" or ".50"
+  const sign = value < 0 ? "-" : "";
+  return (
+    <span className={className}>
+      {sign}฿{whole}<span className="text-[0.75em] opacity-50">{dec}</span>
+    </span>
+  );
+}
+
 function getCatColor(cat: string): string {
   if (CATEGORY_COLORS[cat]) return CATEGORY_COLORS[cat];
   const idx = cat.split("").reduce((a, c) => a + c.charCodeAt(0), 0) % FALLBACK_COLORS.length;
@@ -294,7 +307,7 @@ export default function ReceiptsClient({ receipts: initialReceipts }: { receipts
         {r.category}
       </span>
     ) },
-    { key: "amount", label: "จำนวนเงิน", align: "right", render: (r) => <span className="font-semibold">฿{r.amount.toLocaleString()}</span> },
+    { key: "amount", label: "จำนวนเงิน", align: "right", render: (r) => <Baht value={r.amount} className="font-semibold" /> },
     { key: "date", label: "วันที่" },
     {
       key: "source",
@@ -353,14 +366,14 @@ export default function ReceiptsClient({ receipts: initialReceipts }: { receipts
       label: "VAT",
       align: "right",
       defaultVisible: false,
-      render: (r) => <span className={r.vat ? "text-blue-400" : muted}>{r.vat ? `฿${r.vat.toLocaleString()}` : "-"}</span>,
+      render: (r) => r.vat ? <Baht value={r.vat} className="text-blue-400" /> : <span className={muted}>-</span>,
     },
     {
       key: "wht",
       label: "WHT",
       align: "right",
       defaultVisible: false,
-      render: (r) => <span className={r.wht ? "text-orange-400" : muted}>{r.wht ? `฿${r.wht.toLocaleString()}` : "-"}</span>,
+      render: (r) => r.wht ? <Baht value={r.wht} className="text-orange-400" /> : <span className={muted}>-</span>,
     },
     {
       key: "documentNumber",
@@ -443,13 +456,13 @@ export default function ReceiptsClient({ receipts: initialReceipts }: { receipts
               </div>
               <div className="flex items-center gap-4">
                 <span className={`text-xs ${dark ? "text-white/40" : "text-gray-500"}`}>x{item.qty}</span>
-                <span className={`text-sm font-medium ${dark ? "text-white" : "text-gray-900"}`}>฿{item.price.toLocaleString()}</span>
+                <span className={`text-sm font-medium ${dark ? "text-white" : "text-gray-900"}`}>฿{item.price.toLocaleString("th-TH", { minimumFractionDigits: 2 })}</span>
               </div>
             </div>
           ))}
         </div>
         <div className={`flex justify-end pt-2 border-t ${b}`}>
-          <span className={`text-sm font-semibold ${dark ? "text-white" : "text-gray-900"}`}>รวม ฿{r.amount.toLocaleString()}</span>
+          <span className={`text-sm font-semibold ${dark ? "text-white" : "text-gray-900"}`}>รวม ฿{r.amount.toLocaleString("th-TH", { minimumFractionDigits: 2 })}</span>
         </div>
       </div>
     );
@@ -570,7 +583,7 @@ export default function ReceiptsClient({ receipts: initialReceipts }: { receipts
                     <input value={item.name} onChange={(e) => { const n = [...editItems]; n[i] = { ...n[i], name: e.target.value }; setEditItems(n); }} placeholder="ชื่อรายการ" className="flex-1 h-8 px-2 bg-white/5 border border-white/10 text-white rounded text-xs focus:outline-none focus:border-[#FA3633]/50" />
                     <input type="number" value={item.qty} min={1} onChange={(e) => { const n = [...editItems]; n[i] = { ...n[i], qty: Math.max(1, Number(e.target.value)) }; setEditItems(n); }} className="w-12 h-8 px-2 bg-white/5 border border-white/10 text-white rounded text-xs text-center focus:outline-none" />
                     <input type="number" value={item.price} onChange={(e) => { const n = [...editItems]; n[i] = { ...n[i], price: Number(e.target.value) }; setEditItems(n); }} placeholder="0" className="w-20 h-8 px-2 bg-white/5 border border-white/10 text-white rounded text-xs text-right focus:outline-none" />
-                    <span className="w-20 text-right text-xs font-medium text-white/60">฿{(item.qty * item.price).toLocaleString()}</span>
+                    <span className="w-20 text-right text-xs font-medium text-white/60">฿{(item.qty * item.price).toLocaleString("th-TH", { minimumFractionDigits: 2 })}</span>
                     {editItems.length > 1 ? (
                       <button onClick={() => setEditItems(editItems.filter((_, j) => j !== i))} className="w-7 h-7 rounded hover:bg-red-500/10 text-white/20 hover:text-red-400 flex items-center justify-center transition-colors shrink-0"><Trash2 size={12} /></button>
                     ) : <span className="w-7 shrink-0" />}
@@ -578,7 +591,7 @@ export default function ReceiptsClient({ receipts: initialReceipts }: { receipts
                 ))}
               </div>
               <div className="border-t border-white/10 pt-3 space-y-2">
-                <div className="flex justify-between text-sm"><span className="text-white/40">รวมสินค้า ({editItems.length} รายการ)</span><span className="text-white font-medium">฿{itemsTotal.toLocaleString()}</span></div>
+                <div className="flex justify-between text-sm"><span className="text-white/40">รวมสินค้า ({editItems.length} รายการ)</span><span className="text-white font-medium">฿{itemsTotal.toLocaleString("th-TH", { minimumFractionDigits: 2 })}</span></div>
               </div>
             </div>
 
@@ -590,14 +603,14 @@ export default function ReceiptsClient({ receipts: initialReceipts }: { receipts
                 <button onClick={() => setVatEnabled(!vatEnabled)} className={`w-11 h-6 rounded-full transition-colors relative ${vatEnabled ? "bg-[#FA3633]" : "bg-white/10"}`}><div className={`w-5 h-5 rounded-full bg-white absolute top-0.5 transition-transform ${vatEnabled ? "translate-x-[22px]" : "translate-x-0.5"}`} /></button>
               </label>
               {vatEnabled && (
-                <div className="flex justify-between text-sm pl-1"><span className="text-white/40">VAT 7%</span><span className="text-blue-400 font-medium">+฿{vatAmount.toLocaleString()}</span></div>
+                <div className="flex justify-between text-sm pl-1"><span className="text-white/40">VAT 7%</span><span className="text-blue-400 font-medium">+฿{vatAmount.toLocaleString("th-TH", { minimumFractionDigits: 2 })}</span></div>
               )}
               <label className="flex items-center justify-between cursor-pointer py-1">
                 <div><p className="text-sm text-white">ภาษีหัก ณ ที่จ่าย (WHT 3%)</p><p className="text-xs text-white/30">หักภาษี ณ ที่จ่ายจากยอดรวม</p></div>
                 <button onClick={() => setWhtEnabled(!whtEnabled)} className={`w-11 h-6 rounded-full transition-colors relative ${whtEnabled ? "bg-[#FA3633]" : "bg-white/10"}`}><div className={`w-5 h-5 rounded-full bg-white absolute top-0.5 transition-transform ${whtEnabled ? "translate-x-[22px]" : "translate-x-0.5"}`} /></button>
               </label>
               {whtEnabled && (
-                <div className="flex justify-between text-sm pl-1"><span className="text-white/40">WHT 3%</span><span className="text-orange-400 font-medium">-฿{whtAmount.toLocaleString()}</span></div>
+                <div className="flex justify-between text-sm pl-1"><span className="text-white/40">WHT 3%</span><span className="text-orange-400 font-medium">-฿{whtAmount.toLocaleString("th-TH", { minimumFractionDigits: 2 })}</span></div>
               )}
             </div>
 
@@ -609,17 +622,17 @@ export default function ReceiptsClient({ receipts: initialReceipts }: { receipts
                 <div className={`rounded-xl p-4 ${mismatch ? "bg-amber-500/10 border border-amber-500/20" : "bg-[#FA3633]/10 border border-[#FA3633]/20"}`}>
                   <div className="flex items-center justify-between">
                     <span className="text-sm font-semibold text-white/70">ยอดสุทธิ</span>
-                    <span className="text-2xl font-bold text-white">฿{grandTotal.toLocaleString()}</span>
+                    <span className="text-2xl font-bold text-white">฿{grandTotal.toLocaleString("th-TH", { minimumFractionDigits: 2 })}</span>
                   </div>
                   {(vatEnabled || whtEnabled) && (
-                    <p className="text-[11px] text-white/30 mt-1">สินค้า ฿{itemsTotal.toLocaleString()}{vatEnabled ? ` + VAT ฿${vatAmount.toLocaleString()}` : ""}{whtEnabled ? ` - WHT ฿${whtAmount.toLocaleString()}` : ""}</p>
+                    <p className="text-[11px] text-white/30 mt-1">สินค้า ฿{itemsTotal.toLocaleString("th-TH", { minimumFractionDigits: 2 })}{vatEnabled ? ` + VAT ฿${vatAmount.toLocaleString("th-TH", { minimumFractionDigits: 2 })}` : ""}{whtEnabled ? ` - WHT ฿${whtAmount.toLocaleString("th-TH", { minimumFractionDigits: 2 })}` : ""}</p>
                   )}
                   {mismatch && (
                     <div className="mt-3 flex items-start gap-2 p-2.5 rounded-lg bg-amber-500/10">
                       <span className="text-amber-400 text-sm mt-0.5">⚠</span>
                       <div>
                         <p className="text-xs font-medium text-amber-400">ยอดไม่ตรงกับ OCR</p>
-                        <p className="text-[11px] text-amber-400/60 mt-0.5">ยอดจาก OCR: ฿{ocrAmount.toLocaleString()} — ยอดที่แก้ไข: ฿{grandTotal.toLocaleString()} (ต่างกัน ฿{Math.abs(grandTotal - ocrAmount).toLocaleString()})</p>
+                        <p className="text-[11px] text-amber-400/60 mt-0.5">ยอดจาก OCR: ฿{ocrAmount.toLocaleString("th-TH", { minimumFractionDigits: 2 })} — ยอดที่แก้ไข: ฿{grandTotal.toLocaleString("th-TH", { minimumFractionDigits: 2 })} (ต่างกัน ฿{Math.abs(grandTotal - ocrAmount).toLocaleString("th-TH", { minimumFractionDigits: 2 })})</p>
                       </div>
                     </div>
                   )}
@@ -652,11 +665,11 @@ export default function ReceiptsClient({ receipts: initialReceipts }: { receipts
       </div>
       )}
 
-      <PageHeader title="ใบเสร็จทั้งหมด" description={`${filtered.length} รายการ — รวม ฿${totalAmount.toLocaleString()}`} />
+      <PageHeader title="ใบเสร็จทั้งหมด" description={`${filtered.length} รายการ — รวม ฿${totalAmount.toLocaleString("th-TH", { minimumFractionDigits: 2 })}`} />
 
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
         <StatsCard label="ใบเสร็จทั้งหมด" value={`${filtered.length} รายการ`} icon={<Receipt size={20} />} color="text-blue-500" />
-        <StatsCard label="ยอดรวม" value={`฿${totalAmount.toLocaleString()}`} icon={<FileText size={20} />} color="text-[#FA3633]" />
+        <StatsCard label="ยอดรวม" value={`฿${totalAmount.toLocaleString("th-TH", { minimumFractionDigits: 2 })}`} icon={<FileText size={20} />} color="text-[#FA3633]" />
         <StatsCard label="ยืนยันแล้ว" value={`${confirmed} รายการ`} icon={<CheckCircle size={20} />} color="text-green-500" />
         <StatsCard label="รอตรวจสอบ" value={`${pending} รายการ`} icon={<Clock size={20} />} color="text-yellow-500" />
       </div>
