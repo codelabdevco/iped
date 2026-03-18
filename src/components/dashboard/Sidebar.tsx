@@ -39,7 +39,7 @@ const personalNav: NavGroup[] = [
     items: [
       { label: "Cloud Drive", href: "/dashboard/drive", icon: Cloud },
       { label: "ใบเสร็จ / เอกสาร", href: "/dashboard/receipts", icon: Receipt },
-      { label: "จับคู่เอกสาร", href: "/dashboard/matching", icon: FileCheck },
+      { label: "สแกน & จับคู่", href: "/dashboard/matching", icon: ScanLine },
       { label: "ตรวจเอกสารซ้ำ", href: "/dashboard/duplicates", icon: Copy },
     ],
   },
@@ -80,7 +80,7 @@ const businessNav: NavGroup[] = [
     items: [
       { label: "Cloud Drive", href: "/dashboard/drive", icon: Cloud },
       { label: "ใบเสร็จ / เอกสาร", href: "/dashboard/receipts", icon: Receipt },
-      { label: "จับคู่เอกสาร", href: "/dashboard/matching", icon: FileCheck },
+      { label: "สแกน & จับคู่", href: "/dashboard/matching", icon: ScanLine },
       { label: "ตรวจเอกสารซ้ำ", href: "/dashboard/duplicates", icon: Copy },
     ],
   },

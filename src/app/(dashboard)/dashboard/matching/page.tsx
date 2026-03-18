@@ -1,142 +1,182 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useRef, useCallback } from "react";
+import { useRouter } from "next/navigation";
 import { useTheme } from "@/contexts/ThemeContext";
-import { Link2, CheckCircle2, Clock, AlertTriangle, Trash2, FileText, ArrowLeftRight } from "lucide-react";
+import { Upload, ScanLine, CheckCircle2, Loader2, XCircle, AlertTriangle, ImageIcon, ExternalLink, Copy, Mail } from "lucide-react";
 import PageHeader from "@/components/dashboard/PageHeader";
 import StatsCard from "@/components/dashboard/StatsCard";
+import BrandIcon from "@/components/dashboard/BrandIcon";
 
-interface MatchPair {
+interface ScanItem {
   id: string;
-  invoice: { number: string; shop: string; amount: number; date: string };
-  receipt: { number: string; shop: string; amount: number; date: string } | null;
-  status: "matched" | "pending" | "not_found";
+  fileName: string;
+  merchant: string;
+  amount: number;
+  date: string;
+  status: "processing" | "matched" | "no_match" | "failed" | "duplicate";
+  confidence: number;
+  matchedWith?: string;
+  duplicateInfo?: string;
+  imageUrl?: string;
 }
 
-const initialPairs: MatchPair[] = [
-  {
-    id: "MP001",
-    invoice: { number: "INV-2026-0341", shop: "บริษัท สยามฟู้ด จำกัด", amount: 15200.0, date: "2026-03-10" },
-    receipt: { number: "RCP-0341", shop: "บริษัท สยามฟู้ด จำกัด", amount: 15200.0, date: "2026-03-12" },
-    status: "matched",
-  },
-  {
-    id: "MP002",
-    invoice: { number: "INV-2026-0342", shop: "ร้านวัสดุก่อสร้างเจริญชัย", amount: 8750.0, date: "2026-03-11" },
-    receipt: { number: "RCP-0342", shop: "ร้านวัสดุก่อสร้างเจริญชัย", amount: 8750.0, date: "2026-03-13" },
-    status: "matched",
-  },
-  {
-    id: "MP003",
-    invoice: { number: "INV-2026-0343", shop: "ห้างหุ้นส่วน ไทยออฟฟิศ", amount: 4300.0, date: "2026-03-12" },
-    receipt: null,
-    status: "pending",
-  },
-  {
-    id: "MP004",
-    invoice: { number: "INV-2026-0344", shop: "บริษัท โกลบอลเทค จำกัด", amount: 22500.0, date: "2026-03-13" },
-    receipt: { number: "RCP-0344", shop: "บริษัท โกลบอลเทค จำกัด", amount: 22500.0, date: "2026-03-14" },
-    status: "matched",
-  },
-  {
-    id: "MP005",
-    invoice: { number: "INV-2026-0345", shop: "ร้านอาหาร ครัวคุณย่า", amount: 1850.0, date: "2026-03-14" },
-    receipt: null,
-    status: "not_found",
-  },
-  {
-    id: "MP006",
-    invoice: { number: "INV-2026-0346", shop: "บริษัท เอ็นเนอร์ยี่พลัส จำกัด", amount: 6420.0, date: "2026-03-15" },
-    receipt: null,
-    status: "pending",
-  },
-];
-
 export default function MatchingPage() {
-  const { theme } = useTheme();
-  const isDark = theme === "dark";
-  const [pairs, setPairs] = useState<MatchPair[]>(initialPairs);
+  const { isDark } = useTheme();
+  const router = useRouter();
+  const [scans, setScans] = useState<ScanItem[]>([]);
+  const [uploading, setUploading] = useState(false);
+  const fileInputRef = useRef<HTMLInputElement>(null);
 
-  const clearDemo = () => setPairs([]);
+  const card = isDark ? "bg-[rgba(255,255,255,0.04)]" : "bg-white";
+  const border = isDark ? "border-[rgba(255,255,255,0.06)]" : "border-gray-200";
+  const txt = isDark ? "text-white" : "text-gray-900";
+  const sub = isDark ? "text-white/50" : "text-gray-500";
+  const muted = isDark ? "text-white/30" : "text-gray-400";
 
-  const matched = pairs.filter((p) => p.status === "matched").length;
-  const pending = pairs.filter((p) => p.status === "pending").length;
-  const notFound = pairs.filter((p) => p.status === "not_found").length;
+  const handleUpload = useCallback(async (file: File) => {
+    const scanId = `SC-${Date.now()}-${Math.random().toString(36).slice(2, 6)}`;
+    setScans((prev) => [{ id: scanId, fileName: file.name, merchant: file.name, amount: 0, date: "", status: "processing", confidence: 0 }, ...prev]);
+    setUploading(true);
 
-  const statusConfig = {
-    matched: { label: "จับคู่แล้ว", icon: CheckCircle2, color: "text-emerald-500", bg: isDark ? "bg-emerald-500/10" : "bg-emerald-50" },
-    pending: { label: "รอจับคู่", icon: Clock, color: "text-amber-500", bg: isDark ? "bg-amber-500/10" : "bg-amber-50" },
-    not_found: { label: "ไม่พบคู่", icon: AlertTriangle, color: "text-red-500", bg: isDark ? "bg-red-500/10" : "bg-red-50" },
+    try {
+      const formData = new FormData();
+      formData.append("file", file);
+      const res = await fetch("/api/ocr", { method: "POST", body: formData });
+      const json = await res.json();
+
+      if (json.success && json.data) {
+        const d = json.data;
+        setScans((prev) => prev.map((s) => s.id === scanId ? {
+          ...s,
+          merchant: d.merchant,
+          amount: d.amount,
+          date: d.date,
+          confidence: d.ocrConfidence,
+          imageUrl: d.imageUrl,
+          status: json.duplicate ? "duplicate" : "matched",
+          matchedWith: json.receipt?._id,
+          duplicateInfo: json.duplicateInfo,
+        } : s));
+      } else {
+        setScans((prev) => prev.map((s) => s.id === scanId ? { ...s, status: "failed", merchant: json.error || "อ่านไม่สำเร็จ" } : s));
+      }
+    } catch {
+      setScans((prev) => prev.map((s) => s.id === scanId ? { ...s, status: "failed", merchant: "เกิดข้อผิดพลาด" } : s));
+    } finally {
+      setUploading(false);
+    }
+  }, []);
+
+  const handleFiles = (files: FileList) => { Array.from(files).forEach((f) => handleUpload(f)); };
+
+  const matched = scans.filter((s) => s.status === "matched").length;
+  const dup = scans.filter((s) => s.status === "duplicate").length;
+  const failed = scans.filter((s) => s.status === "failed").length;
+
+  const statusCfg: Record<string, { label: string; cls: string }> = {
+    processing: { label: "กำลังสแกน...", cls: "bg-amber-500/10 text-amber-500" },
+    matched: { label: "บันทึกแล้ว", cls: "bg-green-500/10 text-green-500" },
+    duplicate: { label: "สลิปซ้ำ", cls: "bg-orange-500/10 text-orange-400" },
+    no_match: { label: "ไม่พบคู่", cls: "bg-yellow-500/10 text-yellow-400" },
+    failed: { label: "ล้มเหลว", cls: "bg-red-500/10 text-red-400" },
   };
-
-  const cardCls = isDark ? "bg-[rgba(255,255,255,0.04)] border-[rgba(255,255,255,0.06)]" : "bg-white border-gray-200";
-  const subBg = isDark ? "bg-[rgba(255,255,255,0.03)]" : "bg-gray-50";
-  const tp = isDark ? "text-white" : "text-gray-900";
-  const ts = isDark ? "text-gray-400" : "text-gray-500";
-  const tm = isDark ? "text-gray-500" : "text-gray-400";
-  const btnCls = isDark ? "bg-[rgba(255,255,255,0.04)] border border-[rgba(255,255,255,0.06)] text-gray-300 hover:bg-[rgba(255,255,255,0.08)]" : "bg-white border border-gray-200 text-gray-600 hover:bg-gray-50";
 
   return (
     <div className="space-y-6">
-      <PageHeader title="จับคู่เอกสาร" description="จับคู่ใบแจ้งหนี้กับใบเสร็จอัตโนมัติ" onClear={clearDemo} />
-
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-        <StatsCard label="จับคู่แล้ว" value={`${matched}`} icon={<CheckCircle2 size={20} />} color="text-emerald-500" />
-        <StatsCard label="รอจับคู่" value={`${pending}`} icon={<Clock size={20} />} color="text-yellow-500" />
-        <StatsCard label="ไม่พบคู่" value={`${notFound}`} icon={<AlertTriangle size={20} />} color="text-red-500" />
+      <div className="flex items-center justify-between">
+        <PageHeader title="สแกน & จับคู่เอกสาร" description="อัปโหลดใบเสร็จ/ใบแจ้งหนี้ → AI อ่าน + จับคู่อัตโนมัติ" />
+        <button onClick={() => router.push("/dashboard/receipts")} className={`flex items-center gap-2 px-3 py-2 rounded-xl text-xs font-medium transition-colors ${isDark ? "bg-white/5 text-white/60 hover:bg-white/10" : "bg-gray-100 text-gray-600 hover:bg-gray-200"}`}>
+          ดูใบเสร็จ <ExternalLink size={12} />
+        </button>
       </div>
 
-      {pairs.length === 0 ? (
-        <div className={"rounded-2xl border p-12 text-center " + cardCls}>
-          <p className={tm}>ไม่มีข้อมูลตัวอย่าง</p>
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+        <StatsCard label="สแกนทั้งหมด" value={`${scans.length} รายการ`} icon={<ScanLine size={20} />} color="text-blue-500" />
+        <StatsCard label="บันทึกแล้ว" value={`${matched} รายการ`} icon={<CheckCircle2 size={20} />} color="text-green-500" />
+        <StatsCard label="สลิปซ้ำ" value={`${dup} รายการ`} icon={<Copy size={20} />} color="text-orange-500" />
+        <StatsCard label="ล้มเหลว" value={`${failed} รายการ`} icon={<XCircle size={20} />} color="text-red-500" />
+      </div>
+
+      {/* Upload methods */}
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+        {/* File upload */}
+        <div
+          onDragOver={(e) => e.preventDefault()}
+          onDrop={(e) => { e.preventDefault(); if (e.dataTransfer.files) handleFiles(e.dataTransfer.files); }}
+          onClick={() => fileInputRef.current?.click()}
+          className={`rounded-2xl border-2 border-dashed p-8 text-center cursor-pointer transition-colors ${isDark ? "border-white/10 hover:border-[#FA3633]/40 bg-white/[0.02]" : "border-gray-300 hover:border-[#FA3633]/40 bg-gray-50"}`}
+        >
+          <input ref={fileInputRef} type="file" accept="image/*,application/pdf" multiple onChange={(e) => { if (e.target.files) handleFiles(e.target.files); e.target.value = ""; }} className="hidden" />
+          {uploading ? (
+            <Loader2 className="w-10 h-10 mx-auto mb-3 animate-spin text-[#FA3633]" />
+          ) : (
+            <Upload className={`w-10 h-10 mx-auto mb-3 ${muted}`} />
+          )}
+          <p className={`text-sm font-medium ${txt} mb-1`}>{uploading ? "กำลังสแกน..." : "อัปโหลดเอกสาร"}</p>
+          <p className={`text-xs ${muted}`}>ลากไฟล์มาวาง หรือคลิก — รองรับ รูปภาพ, PDF (หลายไฟล์ได้)</p>
         </div>
-      ) : (
-        <div className="space-y-3">
-          {pairs.map((pair) => {
-            const cfg = statusConfig[pair.status];
-            const StatusIcon = cfg.icon;
-            return (
-              <div key={pair.id} className={"rounded-2xl border p-5 " + cardCls}>
-                <div className="flex items-center justify-between mb-3">
-                  <div className={"flex items-center gap-1.5 px-3 py-1 rounded-lg text-sm font-medium " + cfg.bg + " " + cfg.color}>
-                    <StatusIcon className="w-4 h-4" />
+
+        {/* Email scan */}
+        <div className={`rounded-2xl border p-8 text-center ${card} ${border}`}>
+          <div className="flex justify-center mb-3">
+            <BrandIcon brand="gmail" size={40} className="rounded-xl" />
+          </div>
+          <p className={`text-sm font-medium ${txt} mb-1`}>สแกนจาก Gmail</p>
+          <p className={`text-xs ${muted} mb-4`}>เชื่อมต่อ Gmail เพื่อดึงใบเสร็จ/ใบแจ้งหนี้จากอีเมลอัตโนมัติ</p>
+          <button className={`px-4 py-2 rounded-xl text-xs font-medium transition-colors ${isDark ? "bg-white/5 text-white/50 hover:bg-white/10" : "bg-gray-100 text-gray-500 hover:bg-gray-200"}`}>
+            เชื่อมต่อ Gmail
+          </button>
+        </div>
+      </div>
+
+      {/* Scan results */}
+      {scans.length > 0 && (
+        <div>
+          <h3 className={`text-sm font-semibold ${txt} mb-3`}>ผลการสแกน</h3>
+          <div className="space-y-2">
+            {scans.map((scan) => {
+              const cfg = statusCfg[scan.status];
+              return (
+                <div key={scan.id} className={`${card} border ${border} rounded-xl px-4 py-3 flex items-center gap-3`}>
+                  {/* Thumbnail */}
+                  <div className={`w-10 h-10 rounded-lg overflow-hidden shrink-0 flex items-center justify-center ${isDark ? "bg-white/5" : "bg-gray-100"}`}>
+                    {scan.imageUrl ? <img src={scan.imageUrl} alt="" className="w-full h-full object-cover" /> : scan.status === "processing" ? <Loader2 size={16} className="animate-spin text-amber-500" /> : <ImageIcon size={16} className={muted} />}
+                  </div>
+
+                  {/* Info */}
+                  <div className="flex-1 min-w-0">
+                    <p className={`text-sm font-medium ${txt} truncate`}>{scan.merchant}</p>
+                    <div className={`flex items-center gap-2 text-[11px] ${muted} mt-0.5`}>
+                      {scan.date && <span>{scan.date}</span>}
+                      {scan.confidence > 0 && <><span>·</span><span>OCR {scan.confidence}%</span></>}
+                      {scan.duplicateInfo && <><span>·</span><span className="text-orange-400">{scan.duplicateInfo}</span></>}
+                    </div>
+                  </div>
+
+                  {/* Amount */}
+                  {scan.amount > 0 && (
+                    <span className={`text-sm font-semibold ${txt} shrink-0`}>฿{scan.amount.toLocaleString("th-TH", { minimumFractionDigits: 2 })}</span>
+                  )}
+
+                  {/* Status */}
+                  <span className={`px-2 py-1 rounded-lg text-[10px] font-medium shrink-0 ${cfg.cls}`}>
+                    {scan.status === "processing" && <Loader2 size={10} className="inline animate-spin mr-1" />}
                     {cfg.label}
-                  </div>
+                  </span>
                 </div>
-                <div className="flex items-center gap-4">
-                  <div className={"flex-1 rounded-xl p-3 " + subBg}>
-                    <div className="flex items-center gap-2 mb-1">
-                      <FileText className={"w-4 h-4 " + tm} />
-                      <span className={"text-xs font-medium " + ts}>ใบแจ้งหนี้</span>
-                    </div>
-                    <p className={"font-medium text-sm " + tp}>{pair.invoice.number}</p>
-                    <p className={"text-xs " + ts}>{pair.invoice.shop}</p>
-                    <p className={"text-sm font-semibold mt-1 " + tp}>
-                      {"฿" + pair.invoice.amount.toLocaleString("th-TH", { minimumFractionDigits: 2 })}
-                    </p>
-                  </div>
-                  <ArrowLeftRight className={"w-5 h-5 flex-shrink-0 " + (isDark ? "text-gray-600" : "text-gray-300")} />
-                  <div className={"flex-1 rounded-xl p-3 " + subBg}>
-                    <div className="flex items-center gap-2 mb-1">
-                      <FileText className={"w-4 h-4 " + tm} />
-                      <span className={"text-xs font-medium " + ts}>ใบเสร็จ</span>
-                    </div>
-                    {pair.receipt ? (
-                      <>
-                        <p className={"font-medium text-sm " + tp}>{pair.receipt.number}</p>
-                        <p className={"text-xs " + ts}>{pair.receipt.shop}</p>
-                        <p className={"text-sm font-semibold mt-1 " + tp}>
-                          {"฿" + pair.receipt.amount.toLocaleString("th-TH", { minimumFractionDigits: 2 })}
-                        </p>
-                      </>
-                    ) : (
-                      <p className={"text-sm italic " + (isDark ? "text-gray-600" : "text-gray-400")}>ยังไม่มีเอกสารคู่</p>
-                    )}
-                  </div>
-                </div>
-              </div>
-            );
-          })}
+              );
+            })}
+          </div>
+        </div>
+      )}
+
+      {/* Empty state */}
+      {scans.length === 0 && (
+        <div className={`${card} border ${border} rounded-2xl p-8 text-center`}>
+          <ScanLine size={40} className={`mx-auto mb-3 ${muted}`} />
+          <p className={`text-sm ${sub}`}>อัปโหลดเอกสาร หรือเชื่อมต่อ Gmail</p>
+          <p className={`text-xs ${muted} mt-1`}>AI จะอ่านข้อมูล → บันทึกใบเสร็จ → ตรวจสลิปซ้ำอัตโนมัติ</p>
         </div>
       )}
     </div>
