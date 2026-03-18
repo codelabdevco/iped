@@ -377,9 +377,9 @@ export default function SettingsClient({ profile, categoryStats = [] }: { profil
 function CategoriesTab({ isDark, categoryStats, txt, sub, muted }: any) {
   const [customCats, setCustomCats] = useState<{ name: string; emoji: string; color: string; dir: string }[]>([]);
   const [loaded, setLoaded] = useState(false);
-  const [addDir, setAddDir] = useState<string | null>(null);
-  const [addName, setAddName] = useState("");
-  const [confirm, setConfirm] = useState<{ name: string; dir: string; action: "delete" } | null>(null);
+  const [editing, setEditing] = useState<{ name: string; dir: string; isNew?: boolean } | null>(null);
+  const [form, setForm] = useState({ name: "", emoji: "📋", color: CAT_COLORS[0] });
+  const [confirm, setConfirm] = useState<{ name: string; dir: string; action: "delete" | "edit"; newName?: string } | null>(null);
 
   useEffect(() => { try { const s = localStorage.getItem("iped-custom-cats"); if (s) setCustomCats(JSON.parse(s).map((c: any) => ({ ...c, dir: c.direction || c.dir }))); } catch {} setLoaded(true); }, []);
   useEffect(() => { if (loaded) localStorage.setItem("iped-custom-cats", JSON.stringify(customCats)); }, [customCats, loaded]);
@@ -387,16 +387,40 @@ function CategoriesTab({ isDark, categoryStats, txt, sub, muted }: any) {
   const allCats = [...DEFAULT_CATS, ...customCats];
   const getStat = (name: string, dir: string) => (categoryStats as CatStat[]).find((c) => c.name === name && c.direction === dir);
 
-  const handleAdd = (dir: string) => {
-    if (!addName.trim()) return;
-    setCustomCats((prev) => [...prev, { name: addName.trim(), emoji: "📋", color: CAT_COLORS[Math.floor(Math.random() * CAT_COLORS.length)], dir }]);
-    setAddName(""); setAddDir(null);
+  const openAdd = (dir: string) => { setEditing({ name: "", dir, isNew: true }); setForm({ name: "", emoji: "📋", color: CAT_COLORS[Math.floor(Math.random() * CAT_COLORS.length)] }); };
+  const openEdit = (cat: any) => { setEditing({ name: cat.name, dir: cat.dir }); setForm({ name: cat.name, emoji: cat.emoji, color: cat.color }); };
+
+  const handleSave = () => {
+    if (!form.name.trim() || !editing) return;
+    if (editing.isNew) {
+      setCustomCats((prev) => [...prev, { name: form.name.trim(), emoji: form.emoji, color: form.color, dir: editing.dir }]);
+    } else {
+      const stat = getStat(editing.name, editing.dir);
+      if (stat && stat.count > 0 && form.name !== editing.name) {
+        setConfirm({ name: editing.name, dir: editing.dir, action: "edit", newName: form.name });
+        return;
+      }
+      doEdit();
+    }
+    setEditing(null);
+  };
+
+  const doEdit = () => {
+    if (!editing) return;
+    setCustomCats((prev) => prev.map((c) => (c.name === editing.name && c.dir === editing.dir) ? { ...c, name: form.name.trim(), emoji: form.emoji, color: form.color } : c));
+    setEditing(null); setConfirm(null);
   };
 
   const tryDelete = (name: string, dir: string) => {
     const stat = getStat(name, dir);
     if (stat && stat.count > 0) { setConfirm({ name, dir, action: "delete" }); return; }
     setCustomCats((prev) => prev.filter((c) => !(c.name === name && c.dir === dir)));
+  };
+
+  const doDelete = () => {
+    if (!confirm) return;
+    setCustomCats((prev) => prev.filter((c) => !(c.name === confirm.name && c.dir === confirm.dir)));
+    setConfirm(null);
   };
 
   if (!loaded) return null;
@@ -406,15 +430,34 @@ function CategoriesTab({ isDark, categoryStats, txt, sub, muted }: any) {
       {/* Confirm dialog */}
       {confirm && (() => {
         const stat = getStat(confirm.name, confirm.dir);
+        const isDelete = confirm.action === "delete";
         return (
           <div className={`flex items-center gap-3 p-3 rounded-xl ${isDark ? "bg-amber-500/10 border border-amber-500/20" : "bg-amber-50 border border-amber-200"}`}>
             <AlertTriangle size={16} className="text-amber-500 shrink-0" />
-            <span className={`text-xs flex-1 ${txt}`}>"{confirm.name}" มี <b>{stat?.count} รายการ</b> (฿{stat?.total?.toLocaleString("th-TH", { minimumFractionDigits: 2 })})</span>
-            <button onClick={() => { setCustomCats((prev) => prev.filter((c) => !(c.name === confirm.name && c.dir === confirm.dir))); setConfirm(null); }} className="px-2 py-1 rounded text-[11px] font-medium bg-red-500 text-white">ลบ</button>
+            <span className={`text-xs flex-1 ${txt}`}>
+              {isDelete ? `ลบ "${confirm.name}"?` : `เปลี่ยนชื่อ "${confirm.name}" → "${confirm.newName}"?`}
+              {" "}มี <b>{stat?.count} รายการ</b> (฿{stat?.total?.toLocaleString("th-TH", { minimumFractionDigits: 2 })})
+            </span>
+            <button onClick={isDelete ? doDelete : doEdit} className={`px-2 py-1 rounded text-[11px] font-medium text-white ${isDelete ? "bg-red-500" : "bg-amber-500"}`}>{isDelete ? "ลบ" : "แก้ไข"}</button>
             <button onClick={() => setConfirm(null)} className={`px-2 py-1 rounded text-[11px] ${sub}`}>ยกเลิก</button>
           </div>
         );
       })()}
+
+      {/* Inline edit/add form */}
+      {editing && (
+        <div className={`flex items-center gap-2 p-3 rounded-xl ${isDark ? "bg-white/[0.04] border border-white/[0.08]" : "bg-gray-50 border border-gray-200"}`}>
+          <input value={form.emoji} onChange={(e) => setForm({ ...form, emoji: e.target.value })} className={`w-9 h-9 text-center text-lg rounded-lg bg-transparent border ${isDark ? "border-white/10" : "border-gray-200"} focus:outline-none`} />
+          <input value={form.name} onChange={(e) => setForm({ ...form, name: e.target.value })} placeholder="ชื่อหมวด" className={`flex-1 h-9 px-2 text-sm rounded-lg bg-transparent border ${isDark ? "border-white/10 text-white" : "border-gray-200 text-gray-900"} focus:outline-none`} autoFocus onKeyDown={(e) => e.key === "Enter" && handleSave()} />
+          <div className="flex gap-1">
+            {CAT_COLORS.map((c) => (
+              <button key={c} onClick={() => setForm({ ...form, color: c })} className={`w-5 h-5 rounded-full transition-transform ${form.color === c ? "scale-125 ring-2 ring-offset-1" : "hover:scale-110"}`} style={{ backgroundColor: c }} />
+            ))}
+          </div>
+          <button onClick={handleSave} disabled={!form.name.trim()} className="px-3 py-1.5 rounded-lg text-xs font-medium bg-[#FA3633] text-white disabled:opacity-40">{editing.isNew ? "เพิ่ม" : "บันทึก"}</button>
+          <button onClick={() => setEditing(null)} className={`text-xs ${muted}`}>ยกเลิก</button>
+        </div>
+      )}
 
       {(["expense", "income", "savings"] as const).map((dir) => {
         const items = allCats.filter((c) => c.dir === dir);
@@ -426,23 +469,22 @@ function CategoriesTab({ isDark, categoryStats, txt, sub, muted }: any) {
                 const stat = getStat(cat.name, dir);
                 const isCustom = customCats.some((c) => c.name === cat.name && c.dir === dir);
                 return (
-                  <span key={cat.name} className={`inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs ${isDark ? "bg-white/[0.05]" : "bg-gray-100"} ${txt} group`}>
-                    {cat.emoji} {cat.name}
-                    {stat && stat.count > 0 && <span className={`text-[9px] font-bold px-1 py-0.5 rounded-full leading-none`} style={{ backgroundColor: DIR_CLR[dir] + "20", color: DIR_CLR[dir] }}>{stat.count}</span>}
-                    {isCustom && <button onClick={() => tryDelete(cat.name, dir)} className={`ml-0.5 opacity-0 group-hover:opacity-100 transition-opacity ${isDark ? "text-white/30 hover:text-red-400" : "text-gray-400 hover:text-red-500"}`}><Trash2 size={10} /></button>}
+                  <span key={cat.name} className={`inline-flex items-center gap-1.5 pl-1 pr-2 py-1 rounded-full text-xs group ${isDark ? "bg-white/[0.05] hover:bg-white/[0.08]" : "bg-gray-100 hover:bg-gray-150"} ${txt} transition-colors`}>
+                    <span className="w-4 h-4 rounded-full flex items-center justify-center text-[10px]" style={{ backgroundColor: cat.color + "25" }}>{cat.emoji}</span>
+                    <span>{cat.name}</span>
+                    {stat && stat.count > 0 && <span className="text-[9px] font-bold px-1 py-0.5 rounded-full leading-none" style={{ backgroundColor: cat.color + "20", color: cat.color }}>{stat.count}</span>}
+                    {isCustom && (
+                      <span className="flex gap-0.5 opacity-0 group-hover:opacity-100 transition-opacity">
+                        <button onClick={() => openEdit(cat)} className={`${isDark ? "text-white/30 hover:text-white/60" : "text-gray-400 hover:text-gray-600"}`}><Pencil size={9} /></button>
+                        <button onClick={() => tryDelete(cat.name, dir)} className={`${isDark ? "text-white/30 hover:text-red-400" : "text-gray-400 hover:text-red-500"}`}><Trash2 size={9} /></button>
+                      </span>
+                    )}
                   </span>
                 );
               })}
-              {addDir === dir ? (
-                <span className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-full ${isDark ? "bg-white/[0.05]" : "bg-gray-100"}`}>
-                  <input value={addName} onChange={(e) => setAddName(e.target.value)} placeholder="ชื่อหมวด" className={`w-20 text-xs bg-transparent focus:outline-none ${txt}`} autoFocus onKeyDown={(e) => { if (e.key === "Enter") handleAdd(dir); if (e.key === "Escape") setAddDir(null); }} />
-                  <button onClick={() => handleAdd(dir)} className="text-[10px] font-medium" style={{ color: DIR_CLR[dir] }}>เพิ่ม</button>
-                </span>
-              ) : (
-                <button onClick={() => { setAddDir(dir); setAddName(""); }} className={`inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs border border-dashed ${isDark ? "border-white/10 text-white/30 hover:text-white/50" : "border-gray-300 text-gray-400 hover:text-gray-500"}`}>
-                  <Plus size={10} /> เพิ่ม
-                </button>
-              )}
+              <button onClick={() => openAdd(dir)} className={`inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs border border-dashed ${isDark ? "border-white/10 text-white/30 hover:text-white/50" : "border-gray-300 text-gray-400 hover:text-gray-500"}`}>
+                <Plus size={10} /> เพิ่ม
+              </button>
             </div>
           </div>
         );
