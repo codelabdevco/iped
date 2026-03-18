@@ -108,40 +108,16 @@ const PAYMENT_METHODS = [
   { value: "ewallet-shopee", label: "ShopeePay" },
   { value: "other", label: "อื่นๆ" },
 ];
-/** Lazy-load receipt image thumbnail */
+/** Lazy-load receipt image thumbnail — uses binary image API */
 function LazyImage({ id, hasImage, onClickFull, isDark }: { id: string; hasImage?: boolean; onClickFull: (url: string) => void; isDark: boolean }) {
-  const [src, setSrc] = useState<string | null>(null);
-  const [loading, setLoading] = useState(false);
-  const [loaded, setLoaded] = useState(false);
-  const ref = useRef<HTMLDivElement>(null);
-
-  useEffect(() => {
-    if (!hasImage || loaded) return;
-    const el = ref.current;
-    if (!el) return;
-    const obs = new IntersectionObserver(([entry]) => {
-      if (entry.isIntersecting && !loaded && !loading) {
-        setLoading(true);
-        fetch(`/api/receipts/image?id=${id}`)
-          .then((r) => r.json())
-          .then((d) => { if (d.imageUrl) setSrc(d.imageUrl); })
-          .catch(() => {})
-          .finally(() => { setLoaded(true); setLoading(false); });
-        obs.disconnect();
-      }
-    }, { rootMargin: "100px" });
-    obs.observe(el);
-    return () => obs.disconnect();
-  }, [id, hasImage, loaded, loading]);
-
+  const imgUrl = hasImage ? `/api/receipts/image?id=${id}` : null;
   const muted = isDark ? "text-white/30" : "text-gray-400";
   return (
     <div
-      ref={ref}
-      className={`w-10 h-10 rounded-lg flex items-center justify-center overflow-hidden ${src ? "cursor-pointer hover:ring-2 hover:ring-[#FA3633]/50 transition-all" : ""} ${isDark ? "bg-white/5" : "bg-gray-100"}`}
-      onClick={src ? (e) => { e.stopPropagation(); onClickFull(src); } : undefined}
+      className={`w-10 h-10 rounded-lg flex items-center justify-center overflow-hidden ${imgUrl ? "cursor-pointer hover:ring-2 hover:ring-[#FA3633]/50 transition-all" : ""} ${isDark ? "bg-white/5" : "bg-gray-100"}`}
+      onClick={imgUrl ? (e) => { e.stopPropagation(); onClickFull(imgUrl); } : undefined}
     >
-      {src ? <img src={src} alt="" className="w-full h-full object-cover" /> : <ImageIcon size={16} className={muted} />}
+      {imgUrl ? <img src={imgUrl} alt="" className="w-full h-full object-cover" loading="lazy" /> : <ImageIcon size={16} className={muted} />}
     </div>
   );
 }
@@ -229,6 +205,7 @@ export default function ReceiptsClient({ receipts: initialReceipts }: { receipts
   const [slipDragging, setSlipDragging] = useState(false);
   const slipInputRef = useRef<HTMLInputElement>(null);
   const [lightboxUrl, setLightboxUrl] = useState<string | null>(null);
+  const [selected, setSelected] = useState<string[]>([]);
   const [isAdding, setIsAdding] = useState(false);
   const [saving, setSaving] = useState(false);
 
@@ -256,11 +233,24 @@ export default function ReceiptsClient({ receipts: initialReceipts }: { receipts
     ? "bg-[rgba(255,255,255,0.03)] border-[rgba(255,255,255,0.06)] text-white placeholder-white/30"
     : "bg-gray-50 border-gray-200 text-gray-900 placeholder-gray-400";
 
-  const handleDelete = useCallback((id: string) => {
-    if (confirm("ต้องการลบใบเสร็จนี้?")) {
+  const handleDelete = useCallback(async (id: string) => {
+    if (!confirm("ต้องการลบใบเสร็จนี้?")) return;
+    try {
+      await fetch(`/api/receipts/${id}`, { method: "DELETE" });
       setReceipts((prev) => prev.filter((r) => r._id !== id));
-    }
+      setSelected((prev) => prev.filter((s) => s !== id));
+    } catch {}
   }, []);
+
+  const handleBulkDelete = useCallback(async () => {
+    if (selected.length === 0) return;
+    if (!confirm(`ต้องการลบ ${selected.length} รายการ?`)) return;
+    try {
+      await Promise.all(selected.map((id) => fetch(`/api/receipts/${id}`, { method: "DELETE" })));
+      setReceipts((prev) => prev.filter((r) => !selected.includes(r._id)));
+      setSelected([]);
+    } catch {}
+  }, [selected]);
 
   const handleEdit = (r: ReceiptRow) => {
     setEditingId(r._id);
@@ -496,15 +486,26 @@ export default function ReceiptsClient({ receipts: initialReceipts }: { receipts
 
   const columns: Column<ReceiptRow>[] = useMemo(() => [
     {
+      key: "checkbox" as any,
+      label: "",
+      configurable: false,
+      render: (r) => (
+        <input
+          type="checkbox"
+          checked={selected.includes(r._id)}
+          onChange={(e) => {
+            e.stopPropagation();
+            setSelected((prev) => prev.includes(r._id) ? prev.filter((id) => id !== r._id) : [...prev, r._id]);
+          }}
+          onClick={(e) => e.stopPropagation()}
+          className="w-4 h-4 rounded border-gray-400 accent-[#FA3633] cursor-pointer"
+        />
+      ),
+    },
+    {
       key: "image",
       label: "รูป",
-      render: (r, dark) => (
-        r.imageUrl
-          ? <div className={`w-10 h-10 rounded-lg flex items-center justify-center overflow-hidden cursor-pointer hover:ring-2 hover:ring-[#FA3633]/50 transition-all ${dark ? "bg-white/5" : "bg-gray-100"}`} onClick={(e) => { e.stopPropagation(); setLightboxUrl(r.imageUrl!); }}>
-              <img src={r.imageUrl} alt="" className="w-full h-full object-cover" />
-            </div>
-          : <LazyImage id={r._id} hasImage={r.hasImage} onClickFull={setLightboxUrl} isDark={dark} />
-      ),
+      render: (r, dark) => <LazyImage id={r._id} hasImage={r.hasImage} onClickFull={setLightboxUrl} isDark={dark} />,
     },
     {
       key: "storeName",
@@ -970,6 +971,23 @@ export default function ReceiptsClient({ receipts: initialReceipts }: { receipts
           <Select value={driveFilter} onChange={setDriveFilter} className="w-44" options={[{ value: "all", label: "Drive ทั้งหมด" }, { value: "uploaded", label: "อัปโหลดแล้ว" }, { value: "not_uploaded", label: "ยังไม่อัปโหลด" }]} />
         </div>
       </div>
+
+      {/* Bulk actions bar */}
+      {selected.length > 0 && (
+        <div className={`flex items-center gap-3 px-4 py-2.5 rounded-xl border ${isDark ? "bg-red-500/5 border-red-500/20" : "bg-red-50 border-red-200"}`}>
+          <input
+            type="checkbox"
+            checked={selected.length === filtered.length}
+            onChange={() => setSelected(selected.length === filtered.length ? [] : filtered.map((r) => r._id))}
+            className="w-4 h-4 rounded accent-[#FA3633]"
+          />
+          <span className={`text-sm font-medium ${txt}`}>เลือก {selected.length} รายการ</span>
+          <button onClick={handleBulkDelete} className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium bg-red-500 text-white hover:bg-red-600 transition-colors">
+            <Trash2 size={12} /> ลบที่เลือก
+          </button>
+          <button onClick={() => setSelected([])} className={`text-xs ${sub} hover:${txt}`}>ยกเลิก</button>
+        </div>
+      )}
 
       <DataTable dateField="rawDate" columns={columns} data={filtered} rowKey={(r) => r._id} expandRender={expandRender} columnConfigKey="receipts" />
     </div>
