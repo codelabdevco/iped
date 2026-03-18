@@ -215,7 +215,7 @@ export default function DataTable<T>({ columns, data, rowKey, emptyText = "ไ�
         <span>คอลัมน์ ({visibleCount}/{configurableColumns.length})</span>
       </button>
       {showColConfig && (
-        <div className={`absolute top-full right-0 mt-2 w-56 rounded-xl border shadow-xl z-50 ${isDark ? "bg-[#1a1a1a] border-white/10" : "bg-white border-gray-200"}`}>
+        <div className={`absolute top-full right-0 mt-2 w-56 rounded-xl border shadow-xl z-[70] ${isDark ? "bg-[#1a1a1a] border-white/10" : "bg-white border-gray-200"}`}>
           <div className={`px-3 py-2.5 border-b ${border} flex items-center justify-between`}>
             <span className={`text-xs font-semibold ${isDark ? "text-white/70" : "text-gray-700"}`}>แสดงคอลัมน์</span>
             <button onClick={resetCols} className={`flex items-center gap-1 px-2 py-1 rounded-lg text-[10px] font-medium transition-colors ${isDark ? "text-white/40 hover:bg-white/5 hover:text-white/60" : "text-gray-400 hover:bg-gray-100 hover:text-gray-600"}`}>
