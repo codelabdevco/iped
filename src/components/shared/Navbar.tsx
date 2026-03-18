@@ -23,9 +23,7 @@ export default function Navbar() {
       <div className="max-w-6xl mx-auto px-4">
         <div className="flex items-center justify-between h-14">
           <Link href="/" className="flex items-center gap-2.5">
-            <div className="w-8 h-8 bg-yellow-400 rounded-lg flex items-center justify-center">
-              <span className="text-black font-black text-sm">iP</span>
-            </div>
+            <img src="/logo.png" alt="iPED" className="w-8 h-8 rounded-lg object-cover" />
             <span className="font-bold text-lg text-white tracking-tight">iPED</span>
           </Link>
 

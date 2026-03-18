@@ -5,6 +5,19 @@ import "./globals.css";
 export const metadata: Metadata = {
   title: "iPED — ระบบจัดการใบเสร็จอัจฉริยะ",
   description: "อัปโหลดใบเสร็จ ระบบ AI อ่านและจัดเก็บให้อัตโนมัติ — iPED",
+  icons: {
+    icon: [
+      { url: "/favicon.ico", sizes: "32x32" },
+      { url: "/favicon-32x32.png", sizes: "32x32", type: "image/png" },
+      { url: "/favicon-16x16.png", sizes: "16x16", type: "image/png" },
+    ],
+    apple: "/apple-touch-icon.png",
+  },
+  openGraph: {
+    title: "iPED — ระบบจัดการใบเสร็จอัจฉริยะ",
+    description: "อัปโหลดใบเสร็จ ระบบ AI อ่านและจัดเก็บให้อัตโนมัติ",
+    images: [{ url: "/og-image.png", width: 1200, height: 630 }],
+  },
 };
 
 export const viewport = {

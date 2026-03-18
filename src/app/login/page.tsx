@@ -19,11 +19,9 @@ function LoginForm() {
         <div className="h-2" style={{ backgroundColor: '#FA3633' }}></div>
         <div className="p-8">
           <div className="text-center mb-8">
-            <div className="w-20 h-20 rounded-2xl mx-auto mb-4 flex items-center justify-center shadow-sm" style={{ backgroundColor: '#FFF0F0' }}>
-              <span className="text-4xl font-bold" style={{ color: '#FA3633' }}>iP</span>
-            </div>
+            <img src="/logo.png" alt="iPED" className="w-20 h-20 rounded-2xl mx-auto mb-4 object-cover shadow-sm" />
             <h1 className="text-2xl font-bold text-gray-800">iPED</h1>
-            <p className="text-gray-400 text-sm mt-1">ระบบจัดการใบสำคัญอัจฉริยะ</p>
+            <p className="text-gray-400 text-sm mt-1">ระบบจัดการใบเสร็จอัจฉริยะ</p>
           </div>
 
           {error && (

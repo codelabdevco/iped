@@ -70,3 +70,26 @@ export async function PUT(request: NextRequest) {
     return NextResponse.json({ success: true, user: { ...user, _id: String(user._id) } });
   });
 }
+
+// DELETE /api/user — delete current user account and all data
+export async function DELETE(request: NextRequest) {
+  return withAuth(request, async (session: JWTPayload) => {
+    await connectDB();
+    const { default: Receipt } = await import("@/models/Receipt");
+    const { default: File } = await import("@/models/File");
+    const { default: Match } = await import("@/models/Match");
+
+    // Delete all user data
+    await Promise.all([
+      Receipt.deleteMany({ userId: session.userId }),
+      File.deleteMany({ userId: session.userId }),
+      Match.deleteMany({ $or: [{ userId: session.userId }] }),
+      User.findByIdAndDelete(session.userId),
+    ]);
+
+    // Clear auth cookie
+    const res = NextResponse.json({ success: true });
+    res.cookies.set("token", "", { maxAge: 0, path: "/" });
+    return res;
+  });
+}

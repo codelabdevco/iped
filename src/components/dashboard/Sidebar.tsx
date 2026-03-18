@@ -117,11 +117,30 @@ export default function Sidebar({ onNavigate, badges = {} }: { onNavigate?: () =
   useEffect(() => {
     const saved = localStorage.getItem("iped-mode") as Mode | null;
     if (saved) setMode(saved);
+    // Listen for mode changes from other components (e.g. Settings page)
+    const handleModeChange = (e: Event) => {
+      const newMode = (e as CustomEvent).detail as Mode;
+      setMode(newMode);
+      // Redirect check is handled by switchMode; external events
+      // only need to update state — the emitter handles redirect
+    };
+    window.addEventListener("iped-mode-change", handleModeChange);
+    return () => window.removeEventListener("iped-mode-change", handleModeChange);
   }, []);
 
   const switchMode = (m: Mode) => {
     setMode(m);
     localStorage.setItem("iped-mode", m);
+    window.dispatchEvent(new CustomEvent("iped-mode-change", { detail: m }));
+    // Redirect if current page doesn't exist in the new mode's nav
+    const newNav = m === "personal" ? personalNav : businessNav;
+    const allHrefs = newNav.flatMap((g) => g.items.map((i) => i.href));
+    // Settings page is always valid in both modes
+    const alwaysValid = ["/dashboard/settings"];
+    const currentValid = allHrefs.some(
+      (href) => pathname === href || (href !== "/dashboard" && pathname.startsWith(href))
+    ) || alwaysValid.some((p) => pathname.startsWith(p));
+    if (!currentValid) router.push("/dashboard");
   };
 
   const toggleGroup = (label: string) => {
@@ -167,10 +186,8 @@ export default function Sidebar({ onNavigate, badges = {} }: { onNavigate?: () =
     >
       {/* Logo */}
       <div className={`h-16 flex items-center px-4 border-b ${borderCls} overflow-hidden`}>
-        <div className="flex items-center gap-3 whitespace-nowrap">
-          <div className="w-8 h-8 bg-[#FA3633] rounded-lg flex items-center justify-center font-bold text-sm shrink-0 text-white">
-            iP
-          </div>
+        <div className="flex items-center gap-2.5 whitespace-nowrap">
+          <img src="/logo.png" alt="iPED" className="w-9 h-9 rounded-lg shrink-0 object-cover" />
           <span className="text-lg font-semibold tracking-tight" style={fadeStyle()}>
             iPED
           </span>
