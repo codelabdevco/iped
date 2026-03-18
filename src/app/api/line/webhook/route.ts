@@ -3,6 +3,7 @@ import { verifySignature, replyMessage, getMessageContent, getUserProfile } from
 import { receiptConfirmFlex, duplicateWarningFlex, errorFlex, notReceiptFlex } from "@/lib/line-flex";
 import { connectDB } from "@/lib/mongodb";
 import Receipt from "@/models/Receipt";
+import User from "@/models/User";
 import Anthropic from "@anthropic-ai/sdk";
 import crypto from "crypto";
 import { handleFollow, handleImageOnboarding, handleOnboarding, handleLogout } from "@/lib/onboarding";
@@ -110,10 +111,22 @@ async function checkDuplicate(merchant: string, amount: number, date: string, us
   } catch { return null; }
 }
 
-/** Save receipt to MongoDB */
-async function saveReceipt(ocr: any, userId: string, imgHash: string): Promise<string> {
+/** Resolve LINE userId → MongoDB _id */
+async function resolveUserId(lineUserId: string): Promise<string> {
   try {
     await connectDB();
+    const user = await User.findOne({ lineUserId }).select("_id").lean();
+    return user ? String(user._id) : lineUserId;
+  } catch {
+    return lineUserId;
+  }
+}
+
+/** Save receipt to MongoDB */
+async function saveReceipt(ocr: any, lineUserId: string, imgHash: string): Promise<string> {
+  try {
+    await connectDB();
+    const mongoUserId = await resolveUserId(lineUserId);
     const r = await Receipt.create({
       type: ocr.documentType === "tax_invoice" ? "invoice" : "receipt",
       source: "line",
@@ -125,13 +138,13 @@ async function saveReceipt(ocr: any, userId: string, imgHash: string): Promise<s
       category: ocr.category,
       categoryIcon: ocr.categoryIcon || "\ud83d\udcdd",
       paymentMethod: ocr.paymentMethod || undefined,
-      status: ocr.confidence >= 70 ? "confirmed" : "pending",
+      status: "pending",
       imageHash: imgHash,
-      ocrConfidence: ocr.confidence,
+      ocrConfidence: (ocr.confidence || 0) / 100,
       ocrRawText: ocr.items || "",
-      userId: userId,
+      userId: mongoUserId,
     });
-    console.log("Saved receipt:", r._id);
+    console.log("Saved receipt:", r._id, "userId:", mongoUserId);
     return r._id.toString();
   } catch (e: any) {
     console.error("Save error:", e.message);
@@ -235,7 +248,8 @@ export async function POST(request: NextRequest) {
     }
 
           // 5. Check duplicate (🔄)
-          const dup = await checkDuplicate(ocr.merchant, ocr.amount, ocr.date, uid || "");
+          const mongoUid = await resolveUserId(uid || "");
+          const dup = await checkDuplicate(ocr.merchant, ocr.amount, ocr.date, mongoUid);
           const status = getStatus(ocr, dup);
           console.log("Status", status.type, status.emoji);
           
