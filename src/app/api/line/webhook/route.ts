@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { verifySignature, replyMessage, getMessageContent, getUserProfile } from "@/lib/line-bot";
-import { receiptConfirmFlex, duplicateWarningFlex, errorFlex, notReceiptFlex } from "@/lib/line-flex";
+import { receiptConfirmFlex, duplicateWarningFlex, errorFlex, notReceiptFlex, dailySummaryFlex, chatResponseFlex } from "@/lib/line-flex";
 import { connectDB } from "@/lib/mongodb";
 import Receipt from "@/models/Receipt";
 import User from "@/models/User";
@@ -160,6 +160,85 @@ async function saveReceipt(ocr: any, lineUserId: string, imgHash: string, imageB
     console.error("Save error:", e.message);
     return "";
   }
+}
+
+/** Get today's summary for a user */
+async function getDailySummary(userId: string) {
+  await connectDB();
+  const now = new Date(Date.now() + 7 * 60 * 60 * 1000); // Bangkok time
+  const todayStart = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+  todayStart.setTime(todayStart.getTime() - 7 * 60 * 60 * 1000); // back to UTC
+
+  const receipts = await Receipt.find({
+    userId,
+    date: { $gte: todayStart },
+    status: { $ne: "cancelled" },
+  }).lean();
+
+  const totalExpense = receipts.filter((r: any) => r.direction !== "income" && r.direction !== "savings").reduce((s: number, r: any) => s + (r.amount || 0), 0);
+  const totalIncome = receipts.filter((r: any) => r.direction === "income").reduce((s: number, r: any) => s + (r.amount || 0), 0);
+
+  // Top categories
+  const catMap: Record<string, { icon: string; amount: number }> = {};
+  for (const r of receipts as any[]) {
+    if (r.direction === "income" || r.direction === "savings") continue;
+    const key = r.category || "อื่นๆ";
+    if (!catMap[key]) catMap[key] = { icon: r.categoryIcon || "📦", amount: 0 };
+    catMap[key].amount += r.amount || 0;
+  }
+  const categories = Object.entries(catMap)
+    .map(([name, v]) => ({ icon: v.icon, name, amount: v.amount }))
+    .sort((a, b) => b.amount - a.amount);
+
+  return { totalExpense, totalIncome, count: receipts.length, categories, date: new Date().toISOString() };
+}
+
+/** AI chat — answer financial questions using user's receipt data */
+async function aiChat(question: string, userId: string): Promise<{ answer: string; details?: { label: string; value: string }[] }> {
+  await connectDB();
+  // Get recent receipts for context
+  const receipts = await Receipt.find({ userId, status: { $ne: "cancelled" } })
+    .select("merchant amount category direction date paymentMethod")
+    .sort({ date: -1 }).limit(50).lean();
+
+  const now = new Date(Date.now() + 7 * 60 * 60 * 1000);
+  const monthStart = new Date(now.getFullYear(), now.getMonth(), 1);
+
+  const thisMonth = receipts.filter((r: any) => new Date(r.date) >= monthStart);
+  const monthExpense = thisMonth.filter((r: any) => r.direction !== "income" && r.direction !== "savings").reduce((s: number, r: any) => s + (r.amount || 0), 0);
+  const monthIncome = thisMonth.filter((r: any) => r.direction === "income").reduce((s: number, r: any) => s + (r.amount || 0), 0);
+
+  const ctx = `User's financial data:
+- This month expense: ฿${monthExpense.toLocaleString()}
+- This month income: ฿${monthIncome.toLocaleString()}
+- Total receipts: ${receipts.length}
+- Recent transactions (last 20):
+${(receipts as any[]).slice(0, 20).map((r: any) => `  ${r.direction || "expense"} | ${r.merchant} | ฿${r.amount} | ${r.category} | ${new Date(r.date).toLocaleDateString("th-TH")}`).join("\n")}`;
+
+  const response = await anthropic.messages.create({
+    model: "claude-sonnet-4-20250514",
+    max_tokens: 500,
+    messages: [{ role: "user", content: `${ctx}\n\nUser asks: "${question}"\n\nAnswer in Thai, concise (1-3 sentences). If relevant, include a details array with label/value pairs for key numbers. Return JSON:\n{"answer": "...", "details": [{"label": "...", "value": "..."}]}` }],
+  });
+
+  const text = response.content[0].type === "text" ? response.content[0].text : "";
+  try {
+    const clean = text.replace(/```json\n?/g, "").replace(/```\n?/g, "").trim();
+    return JSON.parse(clean);
+  } catch {
+    return { answer: text.slice(0, 300) };
+  }
+}
+
+/** Quick reply buttons after receipt save */
+function quickReplyButtons(): any {
+  return {
+    items: [
+      { type: "action", action: { type: "message", label: "📊 สรุปวันนี้", text: "สรุปวันนี้" } },
+      { type: "action", action: { type: "uri", label: "📋 ดูใบเสร็จ", uri: `${APP_URL}/dashboard/receipts` } },
+      { type: "action", action: { type: "uri", label: "📈 รายงาน", uri: `${APP_URL}/dashboard/reports` } },
+    ],
+  };
 }
 
 type StatusResult = { type: string; emoji: string; title: string; sub: string };
@@ -329,11 +408,12 @@ export async function POST(request: NextRequest) {
             direction: ocr.type === "income" ? "income" : ocr.type === "savings" ? "savings" : "expense",
           });
 
-          // 8. Reply: status text (quoted on image) + flex summary
+          // 8. Reply: status text (quoted on image) + flex summary + quick reply
           const statusText = status.emoji + " " + status.title + (status.sub ? "\n" + status.sub : "");
           await replyMessage(rt, [
-            { type: "text", text: statusText, quoteToken: qt },flexMsg
-        ]);
+            { type: "text", text: statusText, quoteToken: qt },
+            { ...flexMsg, quickReply: quickReplyButtons() },
+          ]);
         console.log("Reply:", status.type);
 
         } catch (err: any) {
@@ -345,26 +425,72 @@ export async function POST(request: NextRequest) {
 
       // === TEXT MESSAGE ===
     } else if (ev.type === "message" && ev.message?.type === "text") {
-      // Check onboarding first
-      let dn = "";
-      try { const p = await getUserProfile(uid); dn = p.displayName || ""; } catch {}
-      const handled = await handleOnboarding(ev.replyToken, uid, ev.message.text, dn);
-      if (!handled) {
-        await replyMessage(ev.replyToken, [{ type: "text", text: "\u0e2a\u0e48\u0e07\u0e23\u0e39\u0e1b\u0e2a\u0e25\u0e34\u0e1b\u0e2b\u0e23\u0e37\u0e2d\u0e43\u0e1a\u0e40\u0e2a\u0e23\u0e47\u0e08\u0e21\u0e32\u0e44\u0e14\u0e49\u0e40\u0e25\u0e22\u0e04\u0e23\u0e31\u0e1b \ud83d\udcf8" }]);
+      // Onboarding already checked above — handle commands & AI chat
+      const msgText = (ev.message.text || "").trim();
+      const msgLower = msgText.toLowerCase();
+
+      // Daily summary command
+      if (msgLower.includes("สรุป") || msgLower.includes("summary") || msgLower.includes("วันนี้")) {
+        try {
+          if (uid) await showLoading(uid, 10);
+          const mongoId = await resolveUserId(uid || "");
+          const summary = await getDailySummary(mongoId);
+          const flex = dailySummaryFlex(summary);
+          await replyMessage(ev.replyToken, [flex]);
+          console.log("Reply: daily summary");
+        } catch (e: any) {
+          console.error("Summary error:", e.message);
+          await replyMessage(ev.replyToken, [{ type: "text", text: "❌ ไม่สามารถดึงข้อมูลสรุปได้" }]);
+        }
+
+      // AI chat — any other text
+      } else {
+        try {
+          if (uid) await showLoading(uid, 30);
+          const mongoId = await resolveUserId(uid || "");
+          const result = await aiChat(msgText, mongoId);
+          const flex = chatResponseFlex({ question: msgText, answer: result.answer, details: result.details });
+          await replyMessage(ev.replyToken, [flex]);
+          console.log("Reply: AI chat");
+        } catch (e: any) {
+          console.error("AI chat error:", e.message);
+          await replyMessage(ev.replyToken, [{ type: "text", text: "ส่งรูปสลิปหรือใบเสร็จมาได้เลยครับ 📸\nหรือพิมพ์ถามเรื่องการเงินได้เลย" }]);
+        }
       }
 
     // === FOLLOW ===
   } else if (ev.type === "follow") {
     await handleFollow(ev.replyToken, uid);
 
-  // === POSTBACK (duplicate buttons) ===
+  // === POSTBACK (action buttons) ===
       } else if (ev.type === "postback") {
         const pd = ev.postback?.data || "";
-        console.log("Postback:", pd);
-        if (pd.includes("action=force_save")) {
-          await replyMessage(ev.replyToken, [{ type: "text", text: "\u2705 \u0e1a\u0e31\u0e19\u0e17\u0e36\u0e01\u0e43\u0e1a\u0e40\u0e2a\u0e23\u0e47\u0e08\u0e0b\u0e49\u0e33\u0e40\u0e23\u0e35\u0e22\u0e1a\u0e23\u0e49\u0e2d\u0e22\u0e41\u0e25\u0e49\u0e27" }]);
-        } else if (pd.includes("action=cancel")) {
-          await replyMessage(ev.replyToken, [{ type: "text", text: "\u274c \u0e22\u0e01\u0e40\u0e25\u0e34\u0e01\u0e01\u0e32\u0e23\u0e1a\u0e31\u0e19\u0e17\u0e36\u0e01\u0e40\u0e23\u0e35\u0e22\u0e1a\u0e23\u0e49\u0e2d\u0e22\u0e41\u0e25\u0e49\u0e27" }]);
+        const params = new URLSearchParams(pd);
+        const action = params.get("action");
+        const id = params.get("id");
+        console.log("Postback:", action, id);
+
+        try {
+          await connectDB();
+          if (action === "confirm" && id) {
+            await Receipt.findByIdAndUpdate(id, { status: "confirmed" });
+            await replyMessage(ev.replyToken, [
+              { type: "text", text: "✅ ยืนยันใบเสร็จเรียบร้อยแล้ว", quickReply: quickReplyButtons() },
+            ]);
+          } else if (action === "force_save" && id) {
+            await Receipt.findByIdAndUpdate(id, { status: "confirmed" });
+            await replyMessage(ev.replyToken, [
+              { type: "text", text: "✅ บันทึกใบเสร็จซ้ำเรียบร้อยแล้ว", quickReply: quickReplyButtons() },
+            ]);
+          } else if (action === "cancel" && id) {
+            await Receipt.findByIdAndUpdate(id, { status: "cancelled" });
+            await replyMessage(ev.replyToken, [{ type: "text", text: "❌ ยกเลิกใบเสร็จเรียบร้อยแล้ว" }]);
+          } else {
+            await replyMessage(ev.replyToken, [{ type: "text", text: "ไม่พบคำสั่ง" }]);
+          }
+        } catch (e: any) {
+          console.error("Postback error:", e.message);
+          await replyMessage(ev.replyToken, [{ type: "text", text: "❌ เกิดข้อผิดพลาด กรุณาลองใหม่" }]);
         }
       }
     }
