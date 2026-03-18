@@ -373,14 +373,13 @@ export default function SettingsClient({ profile, categoryStats = [] }: { profil
   );
 }
 
-/* ═══════════════ Categories Tab Component ═══════════════ */
-function CategoriesTab({ isDark, categoryStats, card, border, txt, sub, muted, inputCls, labelCls }: any) {
+/* ═══════════════ Categories Tab ═══════════════ */
+function CategoriesTab({ isDark, categoryStats, txt, sub, muted }: any) {
   const [customCats, setCustomCats] = useState<{ name: string; emoji: string; color: string; dir: string }[]>([]);
   const [loaded, setLoaded] = useState(false);
-  const [editIdx, setEditIdx] = useState<number | null>(null);
-  const [form, setForm] = useState({ name: "", emoji: "📋", color: CAT_COLORS[0], dir: "expense" });
-  const [confirmDelete, setConfirmDelete] = useState<{ name: string; dir: string } | null>(null);
-  const [confirmEdit, setConfirmEdit] = useState<{ name: string; dir: string; newName: string } | null>(null);
+  const [addDir, setAddDir] = useState<string | null>(null);
+  const [addName, setAddName] = useState("");
+  const [confirm, setConfirm] = useState<{ name: string; dir: string; action: "delete" } | null>(null);
 
   useEffect(() => { try { const s = localStorage.getItem("iped-custom-cats"); if (s) setCustomCats(JSON.parse(s).map((c: any) => ({ ...c, dir: c.direction || c.dir }))); } catch {} setLoaded(true); }, []);
   useEffect(() => { if (loaded) localStorage.setItem("iped-custom-cats", JSON.stringify(customCats)); }, [customCats, loaded]);
@@ -388,164 +387,62 @@ function CategoriesTab({ isDark, categoryStats, card, border, txt, sub, muted, i
   const allCats = [...DEFAULT_CATS, ...customCats];
   const getStat = (name: string, dir: string) => (categoryStats as CatStat[]).find((c) => c.name === name && c.direction === dir);
 
-  const handleAdd = () => {
-    if (!form.name) return;
-    setCustomCats((prev) => [...prev, { name: form.name, emoji: form.emoji, color: form.color, dir: form.dir }]);
-    setForm({ name: "", emoji: "📋", color: CAT_COLORS[Math.floor(Math.random() * CAT_COLORS.length)], dir: form.dir });
+  const handleAdd = (dir: string) => {
+    if (!addName.trim()) return;
+    setCustomCats((prev) => [...prev, { name: addName.trim(), emoji: "📋", color: CAT_COLORS[Math.floor(Math.random() * CAT_COLORS.length)], dir }]);
+    setAddName(""); setAddDir(null);
   };
 
-  const handleSaveEdit = (oldName: string, oldDir: string) => {
-    const stat = getStat(oldName, oldDir);
-    if (stat && stat.count > 0 && form.name !== oldName) {
-      setConfirmEdit({ name: oldName, dir: oldDir, newName: form.name });
-      return;
-    }
-    doEdit(oldName, oldDir);
-  };
-
-  const doEdit = (oldName: string, oldDir: string) => {
-    setCustomCats((prev) => prev.map((c) => (c.name === oldName && c.dir === oldDir) ? { ...c, name: form.name, emoji: form.emoji, color: form.color } : c));
-    setEditIdx(null);
-    setConfirmEdit(null);
-  };
-
-  const handleDelete = (name: string, dir: string) => {
+  const tryDelete = (name: string, dir: string) => {
     const stat = getStat(name, dir);
-    if (stat && stat.count > 0) {
-      setConfirmDelete({ name, dir });
-      return;
-    }
-    doDelete(name, dir);
-  };
-
-  const doDelete = (name: string, dir: string) => {
+    if (stat && stat.count > 0) { setConfirm({ name, dir, action: "delete" }); return; }
     setCustomCats((prev) => prev.filter((c) => !(c.name === name && c.dir === dir)));
-    setConfirmDelete(null);
   };
-
-  const inp = `w-full h-9 px-3 rounded-lg text-sm border ${isDark ? "bg-white/5 border-white/10 text-white" : "bg-gray-50 border-gray-200 text-gray-900"} focus:outline-none focus:border-[#FA3633]/50`;
 
   if (!loaded) return null;
 
-  const sections = (["expense", "income", "savings"] as const);
-
   return (
-    <div className="space-y-6">
-      <div>
-        <h3 className={`text-base font-semibold ${txt} mb-1`}>จัดการหมวดหมู่</h3>
-        <p className={`text-sm ${sub}`}>เพิ่ม แก้ไข หรือลบหมวดหมู่สำหรับรายรับ รายจ่าย และเงินออม</p>
-      </div>
-
-      {/* Confirm delete dialog */}
-      {confirmDelete && (() => {
-        const stat = getStat(confirmDelete.name, confirmDelete.dir);
+    <div className="space-y-5">
+      {/* Confirm dialog */}
+      {confirm && (() => {
+        const stat = getStat(confirm.name, confirm.dir);
         return (
-          <div className={`rounded-xl border-2 border-amber-500/30 p-4 ${isDark ? "bg-amber-500/5" : "bg-amber-50"}`}>
-            <div className="flex items-start gap-3">
-              <AlertTriangle size={20} className="text-amber-500 shrink-0 mt-0.5" />
-              <div className="flex-1">
-                <p className={`text-sm font-semibold ${txt}`}>ยืนยันลบ "{confirmDelete.name}" ({DIR_LABEL[confirmDelete.dir]})?</p>
-                <p className={`text-xs ${sub} mt-1`}>หมวดนี้มีข้อมูลอยู่แล้ว:</p>
-                <ul className={`text-xs ${sub} mt-1 ml-4 list-disc`}>
-                  <li>{stat?.count || 0} รายการ</li>
-                  <li>ยอดรวม ฿{(stat?.total || 0).toLocaleString("th-TH", { minimumFractionDigits: 2 })}</li>
-                </ul>
-                <p className="text-xs text-amber-500 mt-2">ลบเฉพาะหมวดหมู่ ข้อมูลรายการจะยังอยู่แต่จะไม่มีหมวดที่ตรงกัน</p>
-                <div className="flex gap-2 mt-3">
-                  <button onClick={() => doDelete(confirmDelete.name, confirmDelete.dir)} className="px-3 py-1.5 rounded-lg text-xs font-medium bg-red-500 text-white hover:bg-red-600">ลบเลย</button>
-                  <button onClick={() => setConfirmDelete(null)} className={`px-3 py-1.5 rounded-lg text-xs font-medium ${isDark ? "bg-white/5 text-white/60" : "bg-gray-100 text-gray-600"}`}>ยกเลิก</button>
-                </div>
-              </div>
-            </div>
+          <div className={`flex items-center gap-3 p-3 rounded-xl ${isDark ? "bg-amber-500/10 border border-amber-500/20" : "bg-amber-50 border border-amber-200"}`}>
+            <AlertTriangle size={16} className="text-amber-500 shrink-0" />
+            <span className={`text-xs flex-1 ${txt}`}>"{confirm.name}" มี <b>{stat?.count} รายการ</b> (฿{stat?.total?.toLocaleString("th-TH", { minimumFractionDigits: 2 })})</span>
+            <button onClick={() => { setCustomCats((prev) => prev.filter((c) => !(c.name === confirm.name && c.dir === confirm.dir))); setConfirm(null); }} className="px-2 py-1 rounded text-[11px] font-medium bg-red-500 text-white">ลบ</button>
+            <button onClick={() => setConfirm(null)} className={`px-2 py-1 rounded text-[11px] ${sub}`}>ยกเลิก</button>
           </div>
         );
       })()}
 
-      {/* Confirm edit dialog */}
-      {confirmEdit && (() => {
-        const stat = getStat(confirmEdit.name, confirmEdit.dir);
-        return (
-          <div className={`rounded-xl border-2 border-amber-500/30 p-4 ${isDark ? "bg-amber-500/5" : "bg-amber-50"}`}>
-            <div className="flex items-start gap-3">
-              <AlertTriangle size={20} className="text-amber-500 shrink-0 mt-0.5" />
-              <div className="flex-1">
-                <p className={`text-sm font-semibold ${txt}`}>เปลี่ยนชื่อ "{confirmEdit.name}" → "{confirmEdit.newName}"?</p>
-                <p className={`text-xs ${sub} mt-1`}>หมวดนี้มีข้อมูลอยู่แล้ว:</p>
-                <ul className={`text-xs ${sub} mt-1 ml-4 list-disc`}>
-                  <li>{stat?.count || 0} รายการ ({DIR_LABEL[confirmEdit.dir]})</li>
-                  <li>ยอดรวม ฿{(stat?.total || 0).toLocaleString("th-TH", { minimumFractionDigits: 2 })}</li>
-                </ul>
-                <p className="text-xs text-amber-500 mt-2">รายการเดิมจะยังใช้ชื่อหมวดเดิมอยู่ เฉพาะรายการใหม่จะใช้ชื่อใหม่</p>
-                <div className="flex gap-2 mt-3">
-                  <button onClick={() => doEdit(confirmEdit.name, confirmEdit.dir)} className="px-3 py-1.5 rounded-lg text-xs font-medium bg-amber-500 text-white hover:bg-amber-600">แก้ไขเลย</button>
-                  <button onClick={() => setConfirmEdit(null)} className={`px-3 py-1.5 rounded-lg text-xs font-medium ${isDark ? "bg-white/5 text-white/60" : "bg-gray-100 text-gray-600"}`}>ยกเลิก</button>
-                </div>
-              </div>
-            </div>
-          </div>
-        );
-      })()}
-
-      {sections.map((dir) => {
+      {(["expense", "income", "savings"] as const).map((dir) => {
         const items = allCats.filter((c) => c.dir === dir);
         return (
           <div key={dir}>
-            <div className="flex items-center gap-2 mb-3">
-              <div className="w-2 h-2 rounded-full" style={{ backgroundColor: DIR_CLR[dir] }} />
-              <span className={`text-sm font-semibold ${txt}`}>{DIR_LABEL[dir]}</span>
-              <span className={`text-xs ${muted}`}>{items.length}</span>
-            </div>
-
-            <div className="space-y-1.5">
-              {items.map((cat, i) => {
-                const globalIdx = allCats.indexOf(cat);
+            <span className={`text-xs font-medium ${sub} mb-2 block`}>{DIR_LABEL[dir]}</span>
+            <div className="flex flex-wrap gap-1.5">
+              {items.map((cat) => {
                 const stat = getStat(cat.name, dir);
                 const isCustom = customCats.some((c) => c.name === cat.name && c.dir === dir);
-                const isEditing = editIdx === globalIdx;
-
-                if (isEditing) {
-                  return (
-                    <div key={cat.name} className={`flex items-center gap-2 p-2 rounded-xl border ${border} ${isDark ? "bg-white/[0.03]" : "bg-gray-50"}`}>
-                      <input value={form.emoji} onChange={(e) => setForm({ ...form, emoji: e.target.value })} className={`w-10 text-center text-lg bg-transparent border rounded-lg ${isDark ? "border-white/10" : "border-gray-200"} focus:outline-none`} />
-                      <input value={form.name} onChange={(e) => setForm({ ...form, name: e.target.value })} className={`flex-1 ${inp}`} autoFocus />
-                      <div className="flex gap-1">
-                        {CAT_COLORS.slice(0, 6).map((c) => (
-                          <button key={c} onClick={() => setForm({ ...form, color: c })} className={`w-5 h-5 rounded-full ${form.color === c ? "ring-2 ring-offset-1 ring-white" : ""}`} style={{ backgroundColor: c }} />
-                        ))}
-                      </div>
-                      <button onClick={() => handleSaveEdit(cat.name, dir)} className="px-2.5 py-1 rounded-lg text-xs font-medium bg-[#FA3633] text-white">บันทึก</button>
-                      <button onClick={() => setEditIdx(null)} className={`px-2 py-1 rounded-lg text-xs ${muted}`}>ยกเลิก</button>
-                    </div>
-                  );
-                }
-
                 return (
-                  <div key={cat.name} className={`flex items-center gap-3 px-3 py-2 rounded-xl group ${isDark ? "hover:bg-white/[0.03]" : "hover:bg-gray-50"} transition-colors`}>
-                    <span className="text-base w-6 text-center">{cat.emoji}</span>
-                    <span className={`text-sm ${txt} flex-1`}>{cat.name}</span>
-                    {stat && stat.count > 0 && (
-                      <span className={`text-[10px] ${sub}`}>{stat.count} รายการ · ฿{stat.total.toLocaleString("th-TH", { minimumFractionDigits: 2 })}</span>
-                    )}
-                    <div className="flex gap-0.5 opacity-0 group-hover:opacity-100 transition-opacity">
-                      {isCustom && (
-                        <>
-                          <button onClick={() => { setEditIdx(globalIdx); setForm({ name: cat.name, emoji: cat.emoji, color: cat.color, dir }); }} className={`p-1 rounded ${isDark ? "hover:bg-white/10 text-white/30" : "hover:bg-gray-200 text-gray-400"}`}><Pencil size={12} /></button>
-                          <button onClick={() => handleDelete(cat.name, dir)} className={`p-1 rounded ${isDark ? "hover:bg-white/10 text-white/30 hover:text-red-400" : "hover:bg-gray-200 text-gray-400 hover:text-red-500"}`}><Trash2 size={12} /></button>
-                        </>
-                      )}
-                    </div>
-                  </div>
+                  <span key={cat.name} className={`inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs ${isDark ? "bg-white/[0.05]" : "bg-gray-100"} ${txt} group`}>
+                    {cat.emoji} {cat.name}
+                    {stat && stat.count > 0 && <span className={`text-[9px] font-bold px-1 py-0.5 rounded-full leading-none`} style={{ backgroundColor: DIR_CLR[dir] + "20", color: DIR_CLR[dir] }}>{stat.count}</span>}
+                    {isCustom && <button onClick={() => tryDelete(cat.name, dir)} className={`ml-0.5 opacity-0 group-hover:opacity-100 transition-opacity ${isDark ? "text-white/30 hover:text-red-400" : "text-gray-400 hover:text-red-500"}`}><Trash2 size={10} /></button>}
+                  </span>
                 );
               })}
-
-              {/* Inline add */}
-              <div className={`flex items-center gap-2 px-3 py-2`}>
-                <input value={form.dir === dir ? form.emoji : "📋"} onChange={(e) => setForm({ ...form, emoji: e.target.value, dir })} onFocus={() => setForm({ ...form, dir })} className={`w-8 text-center text-base bg-transparent focus:outline-none ${muted}`} placeholder="📋" />
-                <input value={form.dir === dir ? form.name : ""} onChange={(e) => setForm({ ...form, name: e.target.value, dir })} onFocus={() => { if (form.dir !== dir) setForm({ name: "", emoji: "📋", color: CAT_COLORS[Math.floor(Math.random() * CAT_COLORS.length)], dir }); }} placeholder="พิมพ์ชื่อหมวดใหม่..." className={`flex-1 text-sm bg-transparent focus:outline-none ${txt} placeholder:${muted}`} onKeyDown={(e) => { if (e.key === "Enter" && form.dir === dir) handleAdd(); }} />
-                {form.dir === dir && form.name && (
-                  <button onClick={handleAdd} className="px-2.5 py-1 rounded-lg text-[11px] font-medium text-white" style={{ backgroundColor: DIR_CLR[dir] }}>เพิ่ม</button>
-                )}
-              </div>
+              {addDir === dir ? (
+                <span className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-full ${isDark ? "bg-white/[0.05]" : "bg-gray-100"}`}>
+                  <input value={addName} onChange={(e) => setAddName(e.target.value)} placeholder="ชื่อหมวด" className={`w-20 text-xs bg-transparent focus:outline-none ${txt}`} autoFocus onKeyDown={(e) => { if (e.key === "Enter") handleAdd(dir); if (e.key === "Escape") setAddDir(null); }} />
+                  <button onClick={() => handleAdd(dir)} className="text-[10px] font-medium" style={{ color: DIR_CLR[dir] }}>เพิ่ม</button>
+                </span>
+              ) : (
+                <button onClick={() => { setAddDir(dir); setAddName(""); }} className={`inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs border border-dashed ${isDark ? "border-white/10 text-white/30 hover:text-white/50" : "border-gray-300 text-gray-400 hover:text-gray-500"}`}>
+                  <Plus size={10} /> เพิ่ม
+                </button>
+              )}
             </div>
           </div>
         );
