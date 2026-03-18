@@ -130,6 +130,108 @@ Use null for fields not found. Amount should be the final total. Date in YYYY-MM
   }
 }
 
+export async function processEmailBody(htmlBody: string, subject: string, from: string): Promise<OCRResult> {
+  if (!process.env.ANTHROPIC_API_KEY) {
+    return simulateOCR();
+  }
+
+  // Strip HTML tags for cleaner analysis, keep text
+  const textBody = htmlBody
+    .replace(/<style[^>]*>[\s\S]*?<\/style>/gi, "")
+    .replace(/<script[^>]*>[\s\S]*?<\/script>/gi, "")
+    .replace(/<[^>]+>/g, " ")
+    .replace(/&nbsp;/g, " ")
+    .replace(/&amp;/g, "&")
+    .replace(/&lt;/g, "<")
+    .replace(/&gt;/g, ">")
+    .replace(/\s+/g, " ")
+    .trim()
+    .slice(0, 5000); // Limit to 5000 chars
+
+  const response = await client.messages.create({
+    model: "claude-sonnet-4-20250514",
+    max_tokens: 2000,
+    messages: [
+      {
+        role: "user",
+        content: `Analyze this email receipt/invoice/payment notification. Extract financial information.
+
+Subject: ${subject}
+From: ${from}
+
+Email body:
+${textBody}
+
+Return ONLY valid JSON (no markdown):
+{
+  "merchant": "company/service name from the email",
+  "documentNumber": "invoice/receipt/order number if found",
+  "date": "YYYY-MM-DD (payment/invoice date)",
+  "amount": total_amount_number_in_original_currency,
+  "currency": "USD or THB or other",
+  "vat": vat_if_shown,
+  "type": "receipt|invoice|billing",
+  "paymentMethod": "credit|transfer|other",
+  "lineItems": [{"description":"item","quantity":1,"unitPrice":0,"amount":0}],
+  "confidence": 0-100,
+  "summary": "brief Thai description of what this email is about"
+}
+Use null for fields not found. If this is NOT a receipt/invoice (e.g. just a payment reminder or marketing), set confidence to 10 and amount to 0.`,
+      },
+    ],
+  });
+
+  const text = response.content[0].type === "text" ? response.content[0].text : "";
+
+  try {
+    let jsonStr = text;
+    const jsonMatch = text.match(/\{[\s\S]*\}/);
+    if (jsonMatch) jsonStr = jsonMatch[0];
+
+    const parsed = JSON.parse(jsonStr);
+    const category = suggestCategory(parsed.merchant || subject);
+
+    return {
+      merchant: parsed.merchant || subject,
+      merchantTaxId: undefined,
+      merchantBranch: undefined,
+      merchantAddress: undefined,
+      documentNumber: parsed.documentNumber || undefined,
+      date: parsed.date || new Date().toISOString().split("T")[0],
+      time: undefined,
+      dueDate: undefined,
+      amount: parsed.amount || 0,
+      subtotal: undefined,
+      discount: undefined,
+      vat: parsed.vat || undefined,
+      vatRate: undefined,
+      wht: undefined,
+      whtRate: undefined,
+      type: parsed.type || "receipt",
+      paymentMethod: parsed.paymentMethod || undefined,
+      category: category.name,
+      categoryIcon: category.icon,
+      lineItems: parsed.lineItems || undefined,
+      currency: parsed.currency || "USD",
+      ocrConfidence: parsed.confidence || 50,
+      ocrRawText: parsed.summary || textBody.slice(0, 200),
+    };
+  } catch {
+    const category = suggestCategory(subject);
+    return {
+      merchant: subject,
+      date: new Date().toISOString().split("T")[0],
+      amount: 0,
+      type: "receipt",
+      category: category.name,
+      categoryIcon: category.icon,
+      currency: "USD",
+      ocrConfidence: 0,
+      ocrRawText: textBody.slice(0, 200),
+    };
+  }
+}
+
 // Fallback demo OCR
 function simulateOCR(): OCRResult {
   const merchants = [

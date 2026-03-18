@@ -4,8 +4,9 @@ import { connectDB } from "@/lib/mongodb";
 import User from "@/models/User";
 import GoogleAccount from "@/models/GoogleAccount";
 import Receipt from "@/models/Receipt";
-import { processOCR } from "@/lib/ocr";
+import { processOCR, processEmailBody } from "@/lib/ocr";
 import { findMatches } from "@/lib/auto-match";
+import FileModel from "@/models/File";
 import crypto from "crypto";
 
 // Helper: find attachments recursively (handles nested multipart)
@@ -40,6 +41,33 @@ function parseEmailDate(dateStr: string): Date {
 function cleanEmail(from: string): string {
   const match = from.match(/<([^>]+)>/);
   return match ? match[1] : from;
+}
+
+// Helper: extract HTML/text body from email payload
+function getEmailBody(payload: any): string {
+  if (payload.body?.data) {
+    const decoded = Buffer.from(payload.body.data.replace(/-/g, "+").replace(/_/g, "/"), "base64").toString("utf-8");
+    return decoded;
+  }
+  if (payload.parts) {
+    // Prefer text/html, fallback to text/plain
+    const htmlPart = payload.parts.find((p: any) => p.mimeType === "text/html");
+    if (htmlPart?.body?.data) {
+      return Buffer.from(htmlPart.body.data.replace(/-/g, "+").replace(/_/g, "/"), "base64").toString("utf-8");
+    }
+    const textPart = payload.parts.find((p: any) => p.mimeType === "text/plain");
+    if (textPart?.body?.data) {
+      return Buffer.from(textPart.body.data.replace(/-/g, "+").replace(/_/g, "/"), "base64").toString("utf-8");
+    }
+    // Check nested parts (multipart/alternative inside multipart/mixed)
+    for (const part of payload.parts) {
+      if (part.parts) {
+        const nested = getEmailBody(part);
+        if (nested) return nested;
+      }
+    }
+  }
+  return "";
 }
 
 // POST /api/gmail/scan — scan Gmail for receipts (all connected accounts)
@@ -213,6 +241,19 @@ export async function POST(request: NextRequest) {
                   note: `gmail:${messageId}`,
                 });
 
+                // Save attachment as downloadable file
+                try {
+                  await FileModel.create({
+                    name: att.filename || `${ocrResult.merchant || "receipt"}_${emailDate.toISOString().slice(0, 10)}.${att.mimeType.startsWith("image/") ? "jpg" : "pdf"}`,
+                    type: att.mimeType,
+                    size: Math.ceil(base64.length * 0.75),
+                    data: base64,
+                    category: "email-attachment",
+                    note: `จาก email: ${subject} | Receipt: ${receipt._id}`,
+                    userId: userId,
+                  });
+                } catch (fileErr) { console.error("File save error:", fileErr); }
+
                 await findMatches(String(receipt._id), userId);
 
                 // Auto-sync to Google Drive
@@ -246,12 +287,27 @@ export async function POST(request: NextRequest) {
                   emailFrom: cleanEmail(from),
                   note: `gmail:${messageId}`,
                 });
+
+                // Save attachment even if OCR failed
+                try {
+                  await FileModel.create({
+                    name: att.filename || `attachment_${emailDate.toISOString().slice(0, 10)}.${att.mimeType.startsWith("image/") ? "jpg" : "pdf"}`,
+                    type: att.mimeType,
+                    size: Math.ceil(base64.length * 0.75),
+                    data: base64,
+                    category: "email-attachment",
+                    note: `จาก email: ${subject} | Receipt: ${receipt._id}`,
+                    userId: userId,
+                  });
+                } catch (fileErr) { console.error("File save error:", fileErr); }
+
                 results.push({ subject, from: cleanEmail(from), date: dateStr, status: "ocr_failed", receiptId: String(receipt._id), account: account.email });
               }
             }
           } else {
-            // No supported attachment — save email as a record anyway
-            const receipt = await Receipt.create({
+            // No supported attachment — analyze email body for receipt data
+            const emailBody = getEmailBody(msgData.payload);
+            let receiptData: any = {
               merchant: subject,
               date: emailDate,
               amount: 0,
@@ -265,8 +321,39 @@ export async function POST(request: NextRequest) {
               emailSubject: subject,
               emailFrom: cleanEmail(from),
               note: `gmail:${messageId}`,
+            };
+
+            if (emailBody.length > 50) {
+              try {
+                const bodyResult = await processEmailBody(emailBody, subject, cleanEmail(from));
+                if (bodyResult.ocrConfidence >= 20) {
+                  receiptData = {
+                    ...receiptData,
+                    merchant: bodyResult.merchant || subject,
+                    date: bodyResult.date ? new Date(bodyResult.date) : emailDate,
+                    amount: bodyResult.amount || 0,
+                    category: bodyResult.category || "อื่นๆ",
+                    categoryIcon: bodyResult.categoryIcon || "📧",
+                    type: bodyResult.type || "receipt",
+                    paymentMethod: bodyResult.paymentMethod,
+                    ocrConfidence: bodyResult.ocrConfidence / 100,
+                    ocrRawText: bodyResult.ocrRawText,
+                  };
+                }
+              } catch (e) {
+                console.error("Email body analysis error:", e);
+              }
+            }
+
+            const receipt = await Receipt.create(receiptData);
+            results.push({
+              subject,
+              from: cleanEmail(from),
+              date: dateStr,
+              status: receiptData.amount > 0 ? "saved" : "no_attachment",
+              receiptId: String(receipt._id),
+              account: account.email,
             });
-            results.push({ subject, from: cleanEmail(from), date: dateStr, status: "no_attachment", receiptId: String(receipt._id), account: account.email });
           }
         } catch (msgErr) {
           console.error("Error processing message:", msgErr);
