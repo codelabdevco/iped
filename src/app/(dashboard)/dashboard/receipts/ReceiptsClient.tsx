@@ -525,8 +525,7 @@ export default function ReceiptsClient({ receipts: initialReceipts }: { receipts
       align: "right",
       render: (r) => {
         const dir = r.direction || "expense";
-        const cls = dir === "income" ? "font-semibold text-green-500" : dir === "savings" ? "font-semibold text-pink-400" : "font-semibold";
-        return <Baht value={r.amount} className={cls} />;
+        return <Baht value={r.amount} className="font-semibold" />;
       },
     },
     {
