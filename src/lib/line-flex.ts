@@ -573,7 +573,7 @@ export function receiptConfirmFlex(data: ReceiptFlexData) {
 
           sep(),
 
-          // ── Date / Time (one row) ──
+          // ── Date / Time + Payment (one row) ──
           {
             type: "box",
             layout: "horizontal",
@@ -586,15 +586,17 @@ export function receiptConfirmFlex(data: ReceiptFlexData) {
                 color: C.sub,
                 flex: 1,
               },
-              {
-                type: "text",
-                text: PAY_NAMES[data.paymentMethod || ""] || data.paymentMethod || "",
-                size: "xs",
-                color: C.textSec,
-                weight: "bold",
-                flex: 0,
-                align: "end",
-              },
+              ...(data.paymentMethod
+                ? [{
+                    type: "text" as const,
+                    text: PAY_NAMES[data.paymentMethod] || data.paymentMethod,
+                    size: "xs" as const,
+                    color: C.textSec,
+                    weight: "bold" as const,
+                    flex: 0,
+                    align: "end" as const,
+                  }]
+                : []),
             ],
           },
 
