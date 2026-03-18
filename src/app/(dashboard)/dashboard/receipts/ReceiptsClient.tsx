@@ -41,21 +41,25 @@ interface ReceiptRow {
 }
 
 const statusStyle: Record<string, string> = {
-  confirmed: "bg-green-500/10 text-green-400",
   pending: "bg-yellow-500/10 text-yellow-400",
-  rejected: "bg-red-500/10 text-red-400",
-  duplicate: "bg-orange-500/10 text-orange-400",
-  ocr_incomplete: "bg-purple-500/10 text-purple-400",
+  confirmed: "bg-green-500/10 text-green-400",
+  edited: "bg-blue-500/10 text-blue-400",
+  paid: "bg-emerald-500/10 text-emerald-400",
+  overdue: "bg-red-500/10 text-red-400",
+  matched: "bg-cyan-500/10 text-cyan-400",
+  cancelled: "bg-gray-500/10 text-gray-400",
 };
 const statusLabel: Record<string, string> = {
-  confirmed: "ยืนยันแล้ว",
   pending: "รอตรวจสอบ",
-  rejected: "ปฏิเสธ",
-  duplicate: "สลิปซ้ำ",
-  ocr_incomplete: "OCR ไม่สมบูรณ์",
+  confirmed: "ยืนยันแล้ว",
+  edited: "แก้ไขแล้ว",
+  paid: "ชำระแล้ว",
+  overdue: "เกินกำหนด",
+  matched: "จับคู่แล้ว",
+  cancelled: "ยกเลิก",
 };
 const STATUS_DOTS: Record<string, string> = {
-  confirmed: "#22c55e", pending: "#eab308", rejected: "#ef4444", duplicate: "#f97316", ocr_incomplete: "#a855f7",
+  pending: "#eab308", confirmed: "#22c55e", edited: "#3b82f6", paid: "#10b981", overdue: "#ef4444", matched: "#06b6d4", cancelled: "#6b7280",
 };
 const STATUS_OPTIONS = Object.entries(statusLabel).map(([k, v]) => ({ value: k, label: v, dot: STATUS_DOTS[k] }));
 const CATEGORY_COLORS: Record<string, string> = {
@@ -157,10 +161,22 @@ export default function ReceiptsClient({ receipts: initialReceipts }: { receipts
 
   const handleEdit = (r: ReceiptRow) => {
     setEditingId(r._id);
-    setEditForm({ storeName: r.storeName, amount: r.amount, category: r.category, status: r.status, type: r.type, date: r.rawDate || r.date, source: r.source });
+    setEditForm({
+      storeName: r.storeName,
+      amount: r.amount,
+      category: r.category,
+      status: r.status,
+      type: r.type,
+      date: r.rawDate || r.date,
+      paymentMethod: r.paymentMethod || "",
+      note: r.note || "",
+      documentNumber: r.documentNumber || "",
+      merchantTaxId: r.merchantTaxId || "",
+    });
     setEditItems(r.items && r.items.length > 0 ? [...r.items] : [{ name: r.storeName, qty: 1, price: r.amount }]);
-    setVatEnabled(false);
-    setWhtEnabled(false);
+    setVatEnabled((r.vat || 0) > 0);
+    setWhtEnabled((r.wht || 0) > 0);
+    setTxType((r.amount || 0) < 0 ? "income" : "expense");
     setAttachments([]);
     setSlipPreview(r.imageUrl || null);
   };
@@ -195,7 +211,16 @@ export default function ReceiptsClient({ receipts: initialReceipts }: { receipts
     const vat = vatEnabled ? Math.round(itemsTotal * 0.07) : 0;
     const wht = whtEnabled ? Math.round(itemsTotal * 0.03) : 0;
     const total = itemsTotal + vat - wht;
-    setReceipts((prev) => prev.map((r) => r._id === editingId ? { ...r, ...editForm, amount: total, items: editItems, imageUrl: slipPreview || r.imageUrl } : r));
+    setReceipts((prev) => prev.map((r) => r._id === editingId ? {
+      ...r,
+      ...editForm,
+      amount: total,
+      vat,
+      wht,
+      items: editItems,
+      itemCount: editItems.length,
+      imageUrl: slipPreview || r.imageUrl,
+    } : r));
     setEditingId(null);
     setEditForm({});
     setEditItems([]);
@@ -409,11 +434,11 @@ export default function ReceiptsClient({ receipts: initialReceipts }: { receipts
             <div className="rounded-xl bg-white/[0.03] border border-white/10 p-4 space-y-3">
               <p className="text-xs font-semibold text-white/50">ข้อมูลใบเสร็จ</p>
               <div><label className={lbl}>ร้านค้า</label><input value={editForm.storeName || ""} onChange={(e) => setEditForm({ ...editForm, storeName: e.target.value })} className={inp} /></div>
-              <div><label className={lbl}>รายละเอียด</label><textarea rows={2} defaultValue="" placeholder="หมายเหตุ, รายละเอียดเพิ่มเติม..." className={`${inp} h-auto py-2`} /></div>
+              <div><label className={lbl}>หมายเหตุ</label><textarea rows={2} value={editForm.note || ""} onChange={(e) => setEditForm({ ...editForm, note: e.target.value })} placeholder="หมายเหตุ, รายละเอียดเพิ่มเติม..." className={`${inp} h-auto py-2`} /></div>
               <div className="grid grid-cols-2 gap-3">
                 <div><label className={lbl}>วันที่</label><DatePicker value={editForm.date || ""} onChange={(v) => setEditForm({ ...editForm, date: v })} /></div>
                 <div><label className={lbl}>วิธีจ่าย</label>
-                  <Select value={editForm.source || "cash"} onChange={(v) => setEditForm({ ...editForm, source: v })} options={PAYMENT_METHODS} />
+                  <Select value={editForm.paymentMethod || "cash"} onChange={(v) => setEditForm({ ...editForm, paymentMethod: v })} options={PAYMENT_METHODS} />
                 </div>
               </div>
               <div className="grid grid-cols-2 gap-3">
@@ -426,6 +451,10 @@ export default function ReceiptsClient({ receipts: initialReceipts }: { receipts
               </div>
               <div><label className={lbl}>ประเภท</label>
                 <Select value={editForm.type || "receipt"} onChange={(v) => setEditForm({ ...editForm, type: v })} options={Object.entries(typeLabel).map(([k, v]) => ({ value: k, label: v }))} />
+              </div>
+              <div className="grid grid-cols-2 gap-3">
+                <div><label className={lbl}>เลขที่เอกสาร</label><input value={editForm.documentNumber || ""} onChange={(e) => setEditForm({ ...editForm, documentNumber: e.target.value })} placeholder="RCP-2026-0001" className={inp} /></div>
+                <div><label className={lbl}>เลขผู้เสียภาษี</label><input value={editForm.merchantTaxId || ""} onChange={(e) => setEditForm({ ...editForm, merchantTaxId: e.target.value })} placeholder="0107536000269" className={inp} /></div>
               </div>
             </div>
 
@@ -511,7 +540,9 @@ export default function ReceiptsClient({ receipts: initialReceipts }: { receipts
             {/* Financial info */}
             <div className="rounded-xl bg-white/[0.03] border border-white/10 p-4 space-y-2">
               <p className="text-xs font-semibold text-white/50">ข้อมูลเพิ่มเติม</p>
-              <div className="flex justify-between text-sm"><span className="text-white/40">วิธีจ่าย</span><span className="text-white">{editingReceipt.source || "-"}</span></div>
+              {editingReceipt.documentNumber && <div className="flex justify-between text-sm"><span className="text-white/40">เลขที่เอกสาร</span><span className="text-white font-mono text-xs">{editingReceipt.documentNumber}</span></div>}
+              {editingReceipt.merchantTaxId && <div className="flex justify-between text-sm"><span className="text-white/40">เลขผู้เสียภาษี</span><span className="text-white font-mono text-xs">{editingReceipt.merchantTaxId}</span></div>}
+              <div className="flex justify-between text-sm"><span className="text-white/40">วิธีจ่าย</span><span className="text-white">{paymentLabel[editingReceipt.paymentMethod || ""] || editingReceipt.paymentMethod || "-"}</span></div>
               <div className="flex justify-between text-sm"><span className="text-white/40">Drive</span><span className="flex items-center gap-1.5">{editingReceipt.driveUploaded ? <><Cloud size={14} className="text-green-500" /><span className="text-green-400 text-xs">อัปโหลดแล้ว</span></> : <><CloudOff size={14} className="text-white/20" /><span className="text-white/30 text-xs">ยังไม่อัปโหลด</span></>}</span></div>
             </div>
 
@@ -537,7 +568,7 @@ export default function ReceiptsClient({ receipts: initialReceipts }: { receipts
         <StatsCard label="ใบเสร็จทั้งหมด" value={`${filtered.length} รายการ`} icon={<Receipt size={20} />} color="text-blue-500" />
         <StatsCard label="ยอดรวม" value={`฿${totalAmount.toLocaleString()}`} icon={<FileText size={20} />} color="text-[#FA3633]" />
         <StatsCard label="ยืนยันแล้ว" value={`${confirmed} รายการ`} icon={<CheckCircle size={20} />} color="text-green-500" />
-        <StatsCard label="อัปโหลด Drive" value={`${driveUploaded} / ${filtered.length}`} icon={<HardDrive size={20} />} color="text-blue-400" />
+        <StatsCard label="รอตรวจสอบ" value={`${pending} รายการ`} icon={<Clock size={20} />} color="text-yellow-500" />
       </div>
 
       {/* Filters — select dropdowns */}

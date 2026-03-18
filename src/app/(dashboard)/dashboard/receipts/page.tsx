@@ -23,7 +23,7 @@ export default async function ReceiptsPage() {
     .limit(100)
     .lean();
 
-  const data = receipts.map((r) => ({
+  const data = receipts.map((r: any) => ({
     _id: String(r._id),
     storeName: r.storeName || r.merchant || "ไม่ระบุร้าน",
     amount: r.amount || 0,
@@ -34,8 +34,8 @@ export default async function ReceiptsPage() {
       : new Date(r.createdAt).toLocaleDateString("th-TH"),
     status: r.status || "pending",
     type: r.type || "receipt",
-    source: r.source || "line",
-    paymentMethod: r.paymentMethod || r.source || "",
+    source: r.source || "web",
+    paymentMethod: r.paymentMethod || "",
     note: r.note || "",
     vat: r.vat || 0,
     wht: r.wht || 0,
@@ -44,7 +44,8 @@ export default async function ReceiptsPage() {
     ocrConfidence: r.ocrConfidence ?? null,
     imageUrl: r.imageUrl || "",
     driveUploaded: !!r.imageUrl,
-    itemCount: Array.isArray((r as any).items) ? (r as any).items.length : 0,
+    items: Array.isArray(r.items) ? r.items : [],
+    itemCount: Array.isArray(r.items) ? r.items.length : 0,
   }));
 
   return <ReceiptsClient receipts={data} />;
