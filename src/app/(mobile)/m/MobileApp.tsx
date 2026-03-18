@@ -100,6 +100,13 @@ export default function MobileApp({ data }: { data: MobileData }) {
 // ─── Shared helpers ───
 const fmt = (n: number) => n.toLocaleString("th-TH", { minimumFractionDigits: 0 });
 
+const PAY_LABELS: Record<string, string> = {
+  "bank-scb": "ไทยพาณิชย์", "bank-kbank": "กสิกร", "bank-bbl": "กรุงเทพ", "bank-ktb": "กรุงไทย",
+  "bank-bay": "กรุงศรี", "bank-tmb": "ทีทีบี", "bank-gsb": "ออมสิน", promptpay: "พร้อมเพย์",
+  cash: "เงินสด", transfer: "โอนเงิน", credit: "บัตรเครดิต", debit: "บัตรเดบิต",
+  "ewallet-truemoney": "TrueMoney", "ewallet-rabbit": "Rabbit LINE Pay", "ewallet-shopee": "ShopeePay",
+};
+
 function useStyles(isDark: boolean) {
   return {
     card: isDark ? "bg-[rgba(255,255,255,0.04)]" : "bg-white",
@@ -112,22 +119,41 @@ function useStyles(isDark: boolean) {
 }
 
 // ═══════════════════════════════
-//  HOME TAB
+//  HOME TAB (mirrors dashboard)
 // ═══════════════════════════════
 function HomeTab({ data, isDark, onScan }: { data: MobileData; isDark: boolean; onScan: () => void }) {
   const { card, border, txt, sub, muted } = useStyles(isDark);
   const budgetPct = data.profile.monthlyBudget > 0 ? Math.min(100, (data.monthExpense / data.profile.monthlyBudget) * 100) : 0;
+  const net = data.monthIncome - data.monthExpense;
+  const avgPerDay = data.daysInMonth > 0 ? Math.round(data.totalExpense / Math.min(new Date().getDate(), data.daysInMonth)) : 0;
+  const avgPerReceipt = data.stats.monthReceipts > 0 ? Math.round(data.totalExpense / data.stats.monthReceipts) : 0;
 
   return (
     <div className="space-y-4 pt-2">
+      {/* Greeting */}
       <div>
         <p className={`text-lg font-bold ${txt}`}>สวัสดี, {(data.profile.lineDisplayName || data.profile.name).split(" ")[0]} 👋</p>
         <p className={`text-xs ${sub}`}>{new Date().toLocaleDateString("th-TH", { weekday: "long", day: "numeric", month: "long", year: "numeric" })}</p>
       </div>
 
+      {/* Connection status */}
+      <div className={`flex items-center gap-3 ${card} border ${border} rounded-xl px-3 py-2 overflow-x-auto`}>
+        {[
+          { name: "LINE", brand: "line", on: true },
+          { name: "Gmail", brand: "gmail", on: !!data.profile.googleEmail },
+          { name: "Drive", brand: "google-drive", on: !!data.profile.googleEmail },
+        ].map((s) => (
+          <div key={s.name} className="flex items-center gap-1 shrink-0">
+            <BrandIcon brand={s.brand} size={14} />
+            <span className={`text-[10px] ${s.on ? txt : muted}`}>{s.name}</span>
+            <span className={`w-1.5 h-1.5 rounded-full ${s.on ? "bg-green-500" : isDark ? "bg-white/15" : "bg-gray-300"}`} />
+          </div>
+        ))}
+      </div>
+
       {/* Today card */}
       <div className="rounded-2xl bg-gradient-to-br from-[#FA3633] to-[#ff6b6b] p-5 text-white">
-        <p className="text-xs text-white/70">วันนี้</p>
+        <p className="text-xs text-white/70">รายจ่ายวันนี้</p>
         <div className="flex items-end justify-between mt-1">
           <div>
             <p className="text-3xl font-bold">฿{fmt(data.todayExpense)}</p>
@@ -135,51 +161,123 @@ function HomeTab({ data, isDark, onScan }: { data: MobileData; isDark: boolean; 
           </div>
           {data.todayIncome > 0 && (
             <div className="text-right">
-              <p className="text-xs text-white/60">รายรับ</p>
+              <p className="text-xs text-white/60">รายรับวันนี้</p>
               <p className="text-lg font-bold">+฿{fmt(data.todayIncome)}</p>
             </div>
           )}
         </div>
       </div>
 
+      {/* Quick scan */}
       <button onClick={onScan} className="w-full flex items-center justify-center gap-3 py-4 rounded-2xl bg-[#FA3633] text-white font-semibold text-sm shadow-lg active:scale-[0.98] transition-transform">
         <ScanLine size={20} /> สแกนใบเสร็จ
       </button>
 
-      {/* Month summary */}
+      {/* Stats grid (4 cards like dashboard) */}
+      <div className="grid grid-cols-2 gap-3">
+        <div className={`${card} border ${border} rounded-xl p-3`}>
+          <p className={`text-[10px] ${muted}`}>ยอดรวมเดือนนี้</p>
+          <p className={`text-base font-bold text-[#FA3633] mt-0.5`}>฿{fmt(data.totalExpense)}</p>
+        </div>
+        <div className={`${card} border ${border} rounded-xl p-3`}>
+          <p className={`text-[10px] ${muted}`}>จำนวนใบเสร็จ</p>
+          <p className={`text-base font-bold ${txt} mt-0.5`}>{data.stats.monthReceipts} ใบ</p>
+        </div>
+        <div className={`${card} border ${border} rounded-xl p-3`}>
+          <p className={`text-[10px] ${muted}`}>เฉลี่ย/วัน</p>
+          <p className={`text-base font-bold ${txt} mt-0.5`}>฿{fmt(avgPerDay)}</p>
+        </div>
+        <div className={`${card} border ${border} rounded-xl p-3`}>
+          <p className={`text-[10px] ${muted}`}>เฉลี่ย/ใบ</p>
+          <p className={`text-base font-bold ${txt} mt-0.5`}>฿{fmt(avgPerReceipt)}</p>
+        </div>
+      </div>
+
+      {/* Month summary: income / expense / net */}
       <div className={`${card} border ${border} rounded-2xl p-4`}>
-        <p className={`text-xs font-semibold ${sub} mb-3`}>เดือนนี้</p>
-        <div className="grid grid-cols-2 gap-3">
-          <div className={`rounded-xl p-3 ${isDark ? "bg-red-500/10" : "bg-red-50"}`}>
+        <p className={`text-xs font-semibold ${txt} mb-3`}>สรุปเดือนนี้</p>
+        <div className="grid grid-cols-3 gap-2">
+          <div className={`rounded-xl p-2.5 ${isDark ? "bg-red-500/10" : "bg-red-50"}`}>
             <p className="text-[10px] text-red-500">รายจ่าย</p>
-            <p className="text-base font-bold text-red-500">฿{fmt(data.monthExpense)}</p>
+            <p className="text-sm font-bold text-red-500 mt-0.5">฿{fmt(data.monthExpense)}</p>
           </div>
-          <div className={`rounded-xl p-3 ${isDark ? "bg-green-500/10" : "bg-green-50"}`}>
+          <div className={`rounded-xl p-2.5 ${isDark ? "bg-green-500/10" : "bg-green-50"}`}>
             <p className="text-[10px] text-green-500">รายรับ</p>
-            <p className="text-base font-bold text-green-500">฿{fmt(data.monthIncome)}</p>
+            <p className="text-sm font-bold text-green-500 mt-0.5">฿{fmt(data.monthIncome)}</p>
+          </div>
+          <div className={`rounded-xl p-2.5 ${isDark ? "bg-blue-500/10" : "bg-blue-50"}`}>
+            <p className="text-[10px] text-blue-500">คงเหลือ</p>
+            <p className={`text-sm font-bold mt-0.5 ${net >= 0 ? "text-blue-500" : "text-red-500"}`}>{net >= 0 ? "+" : ""}฿{fmt(Math.abs(net))}</p>
           </div>
         </div>
+
+        {/* Budget progress */}
         {data.profile.monthlyBudget > 0 && (
           <div className="mt-3">
             <div className="flex justify-between mb-1">
-              <span className={`text-[10px] ${muted}`}>งบประมาณ</span>
-              <span className={`text-[10px] font-medium ${budgetPct > 80 ? "text-red-500" : sub}`}>{Math.round(budgetPct)}%</span>
+              <span className={`text-[10px] ${sub}`}>งบ ฿{fmt(data.profile.monthlyBudget)}</span>
+              <span className={`text-[10px] font-medium ${budgetPct > 80 ? "text-red-500" : sub}`}>ใช้ไป {Math.round(budgetPct)}%</span>
             </div>
-            <div className={`h-1.5 rounded-full ${isDark ? "bg-white/10" : "bg-gray-100"}`}>
-              <div className={`h-full rounded-full ${budgetPct > 80 ? "bg-red-500" : "bg-[#FA3633]"}`} style={{ width: `${budgetPct}%` }} />
+            <div className={`h-2 rounded-full ${isDark ? "bg-white/10" : "bg-gray-100"}`}>
+              <div className={`h-full rounded-full transition-all ${budgetPct > 100 ? "bg-red-500" : budgetPct > 80 ? "bg-amber-500" : "bg-[#FA3633]"}`} style={{ width: `${Math.min(budgetPct, 100)}%` }} />
             </div>
           </div>
         )}
       </div>
 
-      {/* Recent */}
+      {/* Top categories (mini) */}
+      {data.categories.length > 0 && (
+        <div className={`${card} border ${border} rounded-2xl p-4`}>
+          <p className={`text-xs font-semibold ${txt} mb-3`}>หมวดหมู่เดือนนี้</p>
+          <div className="space-y-2.5">
+            {data.categories.slice(0, 5).map((c: any) => {
+              const pct = data.totalExpense > 0 ? Math.round((c.total / data.totalExpense) * 100) : 0;
+              return (
+                <div key={c.name} className="flex items-center gap-2.5">
+                  <span className="text-sm w-6 text-center">{c.icon}</span>
+                  <span className={`text-xs flex-1 ${txt}`}>{c.name}</span>
+                  <span className={`text-[10px] ${muted}`}>{pct}%</span>
+                  <span className={`text-xs font-bold ${txt} w-16 text-right`}>฿{fmt(c.total)}</span>
+                </div>
+              );
+            })}
+          </div>
+        </div>
+      )}
+
+      {/* Payment methods (mini) */}
+      {data.paymentMethods && data.paymentMethods.length > 0 && (
+        <div className={`${card} border ${border} rounded-2xl p-4`}>
+          <p className={`text-xs font-semibold ${txt} mb-3`}>วิธีชำระเงิน</p>
+          <div className="space-y-2.5">
+            {data.paymentMethods.slice(0, 4).map((p: any) => (
+              <div key={p.method} className="flex items-center gap-2.5">
+                <BrandIcon brand={p.method} size={24} className="rounded-md" />
+                <span className={`text-xs flex-1 ${txt}`}>{PAY_LABELS[p.method] || p.method}</span>
+                <span className={`text-[10px] ${muted}`}>{p.count}x</span>
+                <span className={`text-xs font-bold ${txt}`}>฿{fmt(p.total)}</span>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+
+      {/* Recent receipts */}
       <div>
-        <p className={`text-sm font-semibold ${txt} mb-3`}>รายการล่าสุด</p>
+        <div className="flex items-center justify-between mb-3">
+          <p className={`text-sm font-semibold ${txt}`}>ใบเสร็จล่าสุด</p>
+          <span className={`text-[10px] ${muted}`}>{data.stats.totalReceipts} รายการทั้งหมด</span>
+        </div>
         <div className="space-y-2">
-          {data.receipts.slice(0, 8).map((r: any) => (
+          {data.receipts.slice(0, 10).map((r: any) => (
             <ReceiptRow key={r._id} r={r} isDark={isDark} />
           ))}
-          {data.receipts.length === 0 && <p className={`text-center py-8 text-sm ${sub}`}>ยังไม่มีรายการ</p>}
+          {data.receipts.length === 0 && (
+            <div className={`text-center py-8 ${sub}`}>
+              <p className="text-sm">ยังไม่มีรายการ</p>
+              <p className="text-xs mt-1">ส่งสลิปผ่าน LINE หรือกดสแกน</p>
+            </div>
+          )}
         </div>
       </div>
     </div>
@@ -305,13 +403,6 @@ function ScanTab({ isDark, onDone }: { isDark: boolean; onDone: () => void }) {
 // ═══════════════════════════════
 //  REPORTS TAB
 // ═══════════════════════════════
-const PAY_LABELS: Record<string, string> = {
-  "bank-scb": "ไทยพาณิชย์", "bank-kbank": "กสิกร", "bank-bbl": "กรุงเทพ", "bank-ktb": "กรุงไทย",
-  "bank-bay": "กรุงศรี", "bank-tmb": "ทีทีบี", "bank-gsb": "ออมสิน", promptpay: "พร้อมเพย์",
-  cash: "เงินสด", transfer: "โอนเงิน", credit: "บัตรเครดิต", debit: "บัตรเดบิต",
-  "ewallet-truemoney": "TrueMoney", "ewallet-rabbit": "Rabbit LINE Pay", "ewallet-shopee": "ShopeePay",
-};
-
 function ReportsTab({ data, isDark }: { data: MobileData; isDark: boolean }) {
   const { card, border, txt, sub, muted } = useStyles(isDark);
   const maxMonthly = Math.max(...data.monthlyData.map((m) => Math.max(m.expense, m.income)), 1);
