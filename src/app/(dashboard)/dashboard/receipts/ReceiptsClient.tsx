@@ -2,7 +2,7 @@
 
 import { useState, useMemo, useCallback, useRef, useEffect } from "react";
 import { useRouter } from "next/navigation";
-import { Search, Filter, Receipt, FileText, CheckCircle, Clock, Pencil, Trash2, ImageIcon, Cloud, CloudOff, HardDrive, Upload, X } from "lucide-react";
+import { Search, Filter, Receipt, FileText, CheckCircle, Clock, Pencil, Trash2, ImageIcon, Cloud, CloudOff, HardDrive, Upload, X, MessageCircle, Globe, User } from "lucide-react";
 import Select from "@/components/dashboard/Select";
 import DatePicker from "@/components/dashboard/DatePicker";
 import FileAttachments, { Attachment } from "@/components/dashboard/FileAttachments";
@@ -41,6 +41,7 @@ interface ReceiptRow {
   itemCount?: number;
   updatedAt?: string;
   createdAt?: string;
+  submittedBy?: string;
 }
 
 const statusStyle: Record<string, string> = {
@@ -295,6 +296,33 @@ export default function ReceiptsClient({ receipts: initialReceipts }: { receipts
     ) },
     { key: "amount", label: "จำนวนเงิน", align: "right", render: (r) => <span className="font-semibold">฿{r.amount.toLocaleString()}</span> },
     { key: "date", label: "วันที่" },
+    {
+      key: "source",
+      label: "ที่มา",
+      render: (r, dark) => {
+        const isLine = r.source === "line";
+        return (
+          <span className={`inline-flex items-center gap-1.5 px-2 py-1 rounded-md text-xs font-medium ${isLine ? "bg-green-500/10 text-green-500" : "bg-blue-500/10 text-blue-400"}`}>
+            {isLine ? <MessageCircle size={12} /> : <Globe size={12} />}
+            {isLine ? "LINE" : "เว็บ"}
+          </span>
+        );
+      },
+    },
+    {
+      key: "submittedBy",
+      label: "ผู้แนบ",
+      defaultVisible: false,
+      render: (r, dark) => {
+        if (!r.submittedBy) return <span className={muted}>-</span>;
+        return (
+          <span className="inline-flex items-center gap-1.5 text-xs">
+            <User size={12} className={muted} />
+            {r.submittedBy}
+          </span>
+        );
+      },
+    },
     {
       key: "updatedAt",
       label: "อัปเดตล่าสุด",

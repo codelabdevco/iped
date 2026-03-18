@@ -3,11 +3,8 @@ import { cookies } from "next/headers";
 
 import { connectDB } from "@/lib/mongodb";
 import Receipt from "@/models/Receipt";
+import User from "@/models/User";
 import ReceiptsClient from "./ReceiptsClient";
-
-interface JwtPayload {
-  userId: string;
-}
 
 export default async function ReceiptsPage() {
   const cookieStore = await cookies();
@@ -15,13 +12,34 @@ export default async function ReceiptsPage() {
   if (!token) return null;
 
   const decoded = await verifyToken(token);
-  if (!decoded) redirect("/login");
+  if (!decoded) return null;
 
   await connectDB();
-  const receipts = await Receipt.find({ userId: decoded.userId })
-    .sort({ createdAt: -1 })
-    .limit(100)
-    .lean();
+
+  // For business mode: fetch all user names in the org for mapping
+  const [receipts, currentUser] = await Promise.all([
+    Receipt.find({ userId: decoded.userId })
+      .sort({ createdAt: -1 })
+      .limit(100)
+      .lean(),
+    User.findById(decoded.userId).select("lineDisplayName name accountType orgId").lean(),
+  ]);
+
+  // Build userId → display name map (for business mode with team)
+  let userNameMap: Record<string, string> = {};
+  if (currentUser) {
+    userNameMap[decoded.userId] = (currentUser as any).lineDisplayName || (currentUser as any).name || "ฉัน";
+
+    // If business mode with orgId, fetch team members
+    if ((currentUser as any).orgId) {
+      const teamUsers = await User.find({ orgId: (currentUser as any).orgId })
+        .select("_id lineDisplayName name")
+        .lean();
+      teamUsers.forEach((u: any) => {
+        userNameMap[String(u._id)] = u.lineDisplayName || u.name || "ไม่ระบุ";
+      });
+    }
+  }
 
   const data = receipts.map((r: any) => ({
     _id: String(r._id),
@@ -48,6 +66,7 @@ export default async function ReceiptsPage() {
     itemCount: Array.isArray(r.items) ? r.items.length : (Array.isArray(r.lineItems) ? r.lineItems.length : 0),
     updatedAt: r.updatedAt ? new Date(r.updatedAt).toISOString() : "",
     createdAt: r.createdAt ? new Date(r.createdAt).toISOString() : "",
+    submittedBy: userNameMap[r.userId] || "",
   }));
 
   return <ReceiptsClient receipts={data} />;
