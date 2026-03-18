@@ -164,6 +164,7 @@ export default function ReceiptsClient({ receipts: initialReceipts }: { receipts
   const [slipPreview, setSlipPreview] = useState<string | null>(null);
   const [slipDragging, setSlipDragging] = useState(false);
   const slipInputRef = useRef<HTMLInputElement>(null);
+  const [lightboxUrl, setLightboxUrl] = useState<string | null>(null);
 
   const filtered = useMemo(() => {
     return receipts.filter((r) => {
@@ -276,7 +277,10 @@ export default function ReceiptsClient({ receipts: initialReceipts }: { receipts
       key: "image",
       label: "รูป",
       render: (r, dark) => (
-        <div className={`w-10 h-10 rounded-lg flex items-center justify-center overflow-hidden ${dark ? "bg-white/5" : "bg-gray-100"}`}>
+        <div
+          className={`w-10 h-10 rounded-lg flex items-center justify-center overflow-hidden ${r.imageUrl ? "cursor-pointer hover:ring-2 hover:ring-[#FA3633]/50 transition-all" : ""} ${dark ? "bg-white/5" : "bg-gray-100"}`}
+          onClick={r.imageUrl ? (e) => { e.stopPropagation(); setLightboxUrl(r.imageUrl!); } : undefined}
+        >
           {r.imageUrl ? <img src={r.imageUrl} alt="" className="w-full h-full object-cover" /> : <ImageIcon size={16} className={muted} />}
         </div>
       ),
@@ -429,6 +433,16 @@ export default function ReceiptsClient({ receipts: initialReceipts }: { receipts
 
   return (
     <div className="space-y-6">
+      {/* Image lightbox */}
+      {lightboxUrl && (
+        <div className="fixed inset-0 z-[60] flex items-center justify-center bg-black/80 backdrop-blur-sm" onClick={() => setLightboxUrl(null)}>
+          <div className="relative max-w-[90vw] max-h-[90vh]" onClick={(e) => e.stopPropagation()}>
+            <img src={lightboxUrl} alt="สลิป" className="max-w-full max-h-[90vh] rounded-2xl object-contain shadow-2xl" />
+            <button onClick={() => setLightboxUrl(null)} className="absolute -top-3 -right-3 w-8 h-8 rounded-full bg-black/70 text-white/80 hover:text-white flex items-center justify-center text-lg transition-colors border border-white/20">&times;</button>
+          </div>
+        </div>
+      )}
+
       {/* Slide-in edit panel from right */}
       {editingId && <div className="fixed inset-0 z-40 bg-black/60 transition-opacity" onClick={handleCancelEdit} />}
       {editingId && editingReceipt && (
