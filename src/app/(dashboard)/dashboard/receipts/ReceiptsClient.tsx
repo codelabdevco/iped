@@ -29,7 +29,7 @@ interface ReceiptRow {
   type: string;
   source: string;
   imageUrl?: string;
-  driveUploaded?: boolean;
+  hasImage?: boolean;
   items?: LineItem[];
   paymentMethod?: string;
   note?: string;
@@ -102,6 +102,44 @@ const PAYMENT_METHODS = [
   { value: "ewallet-shopee", label: "ShopeePay" },
   { value: "other", label: "อื่นๆ" },
 ];
+/** Lazy-load receipt image thumbnail */
+function LazyImage({ id, hasImage, onClickFull, isDark }: { id: string; hasImage?: boolean; onClickFull: (url: string) => void; isDark: boolean }) {
+  const [src, setSrc] = useState<string | null>(null);
+  const [loading, setLoading] = useState(false);
+  const [loaded, setLoaded] = useState(false);
+  const ref = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    if (!hasImage || loaded) return;
+    const el = ref.current;
+    if (!el) return;
+    const obs = new IntersectionObserver(([entry]) => {
+      if (entry.isIntersecting && !loaded && !loading) {
+        setLoading(true);
+        fetch(`/api/receipts/image?id=${id}`)
+          .then((r) => r.json())
+          .then((d) => { if (d.imageUrl) setSrc(d.imageUrl); })
+          .catch(() => {})
+          .finally(() => { setLoaded(true); setLoading(false); });
+        obs.disconnect();
+      }
+    }, { rootMargin: "100px" });
+    obs.observe(el);
+    return () => obs.disconnect();
+  }, [id, hasImage, loaded, loading]);
+
+  const muted = isDark ? "text-white/30" : "text-gray-400";
+  return (
+    <div
+      ref={ref}
+      className={`w-10 h-10 rounded-lg flex items-center justify-center overflow-hidden ${src ? "cursor-pointer hover:ring-2 hover:ring-[#FA3633]/50 transition-all" : ""} ${isDark ? "bg-white/5" : "bg-gray-100"}`}
+      onClick={src ? (e) => { e.stopPropagation(); onClickFull(src); } : undefined}
+    >
+      {src ? <img src={src} alt="" className="w-full h-full object-cover" /> : <ImageIcon size={16} className={muted} />}
+    </div>
+  );
+}
+
 /** Format currency with .00 in smaller muted style */
 function Baht({ value, className = "" }: { value: number; className?: string }) {
   const abs = Math.abs(value);
@@ -188,7 +226,7 @@ export default function ReceiptsClient({ receipts: initialReceipts }: { receipts
       const matchSearch = !search || r.storeName.toLowerCase().includes(search.toLowerCase()) || r.category.toLowerCase().includes(search.toLowerCase());
       const matchStatus = statusFilter === "all" || r.status === statusFilter;
       const matchType = typeFilter === "all" || r.type === typeFilter;
-      const matchDrive = driveFilter === "all" || (driveFilter === "uploaded" ? r.driveUploaded : !r.driveUploaded);
+      const matchDrive = driveFilter === "all" || (driveFilter === "uploaded" ? (r.hasImage || r.imageUrl) : !(r.hasImage || r.imageUrl));
       return matchSearch && matchStatus && matchType && matchDrive;
     });
   }, [receipts, search, statusFilter, typeFilter, driveFilter]);
@@ -196,7 +234,7 @@ export default function ReceiptsClient({ receipts: initialReceipts }: { receipts
   const totalAmount = filtered.reduce((s, r) => s + r.amount, 0);
   const confirmed = filtered.filter((r) => r.status === "confirmed").length;
   const pending = filtered.filter((r) => r.status === "pending").length;
-  const driveUploaded = filtered.filter((r) => r.driveUploaded).length;
+  const hasImages = filtered.filter((r) => r.hasImage || r.imageUrl).length;
 
   const card = isDark ? "bg-[rgba(255,255,255,0.04)]" : "bg-white";
   const border = isDark ? "border-[rgba(255,255,255,0.06)]" : "border-gray-200";
@@ -232,7 +270,18 @@ export default function ReceiptsClient({ receipts: initialReceipts }: { receipts
     setWhtEnabled((r.wht || 0) > 0);
     setTxType((r.amount || 0) < 0 ? "income" : "expense");
     setAttachments([]);
-    setSlipPreview(r.imageUrl || null);
+    // Load image lazily for edit panel
+    if (r.imageUrl) {
+      setSlipPreview(r.imageUrl);
+    } else if (r.hasImage) {
+      setSlipPreview(null);
+      fetch(`/api/receipts/image?id=${r._id}`)
+        .then((res) => res.json())
+        .then((d) => { if (d.imageUrl) setSlipPreview(d.imageUrl); })
+        .catch(() => {});
+    } else {
+      setSlipPreview(null);
+    }
   };
 
   const handleSlipUpload = (file: File) => {
@@ -359,7 +408,7 @@ export default function ReceiptsClient({ receipts: initialReceipts }: { receipts
           documentNumber: editForm.documentNumber || "",
           merchantTaxId: editForm.merchantTaxId || "",
           imageUrl: slipPreview || "",
-          driveUploaded: !!slipPreview,
+          hasImage: !!slipPreview,
           items: editItems,
           itemCount: editItems.length,
           createdAt: now,
@@ -397,12 +446,11 @@ export default function ReceiptsClient({ receipts: initialReceipts }: { receipts
       key: "image",
       label: "รูป",
       render: (r, dark) => (
-        <div
-          className={`w-10 h-10 rounded-lg flex items-center justify-center overflow-hidden ${r.imageUrl ? "cursor-pointer hover:ring-2 hover:ring-[#FA3633]/50 transition-all" : ""} ${dark ? "bg-white/5" : "bg-gray-100"}`}
-          onClick={r.imageUrl ? (e) => { e.stopPropagation(); setLightboxUrl(r.imageUrl!); } : undefined}
-        >
-          {r.imageUrl ? <img src={r.imageUrl} alt="" className="w-full h-full object-cover" /> : <ImageIcon size={16} className={muted} />}
-        </div>
+        r.imageUrl
+          ? <div className={`w-10 h-10 rounded-lg flex items-center justify-center overflow-hidden cursor-pointer hover:ring-2 hover:ring-[#FA3633]/50 transition-all ${dark ? "bg-white/5" : "bg-gray-100"}`} onClick={(e) => { e.stopPropagation(); setLightboxUrl(r.imageUrl!); }}>
+              <img src={r.imageUrl} alt="" className="w-full h-full object-cover" />
+            </div>
+          : <LazyImage id={r._id} hasImage={r.hasImage} onClickFull={setLightboxUrl} isDark={dark} />
       ),
     },
     {
@@ -520,9 +568,9 @@ export default function ReceiptsClient({ receipts: initialReceipts }: { receipts
       align: "center",
       render: (r, dark) => (
         <div className="relative group flex justify-center">
-          {r.driveUploaded ? <Cloud size={16} className="text-green-500" /> : <CloudOff size={16} className={dark ? "text-white/20" : "text-gray-300"} />}
+          {(r.hasImage || r.imageUrl) ? <Cloud size={16} className="text-green-500" /> : <CloudOff size={16} className={dark ? "text-white/20" : "text-gray-300"} />}
           <div className={`absolute bottom-full left-1/2 -translate-x-1/2 mb-2 px-2.5 py-1.5 rounded-lg text-xs whitespace-nowrap opacity-0 group-hover:opacity-100 pointer-events-none transition-opacity z-50 ${dark ? "bg-[#2a2a2a] text-white border border-white/10" : "bg-white text-gray-900 border border-gray-200 shadow-lg"}`}>
-            {r.driveUploaded ? "อัปโหลดแล้ว" : "ยังไม่ได้อัปโหลด"}
+            {(r.hasImage || r.imageUrl) ? "อัปโหลดแล้ว" : "ยังไม่ได้อัปโหลด"}
           </div>
         </div>
       ),
@@ -749,7 +797,7 @@ export default function ReceiptsClient({ receipts: initialReceipts }: { receipts
               {editingReceipt.documentNumber && <div className="flex justify-between text-sm"><span className="text-white/40">เลขที่เอกสาร</span><span className="text-white font-mono text-xs">{editingReceipt.documentNumber}</span></div>}
               {editingReceipt.merchantTaxId && <div className="flex justify-between text-sm"><span className="text-white/40">เลขผู้เสียภาษี</span><span className="text-white font-mono text-xs">{editingReceipt.merchantTaxId}</span></div>}
               <div className="flex justify-between text-sm"><span className="text-white/40">วิธีจ่าย</span><span className="text-white">{paymentLabel[editingReceipt.paymentMethod || ""] || editingReceipt.paymentMethod || "-"}</span></div>
-              <div className="flex justify-between text-sm"><span className="text-white/40">Drive</span><span className="flex items-center gap-1.5">{editingReceipt.driveUploaded ? <><Cloud size={14} className="text-green-500" /><span className="text-green-400 text-xs">อัปโหลดแล้ว</span></> : <><CloudOff size={14} className="text-white/20" /><span className="text-white/30 text-xs">ยังไม่อัปโหลด</span></>}</span></div>
+              <div className="flex justify-between text-sm"><span className="text-white/40">Drive</span><span className="flex items-center gap-1.5">{(editingReceipt.hasImage || editingReceipt.imageUrl) ? <><Cloud size={14} className="text-green-500" /><span className="text-green-400 text-xs">อัปโหลดแล้ว</span></> : <><CloudOff size={14} className="text-white/20" /><span className="text-white/30 text-xs">ยังไม่อัปโหลด</span></>}</span></div>
             </div>
             )}
 

@@ -19,6 +19,7 @@ export default async function ReceiptsPage() {
   // For business mode: fetch all user names in the org for mapping
   const [receipts, currentUser] = await Promise.all([
     Receipt.find({ userId: decoded.userId })
+      .select("-imageUrl -ocrRawText")
       .sort({ createdAt: -1 })
       .limit(100)
       .lean(),
@@ -60,8 +61,7 @@ export default async function ReceiptsPage() {
     documentNumber: r.documentNumber || "",
     merchantTaxId: r.merchantTaxId || "",
     ocrConfidence: r.ocrConfidence != null ? (r.ocrConfidence > 1 ? r.ocrConfidence / 100 : r.ocrConfidence) : null,
-    imageUrl: r.imageUrl || "",
-    driveUploaded: !!r.imageUrl,
+    hasImage: !!r.imageHash,
     items: Array.isArray(r.items) ? r.items : (Array.isArray(r.lineItems) ? r.lineItems.map((li: any) => ({ name: li.description, qty: li.quantity, price: li.unitPrice })) : []),
     itemCount: Array.isArray(r.items) ? r.items.length : (Array.isArray(r.lineItems) ? r.lineItems.length : 0),
     updatedAt: r.updatedAt ? new Date(r.updatedAt).toISOString() : "",
