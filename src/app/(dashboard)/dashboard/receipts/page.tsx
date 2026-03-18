@@ -1,3 +1,4 @@
+import { Suspense } from "react";
 import { verifyToken } from "@/lib/auth";
 import { cookies } from "next/headers";
 
@@ -5,8 +6,9 @@ import { connectDB } from "@/lib/mongodb";
 import Receipt from "@/models/Receipt";
 import User from "@/models/User";
 import ReceiptsClient from "./ReceiptsClient";
+import ReceiptsLoading from "./loading";
 
-export default async function ReceiptsPage() {
+async function ReceiptsData() {
   const cookieStore = await cookies();
   const token = cookieStore.get("iped-token")?.value;
   if (!token) return null;
@@ -16,7 +18,6 @@ export default async function ReceiptsPage() {
 
   await connectDB();
 
-  // For business mode: fetch all user names in the org for mapping
   const [receipts, currentUser] = await Promise.all([
     Receipt.find({ userId: decoded.userId })
       .select("-imageUrl -ocrRawText")
@@ -26,12 +27,9 @@ export default async function ReceiptsPage() {
     User.findById(decoded.userId).select("lineDisplayName name accountType orgId").lean(),
   ]);
 
-  // Build userId → display name map (for business mode with team)
   let userNameMap: Record<string, string> = {};
   if (currentUser) {
     userNameMap[decoded.userId] = (currentUser as any).lineDisplayName || (currentUser as any).name || "ฉัน";
-
-    // If business mode with orgId, fetch team members
     if ((currentUser as any).orgId) {
       const teamUsers = await User.find({ orgId: (currentUser as any).orgId })
         .select("_id lineDisplayName name")
@@ -70,4 +68,12 @@ export default async function ReceiptsPage() {
   }));
 
   return <ReceiptsClient receipts={data} />;
+}
+
+export default function ReceiptsPage() {
+  return (
+    <Suspense fallback={<ReceiptsLoading />}>
+      <ReceiptsData />
+    </Suspense>
+  );
 }

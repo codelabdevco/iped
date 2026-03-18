@@ -65,7 +65,7 @@ export async function processOCR(imageBase64: string, mimeType: string): Promise
   "wht": withholding_tax_amount,
   "whtRate": wht_percentage,
   "type": "receipt|invoice|billing|debit_note|credit_note|tax_invoice|quotation",
-  "paymentMethod": "cash|transfer|credit|debit|cheque|ewallet",
+  "paymentMethod": "detect from slip/receipt: promptpay (QR/พร้อมเพย์), bank-scb (SCB/ไทยพาณิชย์), bank-kbank (KBank/กสิกร), bank-bbl (BBL/กรุงเทพ), bank-ktb (KTB/กรุงไทย), bank-bay (BAY/กรุงศรี), bank-tmb (TTB/ทีเอ็มบี), bank-gsb (GSB/ออมสิน), credit (บัตรเครดิต), debit (บัตรเดบิต), transfer (โอนธนาคารทั่วไป), cash (เงินสด), ewallet-truemoney, ewallet-rabbit, ewallet-shopee, other",
   "currency": "THB",
   "lineItems": [{"description":"item","quantity":1,"unitPrice":100,"amount":100}],
   "confidence": 0-100

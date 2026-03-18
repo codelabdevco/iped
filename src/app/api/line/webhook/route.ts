@@ -71,7 +71,7 @@ If it IS a receipt/invoice/bill, extract and return ONLY this JSON:
   "categoryIcon": "single emoji for the category",
   "items": "brief summary of items in Thai",
   "documentType": "receipt or invoice or tax_invoice or billing",
-  "paymentMethod": "cash or credit or transfer or debit or null",
+  "paymentMethod": "detect payment method from slip/receipt. Use these exact values: promptpay (if QR/พร้อมเพย์/PromptPay), bank-scb (SCB/ไทยพาณิชย์), bank-kbank (KBank/กสิกร), bank-bbl (BBL/กรุงเทพ), bank-ktb (KTB/กรุงไทย), bank-bay (BAY/กรุงศรี), bank-tmb (TTB/ทีเอ็มบี), bank-gsb (GSB/ออมสิน), credit (บัตรเครดิต/VISA/MC), debit (บัตรเดบิต), transfer (โอนธนาคารทั่วไป), cash (เงินสด), ewallet-truemoney (TrueMoney), ewallet-rabbit (Rabbit LINE Pay), ewallet-shopee (ShopeePay), other. If it's a bank transfer slip, identify the bank from logo/name.",
   "confidence": 0_to_100_confidence_score
 }` + knowledgeCtx + "\n\nReturn ONLY valid JSON, no markdown fences.";
 
