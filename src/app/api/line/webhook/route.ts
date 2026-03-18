@@ -123,10 +123,15 @@ async function resolveUserId(lineUserId: string): Promise<string> {
 }
 
 /** Save receipt to MongoDB */
-async function saveReceipt(ocr: any, lineUserId: string, imgHash: string): Promise<string> {
+async function saveReceipt(ocr: any, lineUserId: string, imgHash: string, imageBuffer?: Buffer): Promise<string> {
   try {
     await connectDB();
     const mongoUserId = await resolveUserId(lineUserId);
+    // Store image as base64 data URL
+    let imageUrl: string | undefined;
+    if (imageBuffer) {
+      imageUrl = `data:image/jpeg;base64,${imageBuffer.toString("base64")}`;
+    }
     const r = await Receipt.create({
       type: ocr.documentType === "tax_invoice" ? "invoice" : "receipt",
       source: "line",
@@ -139,6 +144,7 @@ async function saveReceipt(ocr: any, lineUserId: string, imgHash: string): Promi
       categoryIcon: ocr.categoryIcon || "\ud83d\udcdd",
       paymentMethod: ocr.paymentMethod || undefined,
       status: "pending",
+      imageUrl,
       imageHash: imgHash,
       ocrConfidence: (ocr.confidence || 0) / 100,
       ocrRawText: ocr.items || "",
@@ -269,8 +275,8 @@ export async function POST(request: NextRequest) {
             continue;
           }
 
-          // 6. Save receipt to DB
-          const savedId = await saveReceipt(ocr, uid || "", imgHash);
+          // 6. Save receipt to DB (with image)
+          const savedId = await saveReceipt(ocr, uid || "", imgHash, imageBuffer);
           const rid = savedId || Date.now().toString(36) + Math.random().toString(36).slice(2, 8);
 
           // 7. Build flex message
