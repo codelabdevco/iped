@@ -62,6 +62,7 @@ export interface IDocument extends MongoDocument {
   };
   userId: mongoose.Types.ObjectId;
   orgId?: mongoose.Types.ObjectId;
+  direction: "income" | "expense";
   accountType: "personal" | "business";
   emailMessageId?: string;
   emailFrom?: string;
@@ -148,6 +149,7 @@ const DocumentSchema = new Schema<IDocument>(
     },
     userId: { type: Schema.Types.ObjectId, ref: "User", required: true, index: true },
     orgId: { type: Schema.Types.ObjectId, ref: "Organization", index: true },
+    direction: { type: String, enum: ["income", "expense"], default: "expense" },
     accountType: { type: String, enum: ["personal", "business"], default: "personal" },
     emailMessageId: String,
     emailFrom: String,
@@ -168,6 +170,7 @@ DocumentSchema.index({ imageHash: 1 });
 DocumentSchema.index({ contentHash: 1 });
 DocumentSchema.index({ type: 1 });
 DocumentSchema.index({ source: 1 });
+DocumentSchema.index({ direction: 1 });
 DocumentSchema.index({ currency: 1 });
 DocumentSchema.index({ "recurringPattern.nextDate": 1 });
 DocumentSchema.index({ dueDate: 1, status: 1 });
