@@ -54,10 +54,13 @@ async function DriveData() {
     createdAt: f.createdAt ? new Date(f.createdAt).toISOString() : "",
   }));
 
+  // Total storage used
+  const totalFileSize = files.reduce((s: number, f: any) => s + (f.size || 0), 0);
+
   // Merge and sort by date
   const all = [...receiptDocs, ...fileDocs].sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
 
-  return <DriveClient docs={all} />;
+  return <DriveClient docs={all} totalStorageBytes={totalFileSize} />;
 }
 
 export default function DrivePage() {

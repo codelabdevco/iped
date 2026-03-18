@@ -33,7 +33,7 @@ function formatSize(bytes: number) {
   return `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
 }
 
-export default function DriveClient({ docs: initial }: { docs: Doc[] }) {
+export default function DriveClient({ docs: initial, totalStorageBytes = 0 }: { docs: Doc[]; totalStorageBytes?: number }) {
   const { isDark } = useTheme();
   const [docs, setDocs] = useState(initial);
   const [view, setView] = useState<"grid" | "list">("grid");
@@ -187,10 +187,10 @@ export default function DriveClient({ docs: initial }: { docs: Doc[] }) {
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-        <StatsCard label="ทั้งหมด" value={`${docs.length} รายการ`} icon={<Cloud size={20} />} color="text-blue-500" />
-        <StatsCard label="ใบเสร็จ" value={`${receiptCount} รายการ`} icon={<FileText size={20} />} color="text-[#FA3633]" />
-        <StatsCard label="ไฟล์อัปโหลด" value={`${fileCount} ไฟล์`} icon={<Upload size={20} />} color="text-purple-500" />
-        <StatsCard label="รูปภาพ" value={`${imageCount} รูป`} icon={<ImageIcon size={20} />} color="text-green-500" />
+        <StatsCard label="เอกสารทั้งหมด" value={`${docs.length} รายการ`} icon={<Cloud size={20} />} color="text-blue-500" />
+        <StatsCard label="ใบเสร็จ / ไฟล์" value={`${receiptCount} / ${fileCount}`} icon={<FileText size={20} />} color="text-[#FA3633]" />
+        <StatsCard label="ใช้พื้นที่" value={formatSize(totalStorageBytes + docs.filter(d=>d.fileType==="receipt"&&d.hasImage).length * 250000)} icon={<Download size={20} />} color="text-purple-500" />
+        <StatsCard label="Google Drive" value="ยังไม่เชื่อมต่อ" icon={<Cloud size={20} />} color="text-orange-500" />
       </div>
 
       {/* Toolbar */}
