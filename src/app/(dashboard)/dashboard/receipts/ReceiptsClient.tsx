@@ -521,7 +521,7 @@ export default function ReceiptsClient({ receipts: initialReceipts }: { receipts
         const isLine = r.source === "line";
         return (
           <div className="leading-tight">
-            <div className="text-sm whitespace-nowrap">{day} {mon} {yr}{time ? ` ${time}` : ""}</div>
+            <div className="text-sm whitespace-nowrap">{day} {mon} {yr}{time ? <span className={`text-[11px] ml-1 ${muted}`}>{time}</span> : ""}</div>
             <div className={`flex items-center gap-1 mt-0.5 text-[11px]`}>
               <span className={isLine ? "text-green-500" : "text-blue-400"}>
                 {isLine ? "LINE" : "เว็บ"}
