@@ -239,8 +239,9 @@ export default function MatchingClient({ receipts, matches: initMatches, gmailSe
 
                       {/* Email info */}
                       <div className="flex-1 min-w-0">
-                        <p className={`text-sm font-medium truncate ${txt}`}>{email.emailSubject || email.storeName}</p>
-                        <p className={`text-[11px] truncate ${dim}`}>{email.emailFrom} · {email.date}</p>
+                        <p className={`text-sm font-medium truncate ${txt}`}>{email.storeName}</p>
+                        <p className={`text-[11px] truncate ${sub}`}>{email.emailSubject || ""}</p>
+                        <p className={`text-[10px] truncate ${dim}`}>{email.emailFrom} · {email.date}</p>
                       </div>
 
                       {/* Amount */}
