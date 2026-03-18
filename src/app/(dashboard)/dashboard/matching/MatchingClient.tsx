@@ -66,6 +66,9 @@ export default function MatchingClient({
   const [uploading, setUploading] = useState(false);
   const [scanning, setScanning] = useState(false);
   const [lastScan, setLastScan] = useState(gmailSettings.lastGmailScan);
+  const [manualMode, setManualMode] = useState(false);
+  const [selectedEmail, setSelectedEmail] = useState<string | null>(null);
+  const [selectedSlip, setSelectedSlip] = useState<string | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   const bg = isDark ? "bg-[rgba(255,255,255,0.04)]" : "bg-white";
@@ -115,6 +118,34 @@ export default function MatchingClient({
   const handleAction = async (id: string, status: "matched" | "rejected") => {
     await fetch("/api/matches", { method: "PUT", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ id, status }) });
     setMatches((prev) => prev.map((m) => m._id === id ? { ...m, status } : m));
+  };
+
+  // Manual match
+  const handleManualMatch = async () => {
+    if (!selectedEmail || !selectedSlip) return;
+    try {
+      const res = await fetch("/api/matches/manual", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ receiptA: selectedEmail, receiptB: selectedSlip }),
+      });
+      const json = await res.json();
+      if (res.ok) {
+        const emailR = receipts.find((r) => r._id === selectedEmail);
+        const slipR = receipts.find((r) => r._id === selectedSlip);
+        setMatches((prev) => [{
+          _id: json.match._id || `manual-${Date.now()}`,
+          receiptA: emailR || { _id: selectedEmail, storeName: "?", amount: 0 } as any,
+          receiptB: slipR || { _id: selectedSlip, storeName: "?", amount: 0 } as any,
+          matchScore: 100, matchType: "manual", matchReason: "จับคู่ด้วยตนเอง", status: "matched",
+        }, ...prev]);
+        setSelectedEmail(null);
+        setSelectedSlip(null);
+        setManualMode(false);
+      } else {
+        alert(json.error || "เกิดข้อผิดพลาด");
+      }
+    } catch { alert("เกิดข้อผิดพลาด"); }
   };
 
   // Helper: get receipt info
@@ -298,12 +329,81 @@ export default function MatchingClient({
         </div>
       )}
 
+      {/* Manual match button */}
+      {!manualMode && emailDocs.length > 0 && lineDocs.length > 0 && (
+        <button onClick={() => setManualMode(true)} className={`w-full py-3 rounded-xl border-2 border-dashed text-sm font-medium transition-colors ${isDark ? "border-white/10 text-white/40 hover:border-white/20 hover:text-white/60" : "border-gray-200 text-gray-400 hover:border-gray-300 hover:text-gray-600"}`}>
+          + จับคู่ด้วยตนเอง
+        </button>
+      )}
+
+      {/* Manual match mode */}
+      {manualMode && (
+        <div className={`border-2 border-dashed rounded-2xl p-5 ${isDark ? "border-[#FA3633]/30 bg-[#FA3633]/5" : "border-[#FA3633]/20 bg-[#FA3633]/5"}`}>
+          <div className="flex items-center justify-between mb-4">
+            <h3 className={`font-semibold ${txt}`}>จับคู่ด้วยตนเอง</h3>
+            <div className="flex gap-2">
+              {selectedEmail && selectedSlip && (
+                <button onClick={handleManualMatch} className="px-4 py-1.5 rounded-lg text-sm font-medium bg-green-500 text-white hover:bg-green-600">
+                  <Check size={14} className="inline mr-1" /> ยืนยันจับคู่
+                </button>
+              )}
+              <button onClick={() => { setManualMode(false); setSelectedEmail(null); setSelectedSlip(null); }} className={`px-3 py-1.5 rounded-lg text-sm ${isDark ? "bg-white/5 text-white/40" : "bg-gray-100 text-gray-500"}`}>
+                ยกเลิก
+              </button>
+            </div>
+          </div>
+
+          <div className="grid grid-cols-2 gap-4">
+            {/* Left: Email docs to pick */}
+            <div>
+              <p className={`text-xs font-medium mb-2 ${sub}`}>1. เลือกเอกสารจากอีเมล</p>
+              <div className="space-y-1.5 max-h-48 overflow-y-auto">
+                {emailDocs.map((r) => (
+                  <button key={r._id} onClick={() => setSelectedEmail(r._id)} className={`w-full text-left px-3 py-2 rounded-lg text-sm transition-colors ${selectedEmail === r._id ? "bg-[#FA3633]/20 border border-[#FA3633]/40" : `${isDark ? "bg-white/[0.03] hover:bg-white/[0.06]" : "bg-gray-50 hover:bg-gray-100"}`}`}>
+                    <div className="flex items-center justify-between">
+                      <span className={`truncate ${txt}`}>{r.storeName}</span>
+                      <span className={`text-xs flex-shrink-0 ml-2 ${sub}`}><Baht value={r.amount} /></span>
+                    </div>
+                  </button>
+                ))}
+              </div>
+            </div>
+
+            {/* Right: LINE slips to pick */}
+            <div>
+              <p className={`text-xs font-medium mb-2 ${sub}`}>2. เลือกสลิปจาก LINE</p>
+              <div className="space-y-1.5 max-h-48 overflow-y-auto">
+                {lineDocs.map((r) => (
+                  <button key={r._id} onClick={() => setSelectedSlip(r._id)} className={`w-full text-left px-3 py-2 rounded-lg text-sm transition-colors ${selectedSlip === r._id ? "bg-green-500/20 border border-green-500/40" : `${isDark ? "bg-white/[0.03] hover:bg-white/[0.06]" : "bg-gray-50 hover:bg-gray-100"}`}`}>
+                    <div className="flex items-center justify-between">
+                      <div className="flex items-center gap-2 min-w-0">
+                        {r.hasImage && <img src={`/api/receipts/image?id=${r._id}`} alt="" className="w-6 h-6 rounded object-cover flex-shrink-0" loading="lazy" />}
+                        <span className={`truncate ${txt}`}>{r.storeName}</span>
+                      </div>
+                      <span className={`text-xs flex-shrink-0 ml-2 ${sub}`}><Baht value={r.amount} /></span>
+                    </div>
+                  </button>
+                ))}
+              </div>
+            </div>
+          </div>
+
+          {selectedEmail && selectedSlip && (
+            <div className={`mt-3 pt-3 border-t ${isDark ? "border-white/10" : "border-gray-200"} flex items-center justify-center gap-3`}>
+              <span className={`text-sm ${txt}`}>{receipts.find((r) => r._id === selectedEmail)?.storeName}</span>
+              <ArrowRight size={14} className={sub} />
+              <span className={`text-sm ${txt}`}>{receipts.find((r) => r._id === selectedSlip)?.storeName}</span>
+            </div>
+          )}
+        </div>
+      )}
+
       {/* Empty state for matches */}
-      {pendingMatches.length === 0 && confirmedMatches.length === 0 && (
+      {pendingMatches.length === 0 && confirmedMatches.length === 0 && !manualMode && (
         <div className={`border rounded-2xl p-8 text-center ${bg} ${bd}`}>
           <AlertCircle size={32} className={`mx-auto mb-3 ${dim}`} />
           <p className={`font-medium ${txt}`}>ยังไม่มีคู่เอกสาร</p>
-          <p className={`text-sm mt-1 ${sub}`}>ส่งสลิปผ่าน LINE แล้วกด &quot;ดึงจาก Gmail&quot; เพื่อเริ่มจับคู่อัตโนมัติ</p>
+          <p className={`text-sm mt-1 ${sub}`}>ส่งสลิปผ่าน LINE แล้วกด &quot;ดึงจาก Gmail&quot; หรือกด &quot;จับคู่ด้วยตนเอง&quot;</p>
         </div>
       )}
 

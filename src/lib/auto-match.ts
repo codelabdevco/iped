@@ -44,19 +44,22 @@ export async function findMatches(receiptId: string, userId: string) {
 
     // Merchant name similarity (fuzzy)
     const merchantSim = stringSimilarity(merchant, candMerchant);
-    if (merchantSim > 0.6) {
+    if (merchantSim > 0.4) {
       score += Math.round(merchantSim * 40);
       reasons.push(`ร้านค้าคล้าย ${Math.round(merchantSim * 100)}%`);
     }
 
-    // Amount match
+    // Amount match (loosened: ±10%)
     if (amount > 0 && candAmount > 0) {
       const amountDiff = Math.abs(amount - candAmount) / Math.max(amount, candAmount);
       if (amountDiff === 0) {
         score += 40;
         reasons.push("ยอดตรงกัน");
       } else if (amountDiff < 0.05) {
-        score += 25;
+        score += 30;
+        reasons.push(`ยอดใกล้เคียง (ต่าง ${(amountDiff * 100).toFixed(1)}%)`);
+      } else if (amountDiff < 0.1) {
+        score += 20;
         reasons.push(`ยอดใกล้เคียง (ต่าง ${(amountDiff * 100).toFixed(1)}%)`);
       }
     }
@@ -77,7 +80,7 @@ export async function findMatches(receiptId: string, userId: string) {
       }
     }
 
-    if (score >= 50) {
+    if (score >= 30) {
       matches.push({ receiptId: String((cand as any)._id), score, reason: reasons.join(" · ") });
     }
   }
