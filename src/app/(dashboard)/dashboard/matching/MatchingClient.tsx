@@ -49,7 +49,8 @@ export default function MatchingClient({ receipts, matches: initMatches, gmailSe
   const [uploading, setUploading] = useState(false);
   const [scanning, setScanning] = useState(false);
   const [lastScan, setLastScan] = useState(gmailSettings.lastGmailScan);
-  const [pickingFor, setPickingFor] = useState<string | null>(null); // email _id currently picking a slip for
+  const [pickingFor, setPickingFor] = useState<string | null>(null);
+  const [viewImage, setViewImage] = useState<string | null>(null); // receipt _id to view full image
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   // Colors
@@ -58,6 +59,32 @@ export default function MatchingClient({ receipts, matches: initMatches, gmailSe
   const txt = isDark ? "text-white" : "text-gray-900";
   const sub = isDark ? "text-white/50" : "text-gray-500";
   const dim = isDark ? "text-white/25" : "text-gray-300";
+
+  // Calculate match score between email and slip
+  const calcScore = (email: ReceiptRow, slip: ReceiptRow): number => {
+    let score = 0;
+    // Amount similarity
+    if (email.amount > 0 && slip.amount > 0) {
+      const diff = Math.abs(email.amount - slip.amount) / Math.max(email.amount, slip.amount);
+      if (diff === 0) score += 50;
+      else if (diff < 0.05) score += 40;
+      else if (diff < 0.1) score += 30;
+      else if (diff < 0.2) score += 15;
+    }
+    // Date proximity
+    if (email.rawDate && slip.rawDate) {
+      const days = Math.abs(new Date(email.rawDate).getTime() - new Date(slip.rawDate).getTime()) / 86400000;
+      if (days === 0) score += 30;
+      else if (days <= 1) score += 25;
+      else if (days <= 3) score += 15;
+      else if (days <= 7) score += 5;
+    }
+    // Name similarity (basic)
+    const a = (email.storeName || "").toLowerCase();
+    const b = (slip.storeName || "").toLowerCase();
+    if (a && b && (a.includes(b) || b.includes(a))) score += 20;
+    return Math.min(score, 100);
+  };
 
   // Data
   const emailDocs = receipts.filter((r) => r.source === "email");
@@ -254,40 +281,68 @@ export default function MatchingClient({ receipts, matches: initMatches, gmailSe
                     </div>
                   </div>
 
-                  {/* Slip picker dropdown */}
+                  {/* Slip picker dropdown — larger cards with score */}
                   {isPicking && (
-                    <div className={`mt-1 rounded-xl border p-3 ${isDark ? "bg-[rgba(255,255,255,0.06)] border-[#FA3633]/20" : "bg-gray-50 border-[#FA3633]/10"}`}>
-                      <p className={`text-xs font-medium mb-2 ${sub}`}>เลือกสลิปที่ตรงกับเอกสารนี้:</p>
+                    <div className={`mt-1 rounded-xl border p-4 ${isDark ? "bg-[rgba(255,255,255,0.06)] border-[#FA3633]/20" : "bg-gray-50 border-[#FA3633]/10"}`}>
+                      <p className={`text-xs font-medium mb-3 ${sub}`}>เลือกสลิปที่ตรงกับเอกสารนี้ (กดรูปเพื่อดูขนาดใหญ่):</p>
                       {lineDocs.length === 0 ? (
                         <p className={`text-sm ${dim}`}>ยังไม่มีสลิปในระบบ — ส่งสลิปผ่าน LINE ก่อน</p>
                       ) : (
-                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-1.5 max-h-52 overflow-y-auto">
-                          {lineDocs.map((slip) => {
+                        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-2 max-h-[400px] overflow-y-auto">
+                          {[...lineDocs]
+                            .map((slip) => ({ slip, score: calcScore(email, slip) }))
+                            .sort((a, b) => b.score - a.score)
+                            .map(({ slip, score }) => {
                             const alreadyMatched = getMatch(slip._id);
+                            const scoreColor = score >= 50 ? "text-green-400 bg-green-500/10" : score >= 20 ? "text-amber-400 bg-amber-500/10" : `${dim} ${isDark ? "bg-white/5" : "bg-gray-100"}`;
                             return (
-                              <button
+                              <div
                                 key={slip._id}
-                                disabled={!!alreadyMatched}
-                                onClick={() => handlePair(email._id, slip._id)}
-                                className={`flex items-center gap-2 px-3 py-2 rounded-lg text-left text-sm transition-colors ${
+                                className={`rounded-xl border p-3 transition-colors ${
                                   alreadyMatched
-                                    ? `opacity-30 cursor-not-allowed ${isDark ? "bg-white/[0.02]" : "bg-gray-100"}`
-                                    : isDark ? "bg-white/[0.03] hover:bg-green-500/10 hover:ring-1 hover:ring-green-500/30" : "bg-white hover:bg-green-50 hover:ring-1 hover:ring-green-500/20"
+                                    ? `opacity-25 cursor-not-allowed ${isDark ? "border-white/5" : "border-gray-200"}`
+                                    : isDark ? "border-white/10 hover:border-green-500/40 hover:bg-green-500/5" : "border-gray-200 hover:border-green-500/30 hover:bg-green-50"
                                 }`}
                               >
-                                {slip.hasImage ? (
-                                  <img src={`/api/receipts/image?id=${slip._id}`} alt="" className={`w-8 h-8 rounded object-cover flex-shrink-0 border ${isDark ? "border-white/10" : "border-gray-200"}`} loading="lazy" />
-                                ) : (
-                                  <div className={`w-8 h-8 rounded flex items-center justify-center flex-shrink-0 ${isDark ? "bg-white/5" : "bg-gray-100"}`}>
-                                    <BrandIcon brand="line" size={12} />
-                                  </div>
-                                )}
-                                <div className="min-w-0 flex-1">
-                                  <p className={`text-xs font-medium truncate ${txt}`}>{slip.storeName}</p>
-                                  <p className={`text-[10px] ${dim}`}>{slip.date}</p>
+                                {/* Slip image — clickable to enlarge */}
+                                <div className="relative mb-2">
+                                  {slip.hasImage ? (
+                                    <img
+                                      src={`/api/receipts/image?id=${slip._id}`}
+                                      alt=""
+                                      className={`w-full h-32 rounded-lg object-cover border cursor-pointer ${isDark ? "border-white/10" : "border-gray-200"}`}
+                                      loading="lazy"
+                                      onClick={(e) => { e.stopPropagation(); setViewImage(slip._id); }}
+                                    />
+                                  ) : (
+                                    <div className={`w-full h-32 rounded-lg flex items-center justify-center ${isDark ? "bg-white/5" : "bg-gray-100"}`}>
+                                      <BrandIcon brand="line" size={24} />
+                                    </div>
+                                  )}
+                                  {/* Score badge */}
+                                  {score > 0 && (
+                                    <span className={`absolute top-1.5 right-1.5 px-1.5 py-0.5 rounded-md text-[10px] font-bold ${scoreColor}`}>
+                                      {score}%
+                                    </span>
+                                  )}
                                 </div>
-                                <span className={`text-xs font-semibold flex-shrink-0 ${txt}`}><Baht value={slip.amount} /></span>
-                              </button>
+                                {/* Slip info + pair button */}
+                                <div className="flex items-center justify-between gap-2">
+                                  <div className="min-w-0">
+                                    <p className={`text-xs font-medium truncate ${txt}`}>{slip.storeName}</p>
+                                    <p className={`text-[10px] ${dim}`}>{slip.date} · <Baht value={slip.amount} /></p>
+                                  </div>
+                                  {!alreadyMatched && (
+                                    <button
+                                      onClick={() => handlePair(email._id, slip._id)}
+                                      className="flex items-center gap-1 px-2.5 py-1.5 rounded-lg text-[11px] font-medium bg-green-500/10 text-green-500 hover:bg-green-500/20 flex-shrink-0 transition-colors"
+                                    >
+                                      <Check size={11} /> จับคู่
+                                    </button>
+                                  )}
+                                  {alreadyMatched && <span className={`text-[10px] ${dim}`}>จับคู่แล้ว</span>}
+                                </div>
+                              </div>
                             );
                           })}
                         </div>
@@ -317,7 +372,7 @@ export default function MatchingClient({ receipts, matches: initMatches, gmailSe
               return (
                 <div key={slip._id} className={`rounded-xl border p-2 text-center ${bg} ${bd} ${isMatched ? "opacity-50" : ""}`}>
                   {slip.hasImage ? (
-                    <img src={`/api/receipts/image?id=${slip._id}`} alt="" className={`w-full h-20 rounded-lg object-cover border mb-1.5 ${isDark ? "border-white/10" : "border-gray-200"}`} loading="lazy" />
+                    <img src={`/api/receipts/image?id=${slip._id}`} alt="" className={`w-full h-20 rounded-lg object-cover border mb-1.5 cursor-pointer hover:opacity-80 ${isDark ? "border-white/10" : "border-gray-200"}`} loading="lazy" onClick={() => setViewImage(slip._id)} />
                   ) : (
                     <div className={`w-full h-20 rounded-lg flex items-center justify-center mb-1.5 ${isDark ? "bg-white/5" : "bg-gray-50"}`}>
                       <BrandIcon brand="line" size={20} />
@@ -329,6 +384,27 @@ export default function MatchingClient({ receipts, matches: initMatches, gmailSe
                 </div>
               );
             })}
+          </div>
+        </div>
+      )}
+      {/* Image lightbox */}
+      {viewImage && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 backdrop-blur-sm" onClick={() => setViewImage(null)}>
+          <div className="relative max-w-lg max-h-[85vh] m-4" onClick={(e) => e.stopPropagation()}>
+            <img src={`/api/receipts/image?id=${viewImage}`} alt="สลิป" className="max-w-full max-h-[80vh] rounded-xl shadow-2xl" />
+            <button onClick={() => setViewImage(null)} className="absolute -top-3 -right-3 w-8 h-8 rounded-full bg-white text-black flex items-center justify-center shadow-lg hover:bg-gray-200">
+              <X size={16} />
+            </button>
+            {/* Info bar */}
+            {(() => {
+              const r = receipts.find((r) => r._id === viewImage);
+              return r ? (
+                <div className="absolute bottom-0 left-0 right-0 bg-black/60 backdrop-blur-sm rounded-b-xl px-4 py-3 text-white">
+                  <p className="font-medium">{r.storeName}</p>
+                  <p className="text-sm opacity-70">{r.date} · <Baht value={r.amount} /></p>
+                </div>
+              ) : null;
+            })()}
           </div>
         </div>
       )}

@@ -228,13 +228,9 @@ function merchantInfo(
     cornerRadius: "10px",
     backgroundColor: C.bg,
     contents: [
-      {
-        type: "text",
-        text: icon,
-        size: "sm",
-        align: "center",
-        gravity: "center",
-      },
+      { type: "filler" },
+      { type: "text", text: icon, size: "sm", align: "center" },
+      { type: "filler" },
     ],
   };
 
