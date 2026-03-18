@@ -34,7 +34,13 @@ export async function processOCR(imageBase64: string, mimeType: string): Promise
     return simulateOCR();
   }
 
+  const isPdf = mimeType === "application/pdf";
   const mediaType = mimeType as "image/jpeg" | "image/png" | "image/gif" | "image/webp";
+
+  // Build content: use "document" for PDF, "image" for images
+  const fileContent: any = isPdf
+    ? { type: "document", source: { type: "base64", media_type: "application/pdf", data: imageBase64 } }
+    : { type: "image", source: { type: "base64", media_type: mediaType, data: imageBase64 } };
 
   const response = await client.messages.create({
     model: "claude-sonnet-4-20250514",
@@ -43,10 +49,7 @@ export async function processOCR(imageBase64: string, mimeType: string): Promise
       {
         role: "user",
         content: [
-          {
-            type: "image",
-            source: { type: "base64", media_type: mediaType, data: imageBase64 },
-          },
+          fileContent,
           {
             type: "text",
             text: `Analyze this Thai receipt/invoice/billing document. Extract ALL information and return ONLY valid JSON (no markdown, no code blocks):
