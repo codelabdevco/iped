@@ -190,6 +190,7 @@ export default function ReceiptsClient({ receipts: initialReceipts }: { receipts
   const [vatEnabled, setVatEnabled] = useState(false);
   const [vatInclusive, setVatInclusive] = useState(false); // true = VAT รวมในยอดแล้ว
   const [whtEnabled, setWhtEnabled] = useState(false);
+  const [whtInclusive, setWhtInclusive] = useState(false);
   const [attachments, setAttachments] = useState<Attachment[]>([]);
   const [txType, setTxType] = useState<"income" | "expense">("expense");
   const [slipPreview, setSlipPreview] = useState<string | null>(null);
@@ -341,8 +342,8 @@ export default function ReceiptsClient({ receipts: initialReceipts }: { receipts
     setSaving(true);
     const itemsTotal = editItems.reduce((s, it) => s + it.qty * it.price, 0);
     const vat = vatEnabled ? (vatInclusive ? Math.round(itemsTotal * 7 / 107) : Math.round(itemsTotal * 0.07)) : 0;
-    const wht = whtEnabled ? Math.round(itemsTotal * 0.03) : 0;
-    const total = vatInclusive ? itemsTotal - wht : itemsTotal + vat - wht;
+    const wht = whtEnabled ? (whtInclusive ? Math.round(itemsTotal * 3 / 103) : Math.round(itemsTotal * 0.03)) : 0;
+    const total = (() => { let t = itemsTotal; if (vatEnabled && !vatInclusive) t += vat; if (whtEnabled && !whtInclusive) t -= wht; return t; })();
     try {
       // Upload new files
       const fileIds: string[] = [];
@@ -435,8 +436,8 @@ export default function ReceiptsClient({ receipts: initialReceipts }: { receipts
     setSaving(true);
     const itemsTotal = editItems.reduce((s, it) => s + it.qty * it.price, 0);
     const vat = vatEnabled ? (vatInclusive ? Math.round(itemsTotal * 7 / 107) : Math.round(itemsTotal * 0.07)) : 0;
-    const wht = whtEnabled ? Math.round(itemsTotal * 0.03) : 0;
-    const total = vatInclusive ? itemsTotal - wht : itemsTotal + vat - wht;
+    const wht = whtEnabled ? (whtInclusive ? Math.round(itemsTotal * 3 / 103) : Math.round(itemsTotal * 0.03)) : 0;
+    const total = (() => { let t = itemsTotal; if (vatEnabled && !vatInclusive) t += vat; if (whtEnabled && !whtInclusive) t -= wht; return t; })();
     try {
       // Upload files first
       const fileIds: string[] = [];
@@ -789,10 +790,18 @@ export default function ReceiptsClient({ receipts: initialReceipts }: { receipts
               ? Math.round(itemsTotal * 7 / 107) // VAT รวมในยอดแล้ว: แยก VAT ออกจากยอด
               : Math.round(itemsTotal * 0.07)      // VAT บวกเพิ่ม
             : 0;
-          const whtAmount = whtEnabled ? Math.round(itemsTotal * 0.03) : 0;
-          const grandTotal = vatInclusive
-            ? itemsTotal - whtAmount  // ยอดรวม VAT อยู่แล้ว ไม่ต้องบวกเพิ่ม
-            : itemsTotal + vatAmount - whtAmount;
+          const whtAmount = whtEnabled
+            ? whtInclusive
+              ? Math.round(itemsTotal * 3 / 103)
+              : Math.round(itemsTotal * 0.03)
+            : 0;
+          const grandTotal = (() => {
+            let t = itemsTotal;
+            if (vatEnabled && !vatInclusive) t += vatAmount;
+            if (whtEnabled && !whtInclusive) t -= whtAmount;
+            if (whtEnabled && whtInclusive) { /* WHT รวมในยอดแล้ว ไม่ต้องหักเพิ่ม */ }
+            return t;
+          })();
           const inp = "w-full h-9 px-3 bg-white/5 border border-white/10 text-white rounded-lg text-sm focus:outline-none focus:border-[#FA3633]/50";
           const lbl = "block text-xs text-white/40 mb-1";
 
@@ -1019,9 +1028,30 @@ export default function ReceiptsClient({ receipts: initialReceipts }: { receipts
               )}
               <label className="flex items-center justify-between cursor-pointer py-1">
                 <div><p className="text-sm text-white">WHT 3%</p><p className="text-xs text-white/30">ภาษีหัก ณ ที่จ่าย</p></div>
-                <button onClick={() => setWhtEnabled(!whtEnabled)} className={`w-11 h-6 rounded-full transition-colors relative ${whtEnabled ? "bg-[#FA3633]" : "bg-white/10"}`}><div className={`w-5 h-5 rounded-full bg-white absolute top-0.5 transition-transform ${whtEnabled ? "translate-x-[22px]" : "translate-x-0.5"}`} /></button>
+                <button onClick={() => { setWhtEnabled(!whtEnabled); if (whtEnabled) setWhtInclusive(false); }} className={`w-11 h-6 rounded-full transition-colors relative ${whtEnabled ? "bg-[#FA3633]" : "bg-white/10"}`}><div className={`w-5 h-5 rounded-full bg-white absolute top-0.5 transition-transform ${whtEnabled ? "translate-x-[22px]" : "translate-x-0.5"}`} /></button>
               </label>
-              {whtEnabled && <div className="flex justify-between text-sm pl-1"><span className="text-white/40">WHT 3%</span><span className="text-orange-400 font-medium">-฿{whtAmount.toLocaleString("th-TH", { minimumFractionDigits: 2 })}</span></div>}
+              {whtEnabled && (
+                <>
+                  <div className="flex gap-2 pl-1">
+                    <button onClick={() => setWhtInclusive(false)} className={`px-3 py-1.5 rounded-lg text-[11px] font-medium transition-all ${!whtInclusive ? "bg-orange-500/15 text-orange-400 ring-1 ring-orange-500/30" : "bg-white/5 text-white/40 hover:bg-white/8"}`}>
+                      หักเพิ่ม (-3%)
+                    </button>
+                    <button onClick={() => setWhtInclusive(true)} className={`px-3 py-1.5 rounded-lg text-[11px] font-medium transition-all ${whtInclusive ? "bg-orange-500/15 text-orange-400 ring-1 ring-orange-500/30" : "bg-white/5 text-white/40 hover:bg-white/8"}`}>
+                      รวมในยอดแล้ว
+                    </button>
+                  </div>
+                  <div className="flex justify-between text-sm pl-1">
+                    <span className="text-white/40">WHT 3%{whtInclusive ? " (แยกจากยอด)" : ""}</span>
+                    <span className="text-orange-400 font-medium">{whtInclusive ? "" : "-"}฿{whtAmount.toLocaleString("th-TH", { minimumFractionDigits: 2 })}</span>
+                  </div>
+                  {whtInclusive && (
+                    <div className="flex justify-between text-xs pl-1">
+                      <span className="text-white/30">ราคาก่อนหัก WHT</span>
+                      <span className="text-white/50">฿{(itemsTotal + whtAmount).toLocaleString("th-TH", { minimumFractionDigits: 2 })}</span>
+                    </div>
+                  )}
+                </>
+              )}
             </div>
             )}
 

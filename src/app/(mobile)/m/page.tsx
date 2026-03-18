@@ -1,11 +1,12 @@
+import { Suspense } from "react";
 import { getSession } from "@/lib/auth";
 import { redirect } from "next/navigation";
 import { connectDB } from "@/lib/mongodb";
 import Receipt from "@/models/Receipt";
 import User from "@/models/User";
-import MobileHomeClient from "./MobileHomeClient";
+import MobileApp from "./MobileApp";
 
-export default async function MobileHomePage() {
+async function MobileData() {
   const session = await getSession();
   if (!session) redirect("/login");
 
@@ -13,13 +14,28 @@ export default async function MobileHomePage() {
   const now = new Date();
   const todayStart = new Date(now.getFullYear(), now.getMonth(), now.getDate());
   const monthStart = new Date(now.getFullYear(), now.getMonth(), 1);
+  const sixMonthsAgo = new Date(now.getFullYear(), now.getMonth() - 5, 1);
 
-  const user = await User.findById(session.userId).select("monthlyBudget lineDisplayName").lean() as any;
+  const user = await User.findById(session.userId)
+    .select("-passwordHash -googleAccessToken -googleRefreshToken")
+    .lean() as any;
+  if (!user) redirect("/login");
 
-  const [todayReceipts, monthExpense, monthIncome, recentReceipts] = await Promise.all([
+  const [
+    allReceipts,
+    todayReceipts,
+    monthExpenseAgg,
+    monthIncomeAgg,
+    catBreakdown,
+    monthlyTotals,
+    totalCount,
+    recentDays,
+  ] = await Promise.all([
+    Receipt.find({ userId: session.userId, status: { $ne: "cancelled" } })
+      .select("merchant amount category categoryIcon direction paymentMethod date time status source imageHash createdAt")
+      .sort({ createdAt: -1 }).limit(100).lean(),
     Receipt.find({ userId: session.userId, date: { $gte: todayStart }, status: { $ne: "cancelled" } })
-      .select("merchant amount category categoryIcon direction paymentMethod date time")
-      .sort({ createdAt: -1 }).lean(),
+      .select("amount direction").lean(),
     Receipt.aggregate([
       { $match: { userId: session.userId, date: { $gte: monthStart }, direction: { $ne: "income" }, status: { $ne: "cancelled" } } },
       { $group: { _id: null, total: { $sum: "$amount" } } },
@@ -28,23 +44,92 @@ export default async function MobileHomePage() {
       { $match: { userId: session.userId, date: { $gte: monthStart }, direction: "income", status: { $ne: "cancelled" } } },
       { $group: { _id: null, total: { $sum: "$amount" } } },
     ]),
-    Receipt.find({ userId: session.userId, status: { $ne: "cancelled" } })
-      .select("merchant amount category categoryIcon direction paymentMethod date time status source imageHash")
-      .sort({ createdAt: -1 }).limit(10).lean(),
+    Receipt.aggregate([
+      { $match: { userId: session.userId, date: { $gte: monthStart }, direction: { $ne: "income" }, status: { $ne: "cancelled" } } },
+      { $group: { _id: "$category", icon: { $first: "$categoryIcon" }, total: { $sum: "$amount" }, count: { $sum: 1 } } },
+      { $sort: { total: -1 } },
+      { $limit: 10 },
+    ]),
+    Receipt.aggregate([
+      { $match: { userId: session.userId, date: { $gte: sixMonthsAgo }, status: { $ne: "cancelled" } } },
+      { $group: { _id: { month: { $month: "$date" }, year: { $year: "$date" }, direction: { $ifNull: ["$direction", "expense"] } }, total: { $sum: "$amount" } } },
+      { $sort: { "_id.year": 1, "_id.month": 1 } },
+    ]),
+    Receipt.countDocuments({ userId: session.userId, status: { $ne: "cancelled" } }),
+    Receipt.aggregate([
+      { $match: { userId: session.userId, status: { $ne: "cancelled" } } },
+      { $group: { _id: { $dateToString: { format: "%Y-%m-%d", date: "$date" } } } },
+      { $sort: { _id: -1 } },
+      { $limit: 60 },
+    ]),
   ]);
+
+  // Streak
+  let streak = 0;
+  for (let i = 0; i < 60; i++) {
+    const d = new Date(now);
+    d.setDate(d.getDate() - i);
+    const key = d.toISOString().slice(0, 10);
+    if (recentDays.some((r: any) => r._id === key)) streak++;
+    else if (i > 0) break;
+  }
+
+  // Monthly chart data
+  const months = ["ม.ค.", "ก.พ.", "มี.ค.", "เม.ย.", "พ.ค.", "มิ.ย.", "ก.ค.", "ส.ค.", "ก.ย.", "ต.ค.", "พ.ย.", "ธ.ค."];
+  const monthlyData = [];
+  for (let i = 5; i >= 0; i--) {
+    const d = new Date(now.getFullYear(), now.getMonth() - i, 1);
+    const m = d.getMonth() + 1, y = d.getFullYear();
+    const exp = (monthlyTotals as any[]).find((t) => t._id.month === m && t._id.year === y && t._id.direction !== "income")?.total || 0;
+    const inc = (monthlyTotals as any[]).find((t) => t._id.month === m && t._id.year === y && t._id.direction === "income")?.total || 0;
+    monthlyData.push({ month: months[d.getMonth()], expense: exp, income: inc });
+  }
 
   const todayExpense = todayReceipts.filter((r: any) => r.direction !== "income").reduce((s: number, r: any) => s + (r.amount || 0), 0);
   const todayIncome = todayReceipts.filter((r: any) => r.direction === "income").reduce((s: number, r: any) => s + (r.amount || 0), 0);
 
   const data = {
-    displayName: user?.lineDisplayName || "User",
+    // User
+    profile: {
+      _id: String(user._id),
+      name: user.name || "",
+      firstNameTh: user.firstNameTh || "",
+      lastNameTh: user.lastNameTh || "",
+      firstNameEn: user.firstNameEn || "",
+      lastNameEn: user.lastNameEn || "",
+      lineDisplayName: user.lineDisplayName || "",
+      lineProfilePic: user.lineProfilePic || "",
+      email: user.email || "",
+      phone: user.phone || "",
+      age: user.age || 0,
+      occupation: user.occupation || "",
+      gender: user.gender || "",
+      accountType: user.accountType || "personal",
+      businessName: user.businessName || "",
+      monthlyBudget: user.monthlyBudget || 0,
+      goals: user.goals || [],
+      googleEmail: user.googleEmail || "",
+      googleConnectedAt: user.googleConnectedAt ? new Date(user.googleConnectedAt).toISOString() : "",
+      lastLogin: user.lastLogin ? new Date(user.lastLogin).toISOString() : "",
+      createdAt: user.createdAt ? new Date(user.createdAt).toISOString() : "",
+      status: user.status || "active",
+      loginCount: user.loginCount || 0,
+      onboardingComplete: user.onboardingComplete || false,
+      settings: {
+        dailySummary: user.settings?.notifications?.dailySummary ?? true,
+        dailySummaryTime: user.settings?.notifications?.dailySummaryTime || "20:00",
+        lineAlerts: user.settings?.notifications?.lineAlerts ?? true,
+        budgetWarning: user.settings?.notifications?.budgetWarning ?? 80,
+      },
+    },
+    // Home
     todayExpense,
     todayIncome,
     todayCount: todayReceipts.length,
-    monthExpense: monthExpense[0]?.total || 0,
-    monthIncome: monthIncome[0]?.total || 0,
-    monthlyBudget: user?.monthlyBudget || 0,
-    recentReceipts: recentReceipts.map((r: any) => ({
+    monthExpense: monthExpenseAgg[0]?.total || 0,
+    monthIncome: monthIncomeAgg[0]?.total || 0,
+    // Receipts
+    receipts: allReceipts.map((r: any) => ({
       _id: String(r._id),
       merchant: r.merchant || "ไม่ระบุ",
       amount: r.amount || 0,
@@ -55,9 +140,38 @@ export default async function MobileHomePage() {
       date: r.date ? new Date(r.date).toLocaleDateString("th-TH", { day: "numeric", month: "short" }) : "",
       time: r.time || "",
       status: r.status || "pending",
+      source: r.source || "web",
       hasImage: !!r.imageHash,
     })),
+    // Reports
+    categories: catBreakdown.map((c: any) => ({ name: c._id || "อื่นๆ", icon: c.icon || "📦", total: c.total, count: c.count })),
+    monthlyData,
+    totalExpense: catBreakdown.reduce((s: number, c: any) => s + c.total, 0),
+    // Stats
+    stats: {
+      totalReceipts: totalCount,
+      monthReceipts: allReceipts.filter((r: any) => new Date(r.createdAt) >= monthStart).length,
+      monthExpense: monthExpenseAgg[0]?.total || 0,
+      monthIncome: monthIncomeAgg[0]?.total || 0,
+      streak,
+      memberSince: user.createdAt ? new Date(user.createdAt).toLocaleDateString("th-TH", { day: "numeric", month: "long", year: "numeric" }) : "",
+      lastLogin: user.lastLogin ? new Date(user.lastLogin).toLocaleDateString("th-TH", { day: "numeric", month: "short", year: "numeric", hour: "2-digit", minute: "2-digit" }) : "",
+    },
   };
 
-  return <MobileHomeClient data={data} />;
+  return <MobileApp data={data} />;
+}
+
+export default function MobilePage() {
+  return (
+    <Suspense fallback={
+      <div className="space-y-4 p-4 animate-pulse">
+        <div className="h-32 rounded-2xl bg-white/[0.04]" />
+        <div className="h-12 rounded-2xl bg-white/[0.04]" />
+        <div className="h-48 rounded-2xl bg-white/[0.04]" />
+      </div>
+    }>
+      <MobileData />
+    </Suspense>
+  );
 }
