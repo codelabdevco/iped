@@ -6,6 +6,7 @@ import Receipt from "@/models/Receipt";
 import Match from "@/models/Match";
 import User from "@/models/User";
 import GoogleAccount from "@/models/GoogleAccount";
+import FileModel from "@/models/File";
 import MatchingClient from "./MatchingClient";
 
 async function MatchingData() {
@@ -50,11 +51,27 @@ async function MatchingData() {
       emailSubject: r.emailSubject || "",
       emailFrom: r.emailFrom || "",
       ocrConfidence: r.ocrConfidence || 0,
+      fileIds: r.fileIds || [],
       createdAt: r.createdAt ? new Date(r.createdAt).toISOString() : "",
     };
     receiptMap[obj._id] = obj;
     return obj;
   });
+
+  // Get file info for receipts that have attachments
+  const allFileIds = data.flatMap((d) => d.fileIds);
+  const files = allFileIds.length > 0
+    ? await FileModel.find({ _id: { $in: allFileIds } }).select("name type size").lean()
+    : [];
+  const fileMap: Record<string, { name: string; type: string; size: number }> = {};
+  for (const f of files as any[]) {
+    fileMap[String(f._id)] = { name: f.name, type: f.type, size: f.size };
+  }
+
+  // Attach file info to receipts
+  for (const d of data) {
+    (d as any).files = d.fileIds.map((id: string) => fileMap[id]).filter(Boolean);
+  }
 
   const matchData = matches.map((m: any) => ({
     _id: String(m._id),

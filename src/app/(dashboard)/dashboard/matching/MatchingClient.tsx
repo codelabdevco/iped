@@ -5,12 +5,18 @@ import { useRouter } from "next/navigation";
 import { useTheme } from "@/contexts/ThemeContext";
 import {
   ScanLine, CheckCircle2, Copy, Upload, Loader2, ArrowRight, Check, X,
-  Mail, Clock, ToggleLeft, ToggleRight, RefreshCw,
+  Mail, Clock, ToggleLeft, ToggleRight, Paperclip, Download,
 } from "lucide-react";
 import PageHeader from "@/components/dashboard/PageHeader";
 import StatsCard from "@/components/dashboard/StatsCard";
 import DataTable, { Column } from "@/components/dashboard/DataTable";
 import BrandIcon from "@/components/dashboard/BrandIcon";
+
+interface FileInfo {
+  name: string;
+  type: string;
+  size: number;
+}
 
 interface ReceiptRow {
   _id: string; storeName: string; amount: number; category: string;
@@ -18,6 +24,7 @@ interface ReceiptRow {
   type: string; source: string; paymentMethod?: string; note?: string;
   hasImage?: boolean; direction?: string; createdAt?: string;
   emailSubject?: string; emailFrom?: string; ocrConfidence?: number;
+  fileIds?: string[]; files?: FileInfo[];
 }
 
 interface MatchRow {
@@ -321,6 +328,34 @@ export default function MatchingClient({
           );
         }
         return <span className={`px-2 py-0.5 rounded-lg text-[10px] font-medium bg-gray-500/10 ${muted}`}>ยังไม่จับคู่</span>;
+      },
+    },
+    {
+      key: "files" as any,
+      label: "ไฟล์แนบ",
+      render: (r) => {
+        if (!r.files || r.files.length === 0) {
+          if (r.hasImage) return <span className={`text-[10px] ${muted}`}>รูป</span>;
+          return <span className={`text-[10px] ${muted}`}>-</span>;
+        }
+        return (
+          <div className="flex flex-col gap-1">
+            {r.files.map((f, i) => (
+              <a
+                key={i}
+                href={`/api/files/download?id=${r.fileIds?.[i]}`}
+                target="_blank"
+                rel="noopener"
+                onClick={(e) => e.stopPropagation()}
+                className="flex items-center gap-1.5 px-2 py-1 rounded-lg text-[10px] font-medium bg-blue-500/10 text-blue-400 hover:bg-blue-500/20 transition-colors"
+              >
+                <Paperclip size={10} />
+                <span className="truncate max-w-[80px]">{f.name}</span>
+                <Download size={9} />
+              </a>
+            ))}
+          </div>
+        );
       },
     },
     {

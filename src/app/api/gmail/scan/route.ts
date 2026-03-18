@@ -241,17 +241,18 @@ export async function POST(request: NextRequest) {
                   note: `gmail:${messageId}`,
                 });
 
-                // Save attachment as downloadable file
+                // Save attachment as downloadable file + link to receipt
                 try {
-                  await FileModel.create({
+                  const savedFile = await FileModel.create({
                     name: att.filename || `${ocrResult.merchant || "receipt"}_${emailDate.toISOString().slice(0, 10)}.${att.mimeType.startsWith("image/") ? "jpg" : "pdf"}`,
                     type: att.mimeType,
                     size: Math.ceil(base64.length * 0.75),
                     data: base64,
                     category: "email-attachment",
-                    note: `จาก email: ${subject} | Receipt: ${receipt._id}`,
+                    note: `จาก email: ${subject}`,
                     userId: userId,
                   });
+                  await Receipt.findByIdAndUpdate(receipt._id, { $push: { fileIds: String(savedFile._id) } });
                 } catch (fileErr) { console.error("File save error:", fileErr); }
 
                 await findMatches(String(receipt._id), userId);
@@ -288,17 +289,18 @@ export async function POST(request: NextRequest) {
                   note: `gmail:${messageId}`,
                 });
 
-                // Save attachment even if OCR failed
+                // Save attachment even if OCR failed + link to receipt
                 try {
-                  await FileModel.create({
+                  const savedFile = await FileModel.create({
                     name: att.filename || `attachment_${emailDate.toISOString().slice(0, 10)}.${att.mimeType.startsWith("image/") ? "jpg" : "pdf"}`,
                     type: att.mimeType,
                     size: Math.ceil(base64.length * 0.75),
                     data: base64,
                     category: "email-attachment",
-                    note: `จาก email: ${subject} | Receipt: ${receipt._id}`,
+                    note: `จาก email: ${subject}`,
                     userId: userId,
                   });
+                  await Receipt.findByIdAndUpdate(receipt._id, { $push: { fileIds: String(savedFile._id) } });
                 } catch (fileErr) { console.error("File save error:", fileErr); }
 
                 results.push({ subject, from: cleanEmail(from), date: dateStr, status: "ocr_failed", receiptId: String(receipt._id), account: account.email });
