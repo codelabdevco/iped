@@ -563,21 +563,7 @@ export function receiptConfirmFlex(data: ReceiptFlexData) {
         paddingAll: "16px",
         spacing: "sm",
         contents: [
-          // Direction badge + document type
-          {
-            type: "box",
-            layout: "horizontal",
-            spacing: "sm",
-            contents: [
-              directionBadge(isExpense),
-              ...(data.documentType
-                ? [tagPill(data.documentType, C.sub, C.bg)]
-                : []),
-              { type: "filler" as const },
-            ],
-          },
-
-          // Amount — HERO
+          // Amount — HERO (prefix -/+ already indicates expense/income)
           amountHero(data.amount, isExpense, amtColor),
 
           // Merchant info
