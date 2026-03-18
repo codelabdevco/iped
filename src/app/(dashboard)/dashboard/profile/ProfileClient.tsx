@@ -133,6 +133,33 @@ export default function ProfileClient({ profile, stats }: ProfileProps) {
         </div>
       </div>
 
+      {/* ── Personal Info ── */}
+      <div className={`${card} border ${border} rounded-2xl p-5`}>
+        <p className={`text-sm font-semibold ${txt} mb-3`}>ข้อมูลส่วนตัว</p>
+        <div className="space-y-2.5">
+          <InfoRow label="ชื่อ" value={profile.name} isDark={isDark} />
+          {profile.phone && <InfoRow label="เบอร์โทร" value={profile.phone} isDark={isDark} />}
+          {profile.email && <InfoRow label="อีเมล" value={profile.email} isDark={isDark} />}
+          {profile.occupation && <InfoRow label="อาชีพ" value={profile.occupation} isDark={isDark} />}
+          {profile.gender && <InfoRow label="เพศ" value={profile.gender} isDark={isDark} />}
+          {profile.age > 0 && <InfoRow label="อายุ" value={`${profile.age} ปี`} isDark={isDark} />}
+          <InfoRow label="ประเภทบัญชี" value={profile.accountType === "business" ? `ธุรกิจ — ${profile.businessName}` : "ส่วนตัว"} isDark={isDark} />
+        </div>
+        <a href="/dashboard/settings" className="inline-block mt-3 text-xs text-[#FA3633] font-medium">แก้ไขข้อมูล →</a>
+      </div>
+
+      {/* ── Account Info ── */}
+      <div className={`${card} border ${border} rounded-2xl p-5`}>
+        <p className={`text-sm font-semibold ${txt} mb-3`}>ข้อมูลบัญชี</p>
+        <div className="space-y-2.5">
+          <InfoRow label="สมาชิกตั้งแต่" value={stats.memberSince} isDark={isDark} />
+          {stats.lastLogin && <InfoRow label="เข้าใช้ล่าสุด" value={stats.lastLogin} isDark={isDark} />}
+          <InfoRow label="เข้าใช้งาน" value={`${profile.loginCount} ครั้ง`} isDark={isDark} />
+          <InfoRow label="สถานะ" value={profile.status === "active" ? "✅ ใช้งานอยู่" : profile.status} isDark={isDark} />
+          {profile.onboardingComplete && <InfoRow label="Onboarding" value="✅ เสร็จสิ้น" isDark={isDark} />}
+        </div>
+      </div>
+
       {/* ── Monthly Stats ── */}
       <div className={`${card} border ${border} rounded-2xl p-5`}>
         <p className={`text-sm font-semibold ${txt} mb-3`}>สรุปเดือนนี้</p>
@@ -197,6 +224,15 @@ export default function ProfileClient({ profile, stats }: ProfileProps) {
 
       {/* Version */}
       <p className={`text-center text-xs ${muted} py-2`}>iPED v1.0 — by codelabs tech</p>
+    </div>
+  );
+}
+
+function InfoRow({ label, value, isDark }: { label: string; value: string; isDark: boolean }) {
+  return (
+    <div className="flex items-center justify-between">
+      <span className={`text-xs ${isDark ? "text-white/40" : "text-gray-500"}`}>{label}</span>
+      <span className={`text-sm font-medium ${isDark ? "text-white" : "text-gray-900"}`}>{value}</span>
     </div>
   );
 }
