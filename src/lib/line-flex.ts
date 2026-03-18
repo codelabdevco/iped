@@ -104,27 +104,15 @@ function headerBar(
         margin: "sm",
       },
       { type: "filler" },
-      // Status pill
+      // Status text
       {
-        type: "box",
-        layout: "horizontal",
+        type: "text",
+        text: statusText,
+        size: "xs",
+        color: statusColor,
+        weight: "bold",
         flex: 0,
-        cornerRadius: "12px",
-        backgroundColor: statusColor,
-        paddingStart: "10px",
-        paddingEnd: "10px",
-        paddingTop: "4px",
-        paddingBottom: "4px",
-        contents: [
-          {
-            type: "text",
-            text: statusText,
-            size: "xxs",
-            color: C.white,
-            weight: "bold",
-            align: "center",
-          },
-        ],
+        gravity: "center",
       },
     ],
   };
@@ -235,24 +223,25 @@ function detailItem(label: string, value: string): any {
 
 /** Direction badge (รายจ่าย / รายรับ / เงินออม) */
 function directionBadge(isExpense: boolean): any {
-  const text = isExpense ? "รายจ่าย" : "รายรับ";
+  const emoji = isExpense ? "📤" : "📥";
+  const text = isExpense ? `${emoji} รายจ่าย` : `${emoji} รายรับ`;
   const color = isExpense ? C.red : C.green;
   const bg = isExpense ? C.redBg : C.greenBg;
   return {
     type: "box",
     layout: "horizontal",
     flex: 0,
-    cornerRadius: "10px",
+    cornerRadius: "12px",
     backgroundColor: bg,
-    paddingStart: "8px",
-    paddingEnd: "8px",
-    paddingTop: "3px",
-    paddingBottom: "3px",
+    paddingStart: "10px",
+    paddingEnd: "10px",
+    paddingTop: "5px",
+    paddingBottom: "5px",
     contents: [
       {
         type: "text",
         text,
-        size: "xxs",
+        size: "xs",
         color,
         weight: "bold",
       },
