@@ -36,9 +36,9 @@ export default function Header({ displayName, pictureUrl, onMenuToggle }: Header
         <button className={`w-9 h-9 ${iconBg} rounded-lg flex items-center justify-center transition-colors relative`}>
           <Bell size={18} />
         </button>
-        <div className={`w-9 h-9 rounded-full ${isDark ? "bg-[#FA3633]/20" : "bg-[#FA3633]/10"} flex items-center justify-center`}>
+        <a href="/dashboard/profile" className={`w-9 h-9 rounded-full ${isDark ? "bg-[#FA3633]/20" : "bg-[#FA3633]/10"} flex items-center justify-center hover:ring-2 hover:ring-[#FA3633]/50 transition-all cursor-pointer`}>
           {pictureUrl ? <img src={pictureUrl} alt="" className="w-full h-full rounded-full object-cover" /> : <User size={18} className="text-[#FA3633]" />}
-        </div>
+        </a>
       </div>
     </header>
   );
