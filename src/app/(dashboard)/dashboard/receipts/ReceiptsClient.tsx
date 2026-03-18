@@ -780,7 +780,7 @@ export default function ReceiptsClient({ receipts: initialReceipts }: { receipts
       {/* Slide-in panel from right (edit + add) */}
       {(editingId || isAdding) && <div className="fixed inset-0 z-40 bg-black/60 transition-opacity" onClick={handleCancelEdit} />}
       {(editingId || isAdding) && (editingReceipt || isAdding) && (
-      <div className="fixed inset-y-0 right-0 z-50 w-[540px] max-w-[95vw] bg-[#0a0a0a] border-l border-white/10 shadow-2xl overflow-y-auto animate-slide-in-right">
+      <div className="fixed inset-y-0 right-0 z-50 w-[540px] max-w-full sm:max-w-[95vw] bg-[#0a0a0a] border-l border-white/10 shadow-2xl overflow-y-auto animate-slide-in-right">
         {(() => {
           const itemsTotal = editItems.reduce((s, it) => s + it.qty * it.price, 0);
           const vatAmount = vatEnabled ? Math.round(itemsTotal * 0.07) : 0;
@@ -790,9 +790,9 @@ export default function ReceiptsClient({ receipts: initialReceipts }: { receipts
           const lbl = "block text-xs text-white/40 mb-1";
 
           return (
-          <div className="p-6 space-y-5">
+          <div className="p-4 sm:p-6 space-y-4 sm:space-y-5">
             <div className="flex items-center justify-between">
-              <h2 className="text-lg font-bold text-white">{isAdding ? "เพิ่มใบเสร็จ" : "แก้ไขใบเสร็จ"}</h2>
+              <h2 className="text-base sm:text-lg font-bold text-white">{isAdding ? "เพิ่มใบเสร็จ" : "แก้ไขใบเสร็จ"}</h2>
               <button onClick={handleCancelEdit} className="w-8 h-8 rounded-lg hover:bg-white/5 text-white/40 hover:text-white flex items-center justify-center text-xl transition-colors">&times;</button>
             </div>
 
@@ -805,7 +805,7 @@ export default function ReceiptsClient({ receipts: initialReceipts }: { receipts
               className="space-y-2"
             >
               {slipFiles.length > 0 && (
-                <div className="grid grid-cols-3 gap-2">
+                <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
                   {slipFiles.map((sf, i) => (
                     <div key={i} className="relative rounded-lg overflow-hidden bg-white/5 border border-white/10 group">
                       {sf.preview ? (
@@ -849,17 +849,17 @@ export default function ReceiptsClient({ receipts: initialReceipts }: { receipts
               <p className="text-xs font-semibold text-white/50">ข้อมูลรายจ่าย</p>
               <div><label className={lbl}>ร้านค้า</label><input value={editForm.storeName || ""} onChange={(e) => setEditForm({ ...editForm, storeName: e.target.value })} className={inp} /></div>
               <div><label className={lbl}>หมายเหตุ</label><textarea rows={2} value={editForm.note || ""} onChange={(e) => setEditForm({ ...editForm, note: e.target.value })} placeholder="รายละเอียดเพิ่มเติม..." className={`${inp} h-auto py-2`} /></div>
-              <div className="grid grid-cols-3 gap-3">
+              <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
                 <div><label className={lbl}>วันที่จ่าย</label><DatePicker value={editForm.date || ""} onChange={(v) => setEditForm({ ...editForm, date: v })} /></div>
                 <div><label className={lbl}>เวลา</label><TimePicker value={editForm.time || ""} onChange={(v) => setEditForm({ ...editForm, time: v })} /></div>
-                <div><label className={lbl}>วิธีจ่าย</label><Select value={editForm.paymentMethod || "cash"} onChange={(v) => setEditForm({ ...editForm, paymentMethod: v })} options={PAYMENT_METHODS} /></div>
+                <div className="col-span-2 sm:col-span-1"><label className={lbl}>วิธีจ่าย</label><Select value={editForm.paymentMethod || "cash"} onChange={(v) => setEditForm({ ...editForm, paymentMethod: v })} options={PAYMENT_METHODS} /></div>
               </div>
               <div className="grid grid-cols-2 gap-3">
                 <div><label className={lbl}>หมวดหมู่</label><Select value={editForm.category || "ไม่ระบุ"} onChange={(v) => setEditForm({ ...editForm, category: v })} options={categoryOptions} /></div>
                 <div><label className={lbl}>สถานะ</label><Select value={editForm.status || "pending"} onChange={(v) => setEditForm({ ...editForm, status: v })} options={STATUS_OPTIONS} /></div>
               </div>
               <div><label className={lbl}>ประเภทเอกสาร</label><Select value={editForm.type || "receipt"} onChange={(v) => setEditForm({ ...editForm, type: v })} options={Object.entries(typeLabel).map(([k, v]) => ({ value: k, label: v }))} /></div>
-              <div className="grid grid-cols-2 gap-3">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                 <div><label className={lbl}>เลขที่เอกสาร</label><input value={editForm.documentNumber || ""} onChange={(e) => setEditForm({ ...editForm, documentNumber: e.target.value })} placeholder="RCP-2026-0001" className={inp} /></div>
                 <div><label className={lbl}>เลขผู้เสียภาษี</label><input value={editForm.merchantTaxId || ""} onChange={(e) => setEditForm({ ...editForm, merchantTaxId: e.target.value })} placeholder="0107536000269" className={inp} /></div>
               </div>
@@ -870,18 +870,46 @@ export default function ReceiptsClient({ receipts: initialReceipts }: { receipts
                 <p className="text-xs font-semibold text-white/50">รายการสินค้า/บริการ</p>
                 <button onClick={() => setEditItems([...editItems, { name: "", qty: 1, price: 0 }])} className="px-2.5 py-1 rounded-lg text-[11px] font-medium bg-green-500/10 text-green-400 hover:bg-green-500/20 transition-colors">+ เพิ่มรายการ</button>
               </div>
-              <div className="flex items-center gap-2 text-[10px] text-white/30 font-medium">
-                <span className="w-5 shrink-0">#</span><span className="flex-1">รายการ</span><span className="w-12 text-center">จำนวน</span><span className="w-20 text-right">ราคา</span><span className="w-20 text-right">รวม</span><span className="w-7 shrink-0"></span>
+              {/* Desktop: table row */}
+              <div className="hidden sm:block">
+                <div className="flex items-center gap-2 text-[10px] text-white/30 font-medium">
+                  <span className="w-5 shrink-0">#</span><span className="flex-1">รายการ</span><span className="w-12 text-center">จำนวน</span><span className="w-20 text-right">ราคา</span><span className="w-20 text-right">รวม</span><span className="w-7 shrink-0"></span>
+                </div>
+                <div className="space-y-2 mt-2">
+                  {editItems.map((item, i) => (
+                    <div key={i} className="flex items-center gap-2">
+                      <span className="w-5 h-5 rounded text-[10px] font-medium bg-white/5 text-white/30 flex items-center justify-center shrink-0">{i + 1}</span>
+                      <input value={item.name} onChange={(e) => { const n = [...editItems]; n[i] = { ...n[i], name: e.target.value }; setEditItems(n); }} placeholder="ชื่อรายการ" className="flex-1 h-8 px-2 bg-white/5 border border-white/10 text-white rounded text-xs focus:outline-none focus:border-[#FA3633]/50" />
+                      <input type="number" value={item.qty} min={1} onChange={(e) => { const n = [...editItems]; n[i] = { ...n[i], qty: Math.max(1, Number(e.target.value)) }; setEditItems(n); }} className="w-12 h-8 px-2 bg-white/5 border border-white/10 text-white rounded text-xs text-center focus:outline-none" />
+                      <input type="number" value={item.price} onChange={(e) => { const n = [...editItems]; n[i] = { ...n[i], price: Number(e.target.value) }; setEditItems(n); }} placeholder="0" className="w-20 h-8 px-2 bg-white/5 border border-white/10 text-white rounded text-xs text-right focus:outline-none" />
+                      <span className="w-20 text-right text-xs font-medium text-white/60">฿{(item.qty * item.price).toLocaleString("th-TH", { minimumFractionDigits: 2 })}</span>
+                      {editItems.length > 1 ? <button onClick={() => setEditItems(editItems.filter((_, j) => j !== i))} className="w-7 h-7 rounded hover:bg-red-500/10 text-white/20 hover:text-red-400 flex items-center justify-center transition-colors shrink-0"><Trash2 size={12} /></button> : <span className="w-7 shrink-0" />}
+                    </div>
+                  ))}
+                </div>
               </div>
-              <div className="space-y-2">
+              {/* Mobile: card layout */}
+              <div className="sm:hidden space-y-3">
                 {editItems.map((item, i) => (
-                  <div key={i} className="flex items-center gap-2">
-                    <span className="w-5 h-5 rounded text-[10px] font-medium bg-white/5 text-white/30 flex items-center justify-center shrink-0">{i + 1}</span>
-                    <input value={item.name} onChange={(e) => { const n = [...editItems]; n[i] = { ...n[i], name: e.target.value }; setEditItems(n); }} placeholder="ชื่อรายการ" className="flex-1 h-8 px-2 bg-white/5 border border-white/10 text-white rounded text-xs focus:outline-none focus:border-[#FA3633]/50" />
-                    <input type="number" value={item.qty} min={1} onChange={(e) => { const n = [...editItems]; n[i] = { ...n[i], qty: Math.max(1, Number(e.target.value)) }; setEditItems(n); }} className="w-12 h-8 px-2 bg-white/5 border border-white/10 text-white rounded text-xs text-center focus:outline-none" />
-                    <input type="number" value={item.price} onChange={(e) => { const n = [...editItems]; n[i] = { ...n[i], price: Number(e.target.value) }; setEditItems(n); }} placeholder="0" className="w-20 h-8 px-2 bg-white/5 border border-white/10 text-white rounded text-xs text-right focus:outline-none" />
-                    <span className="w-20 text-right text-xs font-medium text-white/60">฿{(item.qty * item.price).toLocaleString("th-TH", { minimumFractionDigits: 2 })}</span>
-                    {editItems.length > 1 ? <button onClick={() => setEditItems(editItems.filter((_, j) => j !== i))} className="w-7 h-7 rounded hover:bg-red-500/10 text-white/20 hover:text-red-400 flex items-center justify-center transition-colors shrink-0"><Trash2 size={12} /></button> : <span className="w-7 shrink-0" />}
+                  <div key={i} className="rounded-lg bg-white/[0.03] border border-white/10 p-3 space-y-2">
+                    <div className="flex items-center justify-between">
+                      <span className="text-[10px] font-medium text-white/30">#{i + 1}</span>
+                      {editItems.length > 1 && <button onClick={() => setEditItems(editItems.filter((_, j) => j !== i))} className="w-6 h-6 rounded hover:bg-red-500/10 text-white/20 hover:text-red-400 flex items-center justify-center"><Trash2 size={11} /></button>}
+                    </div>
+                    <input value={item.name} onChange={(e) => { const n = [...editItems]; n[i] = { ...n[i], name: e.target.value }; setEditItems(n); }} placeholder="ชื่อรายการ" className="w-full h-8 px-2 bg-white/5 border border-white/10 text-white rounded text-xs focus:outline-none focus:border-[#FA3633]/50" />
+                    <div className="grid grid-cols-3 gap-2">
+                      <div>
+                        <label className="block text-[10px] text-white/30 mb-0.5">จำนวน</label>
+                        <input type="number" value={item.qty} min={1} onChange={(e) => { const n = [...editItems]; n[i] = { ...n[i], qty: Math.max(1, Number(e.target.value)) }; setEditItems(n); }} className="w-full h-8 px-2 bg-white/5 border border-white/10 text-white rounded text-xs text-center focus:outline-none" />
+                      </div>
+                      <div>
+                        <label className="block text-[10px] text-white/30 mb-0.5">ราคา</label>
+                        <input type="number" value={item.price} onChange={(e) => { const n = [...editItems]; n[i] = { ...n[i], price: Number(e.target.value) }; setEditItems(n); }} placeholder="0" className="w-full h-8 px-2 bg-white/5 border border-white/10 text-white rounded text-xs text-right focus:outline-none" />
+                      </div>
+                      <div className="flex items-end justify-end">
+                        <span className="text-xs font-medium text-white/60 pb-1.5">฿{(item.qty * item.price).toLocaleString("th-TH", { minimumFractionDigits: 2 })}</span>
+                      </div>
+                    </div>
                   </div>
                 ))}
               </div>
@@ -957,7 +985,7 @@ export default function ReceiptsClient({ receipts: initialReceipts }: { receipts
             <div className={`rounded-xl p-4 ${txType === "income" ? "bg-green-500/10 border border-green-500/20" : "bg-[#FA3633]/10 border border-[#FA3633]/20"}`}>
               <div className="flex items-center justify-between">
                 <span className="text-sm font-semibold text-white/70">{txType === "income" ? "ยอดรับ" : "ยอดสุทธิ"}</span>
-                <span className={`text-2xl font-bold text-white`}>฿{grandTotal.toLocaleString("th-TH", { minimumFractionDigits: 2 })}</span>
+                <span className={`text-xl sm:text-2xl font-bold text-white`}>฿{grandTotal.toLocaleString("th-TH", { minimumFractionDigits: 2 })}</span>
               </div>
               {txType === "expense" && (vatEnabled || whtEnabled) && (
                 <p className="text-[11px] text-white/30 mt-1">สินค้า ฿{itemsTotal.toLocaleString("th-TH", { minimumFractionDigits: 2 })}{vatEnabled ? ` + VAT ฿${vatAmount.toLocaleString("th-TH", { minimumFractionDigits: 2 })}` : ""}{whtEnabled ? ` - WHT ฿${whtAmount.toLocaleString("th-TH", { minimumFractionDigits: 2 })}` : ""}</p>
@@ -988,7 +1016,7 @@ export default function ReceiptsClient({ receipts: initialReceipts }: { receipts
             </div>
 
             {/* Actions */}
-            <div className="flex gap-2 pt-2 sticky bottom-0 pb-6 bg-[#0a0a0a]">
+            <div className="flex gap-2 pt-2 sticky bottom-0 pb-4 sm:pb-6 bg-[#0a0a0a]">
               <button
                 onClick={isAdding ? handleSaveAdd : handleSaveEdit}
                 disabled={saving || (isAdding && !editForm.storeName)}
