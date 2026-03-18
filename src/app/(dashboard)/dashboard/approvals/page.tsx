@@ -1,62 +1,49 @@
-"use client";
-import { useState } from "react";
-import { useTheme } from "@/contexts/ThemeContext";
-import { Trash2, ShieldCheck, Check, X, Clock, CheckCircle, AlertTriangle } from "lucide-react";
-import PageHeader from "@/components/dashboard/PageHeader";
-import DataTable, { Column } from "@/components/dashboard/DataTable";
-import StatsCard from "@/components/dashboard/StatsCard";
+import { Suspense } from "react";
+import { getSession } from "@/lib/auth";
+import { redirect } from "next/navigation";
+import { connectDB } from "@/lib/mongodb";
+import DocumentModel from "@/models/Document";
+import ApprovalsClient from "./ApprovalsClient";
 
-const initData = [
-  { id: 1, requester: "นภา ศรีสุข", item: "ค่าเดินทางไปพบลูกค้า จ.ชลบุรี", amount: 4500, category: "ค่าเดินทาง", date: "2026-03-15", status: "รออนุมัติ" },
-  { id: 2, requester: "ธนกร เจริญยิ่ง", item: "อุปกรณ์เซิร์ฟเวอร์ Dell PowerEdge", amount: 185000, category: "อุปกรณ์ IT", date: "2026-03-14", status: "รออนุมัติ" },
-  { id: 3, requester: "กิตติพงษ์ อมรรัตน์", item: "ต่ออายุ License Microsoft 365", amount: 45000, category: "ซอฟต์แวร์", date: "2026-03-13", status: "อนุมัติ" },
-  { id: 4, requester: "พิมพ์ชนก รัตนกุล", item: "เครื่องเขียนและอุปกรณ์สำนักงาน", amount: 3200, category: "สำนักงาน", date: "2026-03-12", status: "อนุมัติ" },
-  { id: 5, requester: "วิชัย พงศ์ประเสริฐ", item: "ค่าจ้างผู้รับเหมาซ่อมแอร์", amount: 28000, category: "ซ่อมบำรุง", date: "2026-03-11", status: "ปฏิเสธ" },
-  { id: 6, requester: "อรุณี มงคลชัย", item: "ค่าอบรมพนักงานใหม่", amount: 15000, category: "ฝึกอบรม", date: "2026-03-10", status: "อนุมัติ" },
-  { id: 7, requester: "สุภาพร แสงทอง", item: "ค่าสอบบัญชีประจำปี", amount: 65000, category: "ค่าบริการ", date: "2026-03-16", status: "รออนุมัติ" },
-  { id: 8, requester: "นภา ศรีสุข", item: "ค่าโฆษณา Facebook Ads", amount: 12000, category: "การตลาด", date: "2026-03-09", status: "ปฏิเสธ" },
-];
+const statusMap: Record<string, string> = {
+  awaiting_approval: "รออนุมัติ",
+  confirmed: "อนุมัติ",
+  paid: "อนุมัติ",
+  rejected: "ปฏิเสธ",
+};
 
-const statusStyle: Record<string, string> = { "รออนุมัติ": "bg-yellow-500/20 text-yellow-400", "อนุมัติ": "bg-green-500/20 text-green-400", "ปฏิเสธ": "bg-red-500/20 text-red-400" };
+async function ApprovalsData() {
+  const session = await getSession();
+  if (!session) redirect("/login");
 
-export default function Page() {
-  const { isDark } = useTheme();
-  const [data, setData] = useState(initData);
-  const pending = data.filter(d => d.status === "รออนุมัติ").length;
-  const approved = data.filter(d => d.status === "อนุมัติ").length;
-  const rejected = data.filter(d => d.status === "ปฏิเสธ").length;
-  const c = (d: string, l: string) => isDark ? d : l;
+  await connectDB();
+  const docs = await DocumentModel.find({
+    userId: session.userId,
+    status: { $in: ["awaiting_approval", "confirmed", "paid", "rejected"] },
+  })
+    .select("merchant amount category date status")
+    .sort({ date: -1 })
+    .limit(100)
+    .lean();
 
-  const handleAction = (id: number, action: string) => {
-    setData(prev => prev.map(d => d.id === id ? { ...d, status: action } : d));
-  };
+  const data = docs.map((d: any) => ({
+    _id: String(d._id),
+    requester: d.merchant || "ไม่ระบุ",
+    item: d.category || "ไม่ระบุ",
+    amount: d.amount || 0,
+    category: d.category || "ไม่ระบุ",
+    rawDate: d.date ? new Date(d.date).toISOString().slice(0, 10) : "",
+    date: d.date ? new Date(d.date).toLocaleDateString("th-TH") : "",
+    status: statusMap[d.status] || "รออนุมัติ",
+  }));
 
-  const columns: Column<typeof data[number]>[] = [
-    { key: "requester", label: "ผู้ขอ" },
-    { key: "item", label: "รายการ" },
-    { key: "amount", label: "จำนวนเงิน", render: (r) => <span className="font-medium">฿{r.amount.toLocaleString()}</span> },
-    { key: "category", label: "หมวดหมู่" },
-    { key: "date", label: "วันที่ขอ" },
-    { key: "status", label: "สถานะ", render: (r) => <span className={`px-2 py-1 rounded-full text-xs ${statusStyle[r.status]}`}>{r.status}</span> },
-    { key: "actions", label: "จัดการ", render: (r) => r.status === "รออนุมัติ" ? (
-      <div className="flex gap-4">
-        <button onClick={() => handleAction(r.id, "อนุมัติ")} className="p-1.5 rounded-lg bg-green-500/20 text-green-400 hover:bg-green-500/30"><Check className="w-3.5 h-3.5" /></button>
-        <button onClick={() => handleAction(r.id, "ปฏิเสธ")} className="p-1.5 rounded-lg bg-red-500/20 text-red-400 hover:bg-red-500/30"><X className="w-3.5 h-3.5" /></button>
-      </div>
-    ) : <span className={`text-xs ${c("text-white/50", "text-gray-500")}`}>-</span> },
-  ];
+  return <ApprovalsClient approvals={data} />;
+}
 
+export default function ApprovalsPage() {
   return (
-    <div className="space-y-6">
-      <PageHeader title="อนุมัติรายจ่าย" description="จัดการ workflow อนุมัติรายจ่าย" onClear={() => setData([])} />
-
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-        <StatsCard label="รออนุมัติ" value={pending + " รายการ"} icon={<Clock size={20} />} color="text-yellow-500" />
-        <StatsCard label="อนุมัติแล้ว" value={approved + " รายการ"} icon={<CheckCircle size={20} />} color="text-green-500" />
-        <StatsCard label="ปฏิเสธ" value={rejected + " รายการ"} icon={<AlertTriangle size={20} />} color="text-red-500" />
-      </div>
-
-      <DataTable columns={columns} data={data} rowKey={(r) => r.id} />
-    </div>
+    <Suspense fallback={<div className="space-y-6 animate-pulse"><div className="h-8 w-32 rounded-lg bg-white/[0.06]" /><div className="h-40 rounded-2xl bg-white/[0.04]" /></div>}>
+      <ApprovalsData />
+    </Suspense>
   );
 }
