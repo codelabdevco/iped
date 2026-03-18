@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { connectDB } from "@/lib/mongodb";
 import User from "@/models/User";
+import GoogleAccount from "@/models/GoogleAccount";
 
 // GET /api/auth/google/callback — handle OAuth callback
 export async function GET(request: NextRequest) {
@@ -40,8 +41,22 @@ export async function GET(request: NextRequest) {
     });
     const profile = await profileRes.json();
 
-    // Save tokens to user
+    // Save tokens
     await connectDB();
+
+    // Upsert GoogleAccount (multi-account support)
+    await GoogleAccount.findOneAndUpdate(
+      { userId: state, email: profile.email },
+      {
+        accessToken: tokens.access_token,
+        refreshToken: tokens.refresh_token || undefined,
+        connectedAt: new Date(),
+        status: "active",
+      },
+      { upsert: true, new: true }
+    );
+
+    // Also keep backward-compat: save to User (for existing code)
     await User.findByIdAndUpdate(state, {
       googleAccessToken: tokens.access_token,
       googleRefreshToken: tokens.refresh_token,

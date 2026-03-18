@@ -27,11 +27,19 @@ interface MatchRow {
   matchScore: number; matchType: string; matchReason: string; status: string; createdAt?: string;
 }
 
+interface GoogleAccountInfo {
+  _id: string;
+  email: string;
+  lastScanAt: string | null;
+  autoScan: boolean;
+}
+
 interface GmailSettings {
   connected: boolean;
   email: string | null;
   lastGmailScan: string | null;
   autoGmailScan: boolean;
+  accounts?: GoogleAccountInfo[];
 }
 
 function Baht({ value, className = "" }: { value: number; className?: string }) {
@@ -405,58 +413,65 @@ export default function MatchingClient({
         </div>
       </div>
 
-      {/* Gmail Settings Card */}
+      {/* Gmail Settings Card — multi-account */}
       <div className={`${card} border ${border} rounded-2xl p-4`}>
-        <div className="flex items-center justify-between">
-          <div className="flex items-center gap-4">
+        <div className="flex items-center justify-between mb-3">
+          <div className="flex items-center gap-3">
             <div className={`w-10 h-10 rounded-xl flex items-center justify-center ${initialGmail.connected ? "bg-green-500/10" : "bg-gray-500/10"}`}>
               <BrandIcon brand="gmail" size={20} />
             </div>
             <div>
-              <div className="flex items-center gap-2">
-                <span className={`font-medium ${txt}`}>
-                  {initialGmail.connected ? initialGmail.email : "ยังไม่ได้เชื่อมต่อ Gmail"}
-                </span>
-                <span className={`px-2 py-0.5 rounded-full text-[10px] font-medium ${initialGmail.connected ? "bg-green-500/10 text-green-400" : "bg-gray-500/10 text-gray-400"}`}>
-                  {initialGmail.connected ? "เชื่อมต่อแล้ว" : "ไม่ได้เชื่อมต่อ"}
-                </span>
-              </div>
+              <span className={`font-medium ${txt}`}>
+                {initialGmail.connected
+                  ? `บัญชี Gmail (${(initialGmail.accounts?.length || 0) > 0 ? initialGmail.accounts!.length : 1})`
+                  : "ยังไม่ได้เชื่อมต่อ Gmail"}
+              </span>
               {lastScan && (
-                <div className={`flex items-center gap-1.5 mt-1 text-xs ${sub}`}>
+                <div className={`flex items-center gap-1.5 mt-0.5 text-xs ${sub}`}>
                   <Clock size={11} />
                   <span>สแกนล่าสุด: {formatTimeAgo(lastScan)}</span>
-                  <span className={muted}>({new Date(lastScan).toLocaleString("th-TH")})</span>
                 </div>
-              )}
-              {!lastScan && initialGmail.connected && (
-                <p className={`text-xs mt-1 ${sub}`}>ยังไม่เคยสแกน — กด &quot;สแกน Gmail&quot; เพื่อเริ่ม</p>
               )}
             </div>
           </div>
-
-          <div className="flex items-center gap-3">
-            {/* Auto-scan toggle */}
+          <div className="flex items-center gap-2">
             {initialGmail.connected && (
-              <button
-                onClick={handleToggleAutoScan}
-                className={`flex items-center gap-2 px-3 py-2 rounded-xl text-sm transition-colors ${
-                  autoScan
-                    ? "bg-green-500/10 text-green-400"
-                    : isDark ? "bg-white/5 text-white/40" : "bg-gray-100 text-gray-400"
-                }`}
-              >
+              <button onClick={handleToggleAutoScan} className={`flex items-center gap-2 px-3 py-2 rounded-xl text-sm transition-colors ${autoScan ? "bg-green-500/10 text-green-400" : isDark ? "bg-white/5 text-white/40" : "bg-gray-100 text-gray-400"}`}>
                 {autoScan ? <ToggleRight size={18} /> : <ToggleLeft size={18} />}
                 <span className="font-medium">{autoScan ? "สแกนอัตโนมัติ" : "สแกนเอง"}</span>
               </button>
             )}
-
-            {!initialGmail.connected && (
-              <a href="/api/auth/google" className="flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-medium bg-blue-500/10 text-blue-400 hover:bg-blue-500/20 transition-colors">
-                <Mail size={14} /> เชื่อมต่อ Gmail
-              </a>
-            )}
+            <a href="/api/auth/google" className="flex items-center gap-2 px-3 py-2 rounded-xl text-sm font-medium bg-blue-500/10 text-blue-400 hover:bg-blue-500/20 transition-colors">
+              {initialGmail.connected ? "+" : <Mail size={14} />}
+              {initialGmail.connected ? "เพิ่มบัญชี" : "เชื่อมต่อ Gmail"}
+            </a>
           </div>
         </div>
+        {/* Account list */}
+        {(initialGmail.accounts && initialGmail.accounts.length > 0) ? (
+          <div className="space-y-1.5">
+            {initialGmail.accounts.map((acc) => (
+              <div key={acc._id} className={`flex items-center justify-between px-3 py-2 rounded-lg ${isDark ? "bg-white/[0.03]" : "bg-gray-50"}`}>
+                <div className="flex items-center gap-2">
+                  <BrandIcon brand="gmail" size={12} />
+                  <span className={`text-sm ${txt}`}>{acc.email}</span>
+                </div>
+                <div className="flex items-center gap-2">
+                  {acc.lastScanAt && <span className={`text-[10px] ${muted}`}>{formatTimeAgo(acc.lastScanAt)}</span>}
+                  <span className="px-1.5 py-0.5 rounded text-[9px] font-medium bg-green-500/10 text-green-400">active</span>
+                </div>
+              </div>
+            ))}
+          </div>
+        ) : initialGmail.connected && initialGmail.email ? (
+          <div className={`flex items-center justify-between px-3 py-2 rounded-lg ${isDark ? "bg-white/[0.03]" : "bg-gray-50"}`}>
+            <div className="flex items-center gap-2">
+              <BrandIcon brand="gmail" size={12} />
+              <span className={`text-sm ${txt}`}>{initialGmail.email}</span>
+            </div>
+            <span className="px-1.5 py-0.5 rounded text-[9px] font-medium bg-green-500/10 text-green-400">active</span>
+          </div>
+        ) : null}
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">

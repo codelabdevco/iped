@@ -5,6 +5,7 @@ import { connectDB } from "@/lib/mongodb";
 import Receipt from "@/models/Receipt";
 import Match from "@/models/Match";
 import User from "@/models/User";
+import GoogleAccount from "@/models/GoogleAccount";
 import MatchingClient from "./MatchingClient";
 
 async function MatchingData() {
@@ -13,7 +14,7 @@ async function MatchingData() {
 
   await connectDB();
 
-  const [receipts, matches, user] = await Promise.all([
+  const [receipts, matches, user, googleAccounts] = await Promise.all([
     Receipt.find({ userId: session.userId })
       .select("-imageUrl -ocrRawText")
       .sort({ date: -1 })
@@ -26,6 +27,7 @@ async function MatchingData() {
     User.findById(session.userId)
       .select("googleEmail googleConnectedAt lastGmailScan autoGmailScan")
       .lean() as any,
+    GoogleAccount.find({ userId: session.userId, status: "active" }).lean(),
   ]);
 
   const receiptMap: Record<string, any> = {};
@@ -65,12 +67,20 @@ async function MatchingData() {
     createdAt: m.createdAt ? new Date(m.createdAt).toISOString() : "",
   }));
 
-  // Gmail settings
+  // Gmail settings + accounts
+  const accountsData = (googleAccounts as any[]).map((a: any) => ({
+    _id: String(a._id),
+    email: a.email,
+    lastScanAt: a.lastScanAt ? new Date(a.lastScanAt).toISOString() : null,
+    autoScan: a.autoScan,
+  }));
+
   const gmailSettings = {
-    connected: !!user?.googleEmail,
-    email: user?.googleEmail || null,
-    lastGmailScan: user?.lastGmailScan ? new Date(user.lastGmailScan).toISOString() : null,
-    autoGmailScan: user?.autoGmailScan || false,
+    connected: accountsData.length > 0 || !!user?.googleEmail,
+    email: accountsData[0]?.email || user?.googleEmail || null,
+    lastGmailScan: accountsData[0]?.lastScanAt || (user?.lastGmailScan ? new Date(user.lastGmailScan).toISOString() : null),
+    autoGmailScan: accountsData[0]?.autoScan || user?.autoGmailScan || false,
+    accounts: accountsData,
   };
 
   return <MatchingClient receipts={data} matches={matchData} gmailSettings={gmailSettings} />;
