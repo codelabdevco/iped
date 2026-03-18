@@ -201,6 +201,7 @@ export default function ReceiptsClient({ receipts: initialReceipts }: { receipts
   const [selected, setSelected] = useState<string[]>([]);
   const [isAdding, setIsAdding] = useState(false);
   const [saving, setSaving] = useState(false);
+  const [ocrScanning, setOcrScanning] = useState(false);
   const [deleteTarget, setDeleteTarget] = useState<{ id: string | null; ids?: string[] } | null>(null);
 
   const filtered = useMemo(() => {
@@ -287,10 +288,58 @@ export default function ReceiptsClient({ receipts: initialReceipts }: { receipts
     }
   }, [searchParams, receipts]);
 
+  const runOcr = useCallback(async (file: File) => {
+    setOcrScanning(true);
+    try {
+      const fd = new FormData();
+      fd.append("file", file);
+      const res = await fetch("/api/ocr", { method: "POST", body: fd });
+      if (!res.ok) { setOcrScanning(false); return; }
+      const json = await res.json();
+      const d = json.data;
+      if (!d) { setOcrScanning(false); return; }
+      // Fill form with OCR data
+      setEditForm((prev) => ({
+        ...prev,
+        storeName: d.merchant || prev.storeName || "",
+        category: d.category || prev.category || "ไม่ระบุ",
+        date: d.date ? new Date(d.date).toISOString().slice(0, 10) : prev.date || "",
+        time: d.time || prev.time || "",
+        type: d.type || prev.type || "receipt",
+        paymentMethod: d.paymentMethod || prev.paymentMethod || "cash",
+        documentNumber: d.documentNumber || prev.documentNumber || "",
+        merchantTaxId: d.merchantTaxId || prev.merchantTaxId || "",
+        note: prev.note || "",
+        status: json.duplicate ? "duplicate" : "pending",
+      }));
+      // Fill line items
+      if (d.lineItems && d.lineItems.length > 0) {
+        setEditItems(d.lineItems.map((li: any) => ({
+          name: li.description || li.name || "",
+          qty: li.quantity || li.qty || 1,
+          price: li.unitPrice || li.price || li.amount || 0,
+        })));
+      } else if (d.amount) {
+        setEditItems([{ name: d.merchant || "รายการ", qty: 1, price: d.amount }]);
+      }
+      // VAT/WHT
+      if (d.vat && d.vat > 0) { setVatEnabled(true); setVatInclusive(true); }
+      if (d.wht && d.wht > 0) { setWhtEnabled(true); setWhtInclusive(true); }
+      // Direction
+      if (d.direction) setTxType(d.direction);
+      // OCR auto-saved → switch to edit mode so save button updates instead of creating duplicate
+      if (json.receipt?._id) {
+        setIsAdding(false);
+        setEditingId(json.receipt._id);
+        router.refresh();
+      }
+    } catch (e) { console.error("OCR error:", e); }
+    setOcrScanning(false);
+  }, [router]);
+
   const handleSlipUpload = (files: FileList | File[]) => {
     const arr = Array.from(files);
     const newFiles = arr.map((file) => {
-      const isImage = file.type.startsWith("image/");
       return { file, preview: null as string | null, name: file.name, type: file.type };
     });
     // Generate previews for images
@@ -300,13 +349,17 @@ export default function ReceiptsClient({ receipts: initialReceipts }: { receipts
         reader.onload = (e) => {
           const preview = e.target?.result as string;
           setSlipFiles((prev) => prev.map((p) => p.name === f.name && p.file === f.file ? { ...p, preview } : p));
-          // Set first image as main slip preview
           if (i === 0 && !slipPreview) setSlipPreview(preview);
         };
         reader.readAsDataURL(f.file);
       }
     });
     setSlipFiles((prev) => [...prev, ...newFiles]);
+    // Auto OCR on first image/pdf when adding
+    if (isAdding && arr.length > 0) {
+      const ocrFile = arr.find((f) => f.type.startsWith("image/") || f.type === "application/pdf");
+      if (ocrFile) runOcr(ocrFile);
+    }
   };
 
   const handleSlipInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -865,6 +918,17 @@ export default function ReceiptsClient({ receipts: initialReceipts }: { receipts
                 </div>
               )}
             </div>
+
+            {/* OCR scanning indicator */}
+            {ocrScanning && (
+              <div className="flex items-center gap-3 px-4 py-3 rounded-xl bg-blue-500/10 border border-blue-500/20 animate-pulse">
+                <Loader2 size={16} className="animate-spin text-blue-400" />
+                <div>
+                  <p className="text-sm font-medium text-blue-400">กำลังสแกน OCR...</p>
+                  <p className="text-[11px] text-blue-400/60">อ่านข้อมูลจากใบเสร็จอัตโนมัติ</p>
+                </div>
+              </div>
+            )}
 
             {/* Income / Expense / Savings toggle */}
             <div className="flex p-1 rounded-xl bg-white/5">
