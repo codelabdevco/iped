@@ -47,7 +47,6 @@ const personalNav: NavGroup[] = [
     label: "รายงาน",
     items: [
       { label: "สรุป & Trend", href: "/dashboard/reports", icon: BarChart3 },
-      { label: "ส่งออก PDF / CSV", href: "/dashboard/export", icon: Download },
     ],
   },
 ];
@@ -96,7 +95,6 @@ const businessNav: NavGroup[] = [
     items: [
       { label: "สรุป & Trend", href: "/dashboard/reports", icon: BarChart3 },
       { label: "เชื่อมโปรแกรมบัญชี", href: "/dashboard/accounting", icon: FileSpreadsheet },
-      { label: "ส่งออก PDF / CSV", href: "/dashboard/export", icon: Download },
     ],
   },
   {
