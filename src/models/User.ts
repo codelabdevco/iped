@@ -98,6 +98,12 @@ const UserSchema = new Schema<IUser>(
       enum: ["active", "inactive", "suspended", "pending"],
       default: "active",
     },
+    // Google OAuth
+    googleAccessToken: String,
+    googleRefreshToken: String,
+    googleEmail: String,
+    googleConnectedAt: Date,
+
     lastLogin: Date,
     loginCount: { type: Number, default: 0 },
     documentsCount: { type: Number, default: 0 },
