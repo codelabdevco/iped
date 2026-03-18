@@ -265,7 +265,7 @@ export default function DataTable<T>({ columns, data, rowKey, emptyText = "à¹„à¸
             <tr className={headBg}>
               {expandRender && <th className="w-10" />}
               {orderedColumns.map((col, idx) => (
-                <th key={col.key} draggable onDragStart={() => onDragStart(idx)} onDragOver={onDragOver} onDrop={() => onDrop(idx)} className={`px-5 py-3 text-xs font-semibold ${sub} ${alignCls(col.align)} cursor-grab active:cursor-grabbing select-none`}>{col.label}</th>
+                <th key={col.key} draggable onDragStart={() => onDragStart(idx)} onDragOver={onDragOver} onDrop={() => onDrop(idx)} className={`px-4 py-3 text-xs font-semibold whitespace-nowrap ${sub} ${alignCls(col.align)} cursor-grab active:cursor-grabbing select-none`}>{col.label}</th>
               ))}
             </tr>
           </thead>
@@ -288,7 +288,7 @@ export default function DataTable<T>({ columns, data, rowKey, emptyText = "à¹„à¸
                         </td>
                       )}
                       {orderedColumns.map((col) => (
-                        <td key={col.key} className={`px-5 py-3 text-sm ${alignCls(col.align)} ${txt}`}>
+                        <td key={col.key} className={`px-4 py-3 text-sm whitespace-nowrap ${alignCls(col.align)} ${txt}`}>
                           {col.render ? col.render(row, isDark) : (row as any)[col.key]}
                         </td>
                       ))}

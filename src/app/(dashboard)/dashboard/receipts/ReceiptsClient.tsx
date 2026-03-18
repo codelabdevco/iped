@@ -405,14 +405,23 @@ export default function ReceiptsClient({ receipts: initialReceipts }: { receipts
         </div>
       ),
     },
-    { key: "storeName", label: "ร้านค้า", render: (r) => <span className="font-medium">{r.storeName}</span> },
-    { key: "type", label: "ประเภท", render: (r) => <span>{typeLabel[r.type] || r.type}</span> },
-    { key: "category", label: "หมวดหมู่", render: (r) => (
-      <span className="flex items-center gap-1.5">
-        <span className="w-2.5 h-2.5 rounded-full flex-shrink-0" style={{ backgroundColor: getCatColor(r.category) }} />
-        {r.category}
-      </span>
-    ) },
+    {
+      key: "storeName",
+      label: "รายละเอียด",
+      render: (r) => (
+        <div className="leading-tight min-w-0">
+          <div className="font-medium truncate">{r.storeName}</div>
+          <div className={`flex items-center gap-2 mt-0.5 text-[11px] ${muted}`}>
+            <span className="flex items-center gap-1">
+              <span className="w-2 h-2 rounded-full flex-shrink-0" style={{ backgroundColor: getCatColor(r.category) }} />
+              {r.category}
+            </span>
+            <span>·</span>
+            <span>{typeLabel[r.type] || r.type}</span>
+          </div>
+        </div>
+      ),
+    },
     { key: "amount", label: "จำนวนเงิน", align: "right", render: (r) => <Baht value={r.amount} className="font-semibold" /> },
     {
       key: "createdAt",
@@ -423,18 +432,36 @@ export default function ReceiptsClient({ receipts: initialReceipts }: { receipts
         const d = new Date(iso);
         const date = d.toLocaleDateString("th-TH", { day: "2-digit", month: "short" });
         const time = d.toLocaleTimeString("th-TH", { hour: "2-digit", minute: "2-digit" });
+        const isLine = r.source === "line";
         return (
           <div className="leading-tight">
-            <div className="text-sm">{date}</div>
-            <div className={`text-[11px] ${muted}`}>{time}</div>
+            <div className="text-sm whitespace-nowrap">{date} {time}</div>
+            <div className={`flex items-center gap-1 mt-0.5 text-[11px] ${isLine ? "text-green-500" : "text-blue-400"}`}>
+              {isLine ? <MessageCircle size={10} /> : <Globe size={10} />}
+              {isLine ? "LINE" : "เว็บ"}
+              {r.submittedBy && <span className={`ml-1 ${muted}`}>· {r.submittedBy}</span>}
+            </div>
           </div>
         );
       },
     },
+    { key: "type", label: "ประเภท", defaultVisible: false, render: (r) => <span>{typeLabel[r.type] || r.type}</span> },
+    {
+      key: "category",
+      label: "หมวดหมู่",
+      defaultVisible: false,
+      render: (r) => (
+        <span className="flex items-center gap-1.5">
+          <span className="w-2.5 h-2.5 rounded-full flex-shrink-0" style={{ backgroundColor: getCatColor(r.category) }} />
+          {r.category}
+        </span>
+      ),
+    },
     {
       key: "source",
       label: "ที่มา",
-      render: (r, dark) => {
+      defaultVisible: false,
+      render: (r) => {
         const isLine = r.source === "line";
         return (
           <span className={`inline-flex items-center gap-1.5 px-2 py-1 rounded-md text-xs font-medium ${isLine ? "bg-green-500/10 text-green-500" : "bg-blue-500/10 text-blue-400"}`}>
@@ -448,14 +475,9 @@ export default function ReceiptsClient({ receipts: initialReceipts }: { receipts
       key: "submittedBy",
       label: "ผู้แนบ",
       defaultVisible: false,
-      render: (r, dark) => {
+      render: (r) => {
         if (!r.submittedBy) return <span className={muted}>-</span>;
-        return (
-          <span className="inline-flex items-center gap-1.5 text-xs">
-            <User size={12} className={muted} />
-            {r.submittedBy}
-          </span>
-        );
+        return <span className="text-xs">{r.submittedBy}</span>;
       },
     },
     {
