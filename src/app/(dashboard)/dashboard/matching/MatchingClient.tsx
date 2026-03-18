@@ -174,11 +174,22 @@ export default function MatchingClient({
           <div className="space-y-3">
             {/* Pending first, then confirmed */}
             {[...pendingMatches, ...confirmedMatches].map((m) => {
-              const isEmailA = getReceipt(m.receiptA._id)?.source === "email";
-              const emailDoc = isEmailA ? m.receiptA : m.receiptB;
-              const slipDoc = isEmailA ? m.receiptB : m.receiptA;
-              const slipReceipt = getReceipt(slipDoc._id);
-              const emailReceipt = getReceipt(emailDoc._id);
+              const receiptA = getReceipt(m.receiptA._id);
+              const receiptB = getReceipt(m.receiptB._id);
+              // Determine which is "doc A" (email/left) and "doc B" (slip/right)
+              const isEmailA = receiptA?.source === "email";
+              const isEmailB = receiptB?.source === "email";
+              // If both same source, just use A/B as-is
+              const leftDoc = isEmailA ? m.receiptA : isEmailB ? m.receiptB : m.receiptA;
+              const rightDoc = isEmailA ? m.receiptB : isEmailB ? m.receiptA : m.receiptB;
+              const leftReceipt = getReceipt(leftDoc._id);
+              const rightReceipt = getReceipt(rightDoc._id);
+              const leftSource = leftReceipt?.source || "email";
+              const rightSource = rightReceipt?.source || "line";
+              const emailDoc = leftDoc;
+              const slipDoc = rightDoc;
+              const slipReceipt = rightReceipt;
+              const emailReceipt = leftReceipt;
               const fileId = emailReceipt?.fileIds?.[0];
               const scoreColor = m.matchScore >= 80 ? "text-green-500 border-green-500/30 bg-green-500/5" : m.matchScore >= 50 ? "text-amber-500 border-amber-500/30 bg-amber-500/5" : "text-red-400 border-red-400/30 bg-red-400/5";
 
@@ -189,7 +200,7 @@ export default function MatchingClient({
                     {/* Left: Email doc */}
                     <div className="flex-1 min-w-0">
                       <div className={`text-[10px] font-medium mb-1.5 ${sub}`}>
-                        <BrandIcon brand="gmail" size={10} /> เอกสารจากอีเมล
+                        <BrandIcon brand={leftSource === "line" ? "line" : leftSource === "email" ? "gmail" : "web"} size={10} /> {leftSource === "email" ? "เอกสารจากอีเมล" : leftSource === "line" ? "สลิปจาก LINE" : "เอกสาร A"}
                       </div>
                       <div className="flex items-center gap-2.5">
                         {fileId ? (
@@ -224,14 +235,20 @@ export default function MatchingClient({
                     {/* Right: Slip */}
                     <div className="flex-1 min-w-0">
                       <div className={`text-[10px] font-medium mb-1.5 ${sub}`}>
-                        <BrandIcon brand={slipReceipt?.source === "line" ? "line" : "web"} size={10} /> สลิปบนระบบ
+                        <BrandIcon brand={rightSource === "line" ? "line" : rightSource === "email" ? "gmail" : "web"} size={10} /> {rightSource === "line" ? "สลิปจาก LINE" : rightSource === "email" ? "เอกสารจากอีเมล" : "เอกสาร B"}
                       </div>
                       <div className="flex items-center gap-2.5">
                         {slipReceipt?.hasImage ? (
                           <img src={`/api/receipts/image?id=${slipDoc._id}`} alt="" className={`w-12 h-12 rounded-lg object-cover border ${isDark ? "border-white/10" : "border-gray-200"}`} loading="lazy" />
+                        ) : slipReceipt?.fileIds?.[0] ? (
+                          <a href={`/api/files/download?id=${slipReceipt.fileIds[0]}`} target="_blank" rel="noopener" onClick={(e) => e.stopPropagation()}>
+                            <div className={`w-12 h-12 rounded-lg border flex items-center justify-center ${isDark ? "border-white/10 bg-white/5 hover:bg-white/10" : "border-gray-200 bg-gray-50 hover:bg-gray-100"} transition-colors`}>
+                              <Paperclip size={16} className="text-blue-400" />
+                            </div>
+                          </a>
                         ) : (
                           <div className={`w-12 h-12 rounded-lg flex items-center justify-center ${isDark ? "bg-white/5" : "bg-gray-50"}`}>
-                            <BrandIcon brand={slipReceipt?.source === "line" ? "line" : "web"} size={16} />
+                            <BrandIcon brand={rightSource === "line" ? "line" : rightSource === "email" ? "gmail" : "web"} size={16} />
                           </div>
                         )}
                         <div className="min-w-0">

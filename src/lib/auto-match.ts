@@ -21,11 +21,17 @@ export async function findMatches(receiptId: string, userId: string) {
   const dateTo = new Date(date);
   dateTo.setDate(dateTo.getDate() + 7);
 
+  const source = (receipt as any).source || "web";
+
+  // Prefer cross-source matching: email should match line/web, and vice versa
+  const crossSource = source === "email" ? { $in: ["line", "web"] } : source === "line" ? { $in: ["email", "web"] } : undefined;
+
   const candidates = await Receipt.find({
     _id: { $ne: receiptId },
     userId,
     date: { $gte: dateFrom, $lte: dateTo },
     status: { $ne: "cancelled" },
+    ...(crossSource ? { source: crossSource } : {}),
   }).lean();
 
   const matches: { receiptId: string; score: number; reason: string }[] = [];

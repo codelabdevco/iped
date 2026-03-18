@@ -16,23 +16,30 @@ const SVG_BRANDS: Record<string, { slug: string; color?: string; darkColor?: str
   email: { slug: "gmail" },
 };
 
-// Brands with colored circle + text (banks, payments)
+// Thai bank logos from omise/banks-logo (local SVG files)
+const BANK_LOGOS: Record<string, { file: string; color: string }> = {
+  "bank-scb": { file: "scb", color: "#4e2e7f" },
+  "bank-kbank": { file: "kbank", color: "#138f2d" },
+  "bank-bbl": { file: "bbl", color: "#1e4598" },
+  "bank-ktb": { file: "ktb", color: "#1ba5e1" },
+  "bank-bay": { file: "bay", color: "#fec43b" },
+  "bank-tmb": { file: "tmb", color: "#1279be" },
+  "bank-ttb": { file: "ttb", color: "#ecf0f1" },
+  "bank-gsb": { file: "gsb", color: "#eb198d" },
+  "bank-ghb": { file: "ghb", color: "#f57d23" },
+  "bank-baac": { file: "baac", color: "#4b9b1d" },
+  "bank-tisco": { file: "tisco", color: "#12549f" },
+  "bank-kk": { file: "kk", color: "#199cc5" },
+  "bank-lhbank": { file: "lhb", color: "#6d6e71" },
+  "bank-cimb": { file: "cimb", color: "#7e2f36" },
+  "bank-uob": { file: "uob", color: "#0b3979" },
+  "bank-icbc": { file: "icbc", color: "#c50f1c" },
+  "bank-tcrb": { file: "tcrb", color: "#0a4ab3" },
+  "bank-ibank": { file: "ibank", color: "#184615" },
+};
+
+// Brands with colored circle + text (payments, e-wallets)
 const TEXT_BRANDS: Record<string, { bg: string; fg: string; label: string }> = {
-  "bank-scb": { bg: "#4E2A84", fg: "#fff", label: "SCB" },
-  "bank-kbank": { bg: "#138F2D", fg: "#fff", label: "K" },
-  "bank-bbl": { bg: "#1E3A8A", fg: "#fff", label: "BBL" },
-  "bank-ktb": { bg: "#1AA5DE", fg: "#fff", label: "KTB" },
-  "bank-bay": { bg: "#FFC423", fg: "#1a1a1a", label: "BAY" },
-  "bank-tmb": { bg: "#0066B3", fg: "#fff", label: "ttb" },
-  "bank-gsb": { bg: "#E91E8C", fg: "#fff", label: "GSB" },
-  "bank-ghb": { bg: "#F26522", fg: "#fff", label: "GH" },
-  "bank-baac": { bg: "#0B7C3E", fg: "#fff", label: "ธกส" },
-  "bank-tisco": { bg: "#1B3A6B", fg: "#fff", label: "T" },
-  "bank-kk": { bg: "#003D6B", fg: "#fff", label: "KKP" },
-  "bank-lhbank": { bg: "#003366", fg: "#fff", label: "LH" },
-  "bank-cimb": { bg: "#ED1C24", fg: "#fff", label: "C" },
-  "bank-uob": { bg: "#0038A8", fg: "#fff", label: "UOB" },
-  "bank-icbc": { bg: "#C8102E", fg: "#fff", label: "I" },
   cash: { bg: "#22c55e", fg: "#fff", label: "฿" },
   promptpay: { bg: "#1A3365", fg: "#fff", label: "PP" },
   transfer: { bg: "#6366f1", fg: "#fff", label: "โอน" },
@@ -47,7 +54,7 @@ const TEXT_BRANDS: Record<string, { bg: string; fg: string; label: string }> = {
 };
 
 export default function BrandIcon({ brand, size = 20, className = "" }: BrandIconProps) {
-  // SVG icon from CDN
+  // SVG icon from CDN (LINE, Gmail, Drive, etc.)
   const svg = SVG_BRANDS[brand];
   if (svg) {
     const src = svg.darkColor
@@ -56,7 +63,21 @@ export default function BrandIcon({ brand, size = 20, className = "" }: BrandIco
     return <img src={src} alt={brand} width={size} height={size} className={`inline-block shrink-0 ${className}`} />;
   }
 
-  // Text icon
+  // Bank logo from local SVG
+  const bank = BANK_LOGOS[brand];
+  if (bank) {
+    return (
+      <img
+        src={`/banks/th/${bank.file}.svg`}
+        alt={brand}
+        width={size}
+        height={size}
+        className={`inline-block shrink-0 rounded-sm ${className}`}
+      />
+    );
+  }
+
+  // Text icon (payments, e-wallets, fallback)
   const info = TEXT_BRANDS[brand] || TEXT_BRANDS.other;
   const fontSize = size <= 16 ? 6 : size <= 20 ? 7 : size <= 24 ? 8 : 10;
 
@@ -71,5 +92,7 @@ export default function BrandIcon({ brand, size = 20, className = "" }: BrandIco
 }
 
 export function getBrandColor(brand: string) {
+  const bank = BANK_LOGOS[brand];
+  if (bank) return bank.color;
   return (TEXT_BRANDS[brand] || TEXT_BRANDS.other).bg;
 }
