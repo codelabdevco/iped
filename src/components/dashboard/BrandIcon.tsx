@@ -63,17 +63,24 @@ export default function BrandIcon({ brand, size = 20, className = "" }: BrandIco
     return <img src={src} alt={brand} width={size} height={size} className={`inline-block shrink-0 ${className}`} />;
   }
 
-  // Bank logo from local SVG
+  // Bank logo from local SVG (white logo on brand-colored background)
   const bank = BANK_LOGOS[brand];
   if (bank) {
+    const pad = Math.max(2, Math.round(size * 0.15));
+    const imgSize = size - pad * 2;
     return (
-      <img
-        src={`/banks/th/${bank.file}.svg`}
-        alt={brand}
-        width={size}
-        height={size}
-        className={`inline-block shrink-0 rounded-sm ${className}`}
-      />
+      <span
+        className={`inline-flex items-center justify-center shrink-0 rounded-lg ${className}`}
+        style={{ width: size, height: size, backgroundColor: bank.color, padding: pad }}
+      >
+        <img
+          src={`/banks/th/${bank.file}.svg`}
+          alt={brand}
+          width={imgSize}
+          height={imgSize}
+          className="block"
+        />
+      </span>
     );
   }
 
