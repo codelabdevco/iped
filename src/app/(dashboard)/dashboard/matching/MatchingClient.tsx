@@ -288,7 +288,7 @@ export default function MatchingClient({ receipts, matches: initMatches, gmailSe
                       {lineDocs.length === 0 ? (
                         <p className={`text-sm ${dim}`}>ยังไม่มีสลิปในระบบ — ส่งสลิปผ่าน LINE ก่อน</p>
                       ) : (
-                        <div className="space-y-4 max-h-[70vh] overflow-y-auto">
+                        <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3 max-h-[70vh] overflow-y-auto">
                           {[...lineDocs]
                             .map((slip) => ({ slip, score: calcScore(email, slip) }))
                             .sort((a, b) => b.score - a.score)
@@ -304,42 +304,45 @@ export default function MatchingClient({ receipts, matches: initMatches, gmailSe
                                     : isDark ? "border-white/10 hover:border-green-500/40" : "border-gray-200 hover:border-green-500/30"
                                 }`}
                               >
-                                {/* Full slip image */}
-                                {slip.hasImage && (
-                                  <img
-                                    src={`/api/receipts/image?id=${slip._id}`}
-                                    alt=""
-                                    className="w-full max-h-[400px] object-contain bg-black/5 cursor-pointer"
-                                    loading="lazy"
-                                    onClick={(e) => { e.stopPropagation(); setViewImage(slip._id); }}
-                                  />
-                                )}
-                                {/* Info bar + pair button */}
-                                <div className={`flex items-center gap-3 px-4 py-3 ${isDark ? "bg-white/[0.03]" : "bg-white"}`}>
-                                  {/* Score */}
-                                  <div className={`w-12 h-12 rounded-full border-2 flex items-center justify-center font-bold text-sm flex-shrink-0 ${scoreColor}`}>
-                                    {score}%
-                                  </div>
-                                  {/* Info */}
-                                  <div className="flex-1 min-w-0">
-                                    <p className={`text-sm font-medium truncate ${txt}`}>{slip.storeName}</p>
-                                    <p className={`text-xs ${sub}`}>{slip.date}{slip.time ? ` · ${slip.time}` : ""}</p>
-                                  </div>
-                                  {/* Amount */}
-                                  <div className={`text-right flex-shrink-0 ${txt}`}>
-                                    <Baht value={slip.amount} />
-                                  </div>
-                                  {/* Action */}
-                                  {!alreadyMatched ? (
-                                    <button
-                                      onClick={() => handlePair(email._id, slip._id)}
-                                      className="flex items-center gap-1.5 px-4 py-2 rounded-xl text-sm font-medium bg-green-500 text-white hover:bg-green-600 flex-shrink-0 transition-colors shadow-sm"
-                                    >
-                                      <Check size={14} /> จับคู่
-                                    </button>
+                                {/* Slip image */}
+                                <div className="relative">
+                                  {slip.hasImage ? (
+                                    <img
+                                      src={`/api/receipts/image?id=${slip._id}`}
+                                      alt=""
+                                      className="w-full h-48 object-contain bg-black/5 cursor-pointer"
+                                      loading="lazy"
+                                      onClick={(e) => { e.stopPropagation(); setViewImage(slip._id); }}
+                                    />
                                   ) : (
-                                    <span className={`text-xs ${dim}`}>จับคู่แล้ว</span>
+                                    <div className={`w-full h-48 flex items-center justify-center ${isDark ? "bg-white/5" : "bg-gray-50"}`}>
+                                      <BrandIcon brand="line" size={28} />
+                                    </div>
                                   )}
+                                  {/* Score badge */}
+                                  <span className={`absolute top-2 right-2 px-2 py-1 rounded-lg text-xs font-bold ${scoreColor}`}>
+                                    {score}%
+                                  </span>
+                                </div>
+                                {/* Info + pair button */}
+                                <div className={`px-3 py-2.5 ${isDark ? "bg-white/[0.03]" : "bg-white"}`}>
+                                  <p className={`text-sm font-medium truncate ${txt}`}>{slip.storeName}</p>
+                                  <div className={`flex items-center justify-between mt-1`}>
+                                    <div>
+                                      <p className={`text-xs ${sub}`}>{slip.date}</p>
+                                      <p className={`text-sm font-semibold ${txt}`}><Baht value={slip.amount} /></p>
+                                    </div>
+                                    {!alreadyMatched ? (
+                                      <button
+                                        onClick={() => handlePair(email._id, slip._id)}
+                                        className="flex items-center gap-1 px-3 py-1.5 rounded-lg text-xs font-medium bg-green-500 text-white hover:bg-green-600 transition-colors"
+                                      >
+                                        <Check size={12} /> จับคู่
+                                      </button>
+                                    ) : (
+                                      <span className={`text-[10px] ${dim}`}>จับคู่แล้ว</span>
+                                    )}
+                                  </div>
                                 </div>
                               </div>
                             );
