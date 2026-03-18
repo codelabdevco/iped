@@ -49,6 +49,7 @@ const BRANDS: Record<string, { bg: string; fg: string; label: string; radius?: s
   "google-sheets": { bg: "#0F9D58", fg: "#fff", label: "GS" },
   notion: { bg: "#000000", fg: "#fff", label: "N" },
   email: { bg: "#EA4335", fg: "#fff", label: "@" },
+  gmail: { bg: "#EA4335", fg: "#fff", label: "G" },
   web: { bg: "#3b82f6", fg: "#fff", label: "W" },
 };
 

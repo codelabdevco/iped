@@ -346,11 +346,11 @@ export default function DashboardClient({ data: initialData }: { data: Dashboard
       {/* Connection status bar */}
       <div className={`flex flex-wrap gap-3 ${card} border border-[var(--color-border)] rounded-xl px-4 py-2.5`}>
         {[
-          { name: "LINE Bot", brand: "line", connected: true },
+          { name: "LINE", brand: "line", connected: true },
           { name: "Google Drive", brand: "google-drive", connected: false },
-          { name: "Sheets", brand: "google-sheets", connected: false },
+          { name: "Google Sheet", brand: "google-sheets", connected: false },
           { name: "Notion", brand: "notion", connected: false },
-          { name: "Email", brand: "email", connected: false },
+          { name: "Gmail", brand: "gmail", connected: false },
         ].map((s) => (
           <div key={s.name} className={`flex items-center gap-1.5 text-xs ${txtSub}`}>
             <BrandIcon brand={s.brand} size={16} />
