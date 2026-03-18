@@ -6,6 +6,7 @@ import {
   Download, AlertTriangle, X, FileText, Table,
 } from "lucide-react";
 import GoalsSection from "./GoalsSection";
+import BrandIcon from "@/components/dashboard/BrandIcon";
 import DateRangePicker from "./DateRangePicker";
 
 import ReceiptsTable from './ReceiptsTable';
@@ -345,19 +346,19 @@ export default function DashboardClient({ data: initialData }: { data: Dashboard
       {/* Connection status bar */}
       <div className={`flex flex-wrap gap-3 ${card} border border-[var(--color-border)] rounded-xl px-4 py-2.5`}>
         {[
-          { name: "LINE Bot", icon: "💬", connected: true, detail: "ส่งสลิป + OCR อัตโนมัติ" },
-          { name: "Google Drive", icon: "☁️", connected: false, detail: "ยังไม่เชื่อมต่อ" },
-          { name: "Google Sheets", icon: "📊", connected: false, detail: "ยังไม่เชื่อมต่อ" },
-          { name: "Notion", icon: "📝", connected: false, detail: "ยังไม่เชื่อมต่อ" },
-          { name: "Email", icon: "📧", connected: false, detail: "ยังไม่เชื่อมต่อ" },
+          { name: "LINE Bot", brand: "line", connected: true },
+          { name: "Google Drive", brand: "google-drive", connected: false },
+          { name: "Sheets", brand: "google-sheets", connected: false },
+          { name: "Notion", brand: "notion", connected: false },
+          { name: "Email", brand: "email", connected: false },
         ].map((s) => (
           <div key={s.name} className={`flex items-center gap-1.5 text-xs ${txtSub}`}>
-            <span>{s.icon}</span>
+            <BrandIcon brand={s.brand} size={16} />
             <span className={s.connected ? txt : ""}>{s.name}</span>
             <span className={`w-1.5 h-1.5 rounded-full ${s.connected ? "bg-green-500" : isDark ? "bg-white/15" : "bg-gray-300"}`} />
           </div>
         ))}
-        <a href="/dashboard/settings" className="ml-auto text-[11px] text-[#FA3633] hover:underline">ตั้งค่าการเชื่อมต่อ</a>
+        <a href="/dashboard/settings" className="ml-auto text-[11px] text-[#FA3633] hover:underline">ตั้งค่า</a>
       </div>
 
       {/* Header + Date Filter + Export */}
@@ -575,7 +576,7 @@ export default function DashboardClient({ data: initialData }: { data: Dashboard
                 const pct = (amount / pmMax) * 100;
                 return (
                   <div key={method} className="flex items-center gap-3">
-                    <span className="text-base w-6 text-center">{info.icon}</span>
+                    <BrandIcon brand={method} size={20} />
                     <span className={`text-xs w-20 truncate ${txtSub}`}>{info.label}</span>
                     <div className="flex-1 h-1.5 rounded-full" style={{ backgroundColor: isDark ? "rgba(255,255,255,0.06)" : "rgba(0,0,0,0.06)" }}>
                       <div className="h-full rounded-full" style={{ width: `${pct}%`, backgroundColor: info.color, opacity: 0.7 }} />

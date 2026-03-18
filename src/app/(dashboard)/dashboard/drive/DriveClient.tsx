@@ -3,6 +3,7 @@
 import { useState, useEffect, useRef, useCallback } from "react";
 import { useTheme } from "@/contexts/ThemeContext";
 import { Cloud, Grid3X3, List, Search, ImageIcon, FileText, Upload, Eye, MessageCircle, Globe, Trash2, Download, File, FileSpreadsheet, FileImage, FileVideo, FileArchive } from "lucide-react";
+import BrandIcon from "@/components/dashboard/BrandIcon";
 import PageHeader from "@/components/dashboard/PageHeader";
 import StatsCard from "@/components/dashboard/StatsCard";
 
@@ -274,7 +275,7 @@ export default function DriveClient({ docs: initial, totalStorageBytes = 0 }: { 
                     <span>{doc.date}</span>
                     {doc.size > 0 && <><span>·</span><span>{formatSize(doc.size)}</span></>}
                     {doc.category && <><span>·</span><span>{doc.category}</span></>}
-                    {doc.fileType === "receipt" && <><span>·</span><span className={`flex items-center gap-0.5 ${doc.source === "line" ? "text-green-500" : "text-blue-400"}`}>{doc.source === "line" ? <><MessageCircle size={9} /> LINE</> : <><Globe size={9} /> เว็บ</>}</span></>}
+                    {doc.fileType === "receipt" && <><span>·</span><span className="flex items-center gap-1"><BrandIcon brand={doc.source === "line" ? "line" : "web"} size={12} />{doc.source === "line" ? "LINE" : "เว็บ"}</span></>}
                   </div>
                 </div>
                 {doc.amount > 0 && <span className={`text-sm font-semibold ${txt} shrink-0`}>฿{doc.amount.toLocaleString("th-TH", { minimumFractionDigits: 2 })}</span>}

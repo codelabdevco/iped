@@ -2,6 +2,7 @@
 
 import { useTheme } from "@/contexts/ThemeContext";
 import { CreditCard, Banknote, Smartphone, Building2, Wallet, Hash } from "lucide-react";
+import BrandIcon from "@/components/dashboard/BrandIcon";
 import PageHeader from "@/components/dashboard/PageHeader";
 import StatsCard from "@/components/dashboard/StatsCard";
 
@@ -63,9 +64,7 @@ export default function PaymentsClient({ payments }: { payments: PaymentItem[] }
             const pctOfTotal = total > 0 ? (p.total / total) * 100 : 0;
             return (
               <div key={p.method} className={`${card} border ${border} rounded-xl px-4 py-3.5 flex items-center gap-4`}>
-                <div className="w-10 h-10 rounded-xl flex items-center justify-center text-lg shrink-0" style={{ backgroundColor: info.color + "18" }}>
-                  {info.icon}
-                </div>
+                <BrandIcon brand={p.method} size={36} className="rounded-xl" />
                 <div className="flex-1 min-w-0">
                   <div className="flex items-center justify-between mb-1.5">
                     <span className={`text-sm font-medium ${txt}`}>{info.label}</span>

@@ -3,6 +3,7 @@
 import { useState, useMemo, useCallback, useRef, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { Search, Filter, Receipt, FileText, CheckCircle, Clock, Pencil, Trash2, ImageIcon, Cloud, CloudOff, HardDrive, Upload, X, MessageCircle, Globe, User, Plus, Loader2 } from "lucide-react";
+import BrandIcon from "@/components/dashboard/BrandIcon";
 import Select from "@/components/dashboard/Select";
 import DatePicker from "@/components/dashboard/DatePicker";
 import TimePicker from "@/components/dashboard/TimePicker";
@@ -544,9 +545,8 @@ export default function ReceiptsClient({ receipts: initialReceipts }: { receipts
           <div className="leading-tight">
             <div className="text-sm whitespace-nowrap">{day} {mon} {yr}{time ? <span className={`text-[11px] ml-1 ${muted}`}>{time}</span> : ""}</div>
             <div className={`flex items-center gap-1 mt-0.5 text-[11px]`}>
-              <span className={isLine ? "text-green-500" : "text-blue-400"}>
-                {isLine ? "LINE" : "เว็บ"}
-              </span>
+              <BrandIcon brand={isLine ? "line" : "web"} size={13} />
+              <span className={isLine ? "text-green-500" : "text-blue-400"}>{isLine ? "LINE" : "เว็บ"}</span>
               {r.submittedBy && <span className={muted}>· {r.submittedBy}</span>}
             </div>
           </div>
