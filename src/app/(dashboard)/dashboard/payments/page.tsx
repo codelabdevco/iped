@@ -1,55 +1,41 @@
-"use client";
-import { useState } from "react";
-import { useTheme } from "@/contexts/ThemeContext";
-import { CreditCard, Plus, Trash2, Banknote, Smartphone, Building2 } from "lucide-react";
-import PageHeader from "@/components/dashboard/PageHeader";
+import { Suspense } from "react";
+import { getSession } from "@/lib/auth";
+import { redirect } from "next/navigation";
+import { connectDB } from "@/lib/mongodb";
+import Receipt from "@/models/Receipt";
+import PaymentsClient from "./PaymentsClient";
 
-const INIT = [
-  { id: 1, name: "เงินสด", type: "เงินสด", spent: 4250, icon: "cash", color: "#34D399" },
-  { id: 2, name: "บัตร SCB Visa Platinum", type: "บัตรเครดิต", spent: 15800, icon: "credit", color: "#818CF8" },
-  { id: 3, name: "บัตรเดบิต KBank", type: "บัตรเดบิต", spent: 3200, icon: "debit", color: "#60A5FA" },
-  { id: 4, name: "พร้อมเพย์", type: "พร้อมเพย์", spent: 8900, icon: "promptpay", color: "#FB923C" },
-  { id: 5, name: "โอน BBL", type: "โอนธนาคาร", spent: 12000, icon: "transfer", color: "#F472B6" },
-];
+async function PaymentsData() {
+  const session = await getSession();
+  if (!session) redirect("/login");
+
+  await connectDB();
+
+  const agg = await Receipt.aggregate([
+    { $match: { userId: session.userId, status: { $ne: "cancelled" } } },
+    {
+      $group: {
+        _id: { $ifNull: ["$paymentMethod", "other"] },
+        count: { $sum: 1 },
+        total: { $sum: "$amount" },
+      },
+    },
+    { $sort: { total: -1 } },
+  ]);
+
+  const payments = agg.map((item: any) => ({
+    method: item._id || "other",
+    count: item.count,
+    total: item.total,
+  }));
+
+  return <PaymentsClient payments={payments} />;
+}
 
 export default function PaymentsPage() {
-  const { isDark } = useTheme();
-  const [data, setData] = useState(INIT);
-  const card = isDark ? "bg-[rgba(255,255,255,0.04)]" : "bg-white";
-  const border = isDark ? "border-[rgba(255,255,255,0.06)]" : "border-gray-200";
-  const txt = isDark ? "text-white" : "text-gray-900";
-  const sub = isDark ? "text-white/50" : "text-gray-500";
-  const total = data.reduce((s, d) => s + d.spent, 0);
-
   return (
-    <div className="space-y-6">
-      <PageHeader title="วิธีจ่าย" description="จัดการช่องทางการชำระเงิน" onClear={() => setData([])} actionLabel="เพิ่มวิธีจ่าย" />
-      {data.length === 0 ? <div className={`${card} border ${border} rounded-2xl p-12 text-center ${sub}`}>ไม่มีข้อมูล</div> :
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-        {data.map(m => {
-          const pct = total > 0 ? (m.spent / total) * 100 : 0;
-          return (
-            <div key={m.id} className={`${card} border ${border} rounded-2xl p-5`}>
-              <div className="flex items-center gap-3 mb-4">
-                <div className="w-10 h-10 rounded-xl flex items-center justify-center" style={{ backgroundColor: m.color + "20" }}>
-                  <CreditCard size={20} style={{ color: m.color }} />
-                </div>
-                <div>
-                  <p className={`text-sm font-semibold ${txt}`}>{m.name}</p>
-                  <p className={`text-xs ${sub}`}>{m.type}</p>
-                </div>
-              </div>
-              <p className={`text-xl font-bold ${txt}`}>฿{m.spent.toLocaleString()}</p>
-              <div className="flex items-center gap-2 mt-2">
-                <div className="flex-1 h-2 rounded-full overflow-hidden" style={{ background: isDark ? "rgba(255,255,255,0.06)" : "rgba(0,0,0,0.06)" }}>
-                  <div className="h-full rounded-full" style={{ width: `${pct}%`, backgroundColor: m.color }} />
-                </div>
-                <span className={`text-xs font-medium ${sub}`}>{pct.toFixed(0)}%</span>
-              </div>
-            </div>
-          );
-        })}
-      </div>}
-    </div>
+    <Suspense fallback={<div className="space-y-6 animate-pulse"><div className="h-8 w-32 rounded-lg bg-white/[0.06]" /><div className="h-40 rounded-2xl bg-white/[0.04]" /></div>}>
+      <PaymentsData />
+    </Suspense>
   );
 }
