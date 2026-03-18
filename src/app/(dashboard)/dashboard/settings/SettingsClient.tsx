@@ -33,28 +33,8 @@ type Mode = "personal" | "business";
 
 interface CatStat { name: string; direction: string; count: number; total: number; }
 
-const DEFAULT_CATS = [
-  { name: "อาหาร", emoji: "🍜", color: "#FB923C", dir: "expense" },
-  { name: "เดินทาง", emoji: "🚗", color: "#60A5FA", dir: "expense" },
-  { name: "ช็อปปิ้ง", emoji: "🛒", color: "#818CF8", dir: "expense" },
-  { name: "สาธารณูปโภค", emoji: "💡", color: "#F472B6", dir: "expense" },
-  { name: "ของใช้ในบ้าน", emoji: "🏠", color: "#C084FC", dir: "expense" },
-  { name: "สุขภาพ", emoji: "🏥", color: "#34D399", dir: "expense" },
-  { name: "การศึกษา", emoji: "📚", color: "#FBBF24", dir: "expense" },
-  { name: "บันเทิง", emoji: "🎬", color: "#F87171", dir: "expense" },
-  { name: "ธุรกิจ", emoji: "💼", color: "#F59E0B", dir: "expense" },
-  { name: "อื่นๆ", emoji: "📦", color: "#94A3B8", dir: "expense" },
-  { name: "เงินเดือน", emoji: "💰", color: "#22c55e", dir: "income" },
-  { name: "ฟรีแลนซ์", emoji: "💻", color: "#3b82f6", dir: "income" },
-  { name: "ขายของ", emoji: "🛍️", color: "#f59e0b", dir: "income" },
-  { name: "ลงทุน", emoji: "📈", color: "#8b5cf6", dir: "income" },
-  { name: "โบนัส", emoji: "🎁", color: "#ec4899", dir: "income" },
-  { name: "อื่นๆ", emoji: "📋", color: "#78716c", dir: "income" },
-  { name: "ท่องเที่ยว", emoji: "✈️", color: "#818CF8", dir: "savings" },
-  { name: "กองทุนฉุกเฉิน", emoji: "🛡️", color: "#34D399", dir: "savings" },
-  { name: "บ้าน/รถ", emoji: "🏡", color: "#60A5FA", dir: "savings" },
-  { name: "เงินออม", emoji: "🐷", color: "#ec4899", dir: "savings" },
-];
+import { ALL_CATEGORIES } from "@/lib/categories";
+const DEFAULT_CATS = ALL_CATEGORIES.map((c) => ({ name: c.name, emoji: c.icon, color: c.color, dir: c.direction }));
 const CAT_COLORS = ["#FB923C","#60A5FA","#818CF8","#F472B6","#34D399","#FBBF24","#F87171","#A78BFA","#22c55e","#ec4899","#F59E0B","#78716c"];
 const DIR_LABEL: Record<string, string> = { expense: "รายจ่าย", income: "รายรับ", savings: "เงินออม" };
 const DIR_CLR: Record<string, string> = { expense: "#FA3633", income: "#22c55e", savings: "#ec4899" };

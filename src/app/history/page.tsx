@@ -6,7 +6,7 @@ import ReceiptList from "@/components/shared/ReceiptList";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { DEFAULT_CATEGORIES } from "@/lib/categories";
+import { ALL_CATEGORIES } from "@/lib/categories";
 import { formatCurrency } from "@/lib/utils";
 
 export default function HistoryPage() {
@@ -38,7 +38,7 @@ export default function HistoryPage() {
     setFiltered(result);
   }, [search, selectedCategory, receipts]);
 
-  const categorySummary = DEFAULT_CATEGORIES.map((cat) => {
+  const categorySummary = ALL_CATEGORIES.map((cat) => {
     const catReceipts = receipts.filter((r) => r.category === cat.id);
     return {
       ...cat,

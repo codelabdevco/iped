@@ -5,7 +5,7 @@ import { Card, CardContent, CardHeader, CardTitle, CardFooter } from "@/componen
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
-import { DEFAULT_CATEGORIES } from "@/lib/categories";
+import { ALL_CATEGORIES } from "@/lib/categories";
 import { formatCurrency } from "@/lib/utils";
 
 export interface ReceiptData {
@@ -57,12 +57,12 @@ export default function ReceiptForm({ data, imagePreview, isDuplicate, duplicate
     setForm((prev) => ({ ...prev, [field]: value }));
   };
 
-  const selectCategory = (cat: (typeof DEFAULT_CATEGORIES)[0]) => {
+  const selectCategory = (cat: (typeof ALL_CATEGORIES)[0]) => {
     setForm((prev) => ({ ...prev, category: cat.id, categoryIcon: cat.icon }));
     setShowCategories(false);
   };
 
-  const currentCategory = DEFAULT_CATEGORIES.find((c) => c.id === form.category);
+  const currentCategory = ALL_CATEGORIES.find((c) => c.id === form.category);
 
   return (
     <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
@@ -110,7 +110,7 @@ export default function ReceiptForm({ data, imagePreview, isDuplicate, duplicate
             <Button variant="outline" className="w-full justify-start text-left" onClick={() => setShowCategories(!showCategories)}>
               <span className="mr-2">{currentCategory?.icon || "📋"}</span>{currentCategory?.name || "เลือกหมวดหมู่"}
             </Button>
-            {showCategories && (<div className="mt-2 grid grid-cols-2 gap-2">{DEFAULT_CATEGORIES.map((cat) => (<Button key={cat.id} variant={form.category === cat.id ? "default" : "outline"} size="sm" className="justify-start" onClick={() => selectCategory(cat)}><span className="mr-2">{cat.icon}</span>{cat.name}</Button>))}</div>)}
+            {showCategories && (<div className="mt-2 grid grid-cols-2 gap-2">{ALL_CATEGORIES.map((cat) => (<Button key={cat.id} variant={form.category === cat.id ? "default" : "outline"} size="sm" className="justify-start" onClick={() => selectCategory(cat)}><span className="mr-2">{cat.icon}</span>{cat.name}</Button>))}</div>)}
           </div>
           <div>
             <label className="text-sm font-medium text-gray-700 mb-1 block">วิธีชำระเงิน</label>
