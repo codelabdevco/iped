@@ -50,18 +50,10 @@ const personalNav: NavGroup[] = [
       { label: "ส่งออก PDF / CSV", href: "/dashboard/export", icon: Download },
     ],
   },
-  {
-    label: "เชื่อมต่อ",
-    items: [
-      { label: "LINE Bot", href: "/dashboard/line-bot", icon: Bot },
-      { label: "Email Scanner", href: "/dashboard/email-scanner", icon: Mail },
-      { label: "Drive / Sheets / Notion", href: "/dashboard/sync", icon: Cloud },
-    ],
-  },
 ];
 
 /* ────────────────────────────────
-   บริษัท — 7 กลุ่ม
+   บริษัท — กลุ่ม
    ──────────────────────────────── */
 const businessNav: NavGroup[] = [
   {
@@ -105,14 +97,6 @@ const businessNav: NavGroup[] = [
       { label: "สรุป & Trend", href: "/dashboard/reports", icon: BarChart3 },
       { label: "เชื่อมโปรแกรมบัญชี", href: "/dashboard/accounting", icon: FileSpreadsheet },
       { label: "ส่งออก PDF / CSV", href: "/dashboard/export", icon: Download },
-    ],
-  },
-  {
-    label: "เชื่อมต่อ",
-    items: [
-      { label: "LINE Bot", href: "/dashboard/line-bot", icon: Bot },
-      { label: "Email Scanner", href: "/dashboard/email-scanner", icon: Mail },
-      { label: "Drive / Sheets / Notion", href: "/dashboard/sync", icon: Cloud },
     ],
   },
   {

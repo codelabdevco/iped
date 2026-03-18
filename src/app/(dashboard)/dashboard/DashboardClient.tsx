@@ -341,7 +341,24 @@ export default function DashboardClient({ data: initialData }: { data: Dashboard
   return (
     <div className="space-y-6">
       <OnboardingChecklist />
-      {/* Onboarding */}
+
+      {/* Connection status bar */}
+      <div className={`flex flex-wrap gap-3 ${card} border border-[var(--color-border)] rounded-xl px-4 py-2.5`}>
+        {[
+          { name: "LINE Bot", icon: "💬", connected: true, detail: "ส่งสลิป + OCR อัตโนมัติ" },
+          { name: "Google Drive", icon: "☁️", connected: false, detail: "ยังไม่เชื่อมต่อ" },
+          { name: "Google Sheets", icon: "📊", connected: false, detail: "ยังไม่เชื่อมต่อ" },
+          { name: "Notion", icon: "📝", connected: false, detail: "ยังไม่เชื่อมต่อ" },
+          { name: "Email", icon: "📧", connected: false, detail: "ยังไม่เชื่อมต่อ" },
+        ].map((s) => (
+          <div key={s.name} className={`flex items-center gap-1.5 text-xs ${txtSub}`}>
+            <span>{s.icon}</span>
+            <span className={s.connected ? txt : ""}>{s.name}</span>
+            <span className={`w-1.5 h-1.5 rounded-full ${s.connected ? "bg-green-500" : isDark ? "bg-white/15" : "bg-gray-300"}`} />
+          </div>
+        ))}
+        <a href="/dashboard/settings" className="ml-auto text-[11px] text-[#FA3633] hover:underline">ตั้งค่าการเชื่อมต่อ</a>
+      </div>
 
       {/* Header + Date Filter + Export */}
       <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
