@@ -1,54 +1,41 @@
-"use client";
-import { useState } from "react";
-import { useTheme } from "@/contexts/ThemeContext";
-import { TrendingDown, Plus, Trash2, CreditCard, Hash, Calculator } from "lucide-react";
-import PageHeader from "@/components/dashboard/PageHeader";
-import DataTable, { Column } from "@/components/dashboard/DataTable";
-import StatsCard from "@/components/dashboard/StatsCard";
+import { redirect } from "next/navigation";
+import { getSession } from "@/lib/auth";
+import { connectDB } from "@/lib/mongodb";
+import DocumentModel from "@/models/Document";
+import ExpensesClient from "./ExpensesClient";
 
-interface ExpenseEntry {
-  id: number; date: string; store: string; category: string; amount: number; payment: string; status: string;
-}
+export default async function ExpensesPage() {
+  const session = await getSession();
+  if (!session) redirect("/login");
 
-const INIT: ExpenseEntry[] = [
-  { id: 1, date: "01/03/2569", store: "Tops Market สาขาสีลม", category: "อาหาร", amount: 1250, payment: "พร้อมเพย์", status: "confirmed" },
-  { id: 2, date: "02/03/2569", store: "BTS สายสีเขียว", category: "เดินทาง", amount: 350, payment: "Rabbit Card", status: "confirmed" },
-  { id: 3, date: "03/03/2569", store: "Uniqlo เซ็นทรัลเวิลด์", category: "ช็อปปิ้ง", amount: 2490, payment: "บัตร SCB Visa", status: "confirmed" },
-  { id: 4, date: "05/03/2569", store: "ค่าไฟฟ้า MEA", category: "สาธารณูปโภค", amount: 1850, payment: "โอนธนาคาร", status: "confirmed" },
-  { id: 5, date: "07/03/2569", store: "โรงพยาบาลบำรุงราษฎร์", category: "สุขภาพ", amount: 3500, payment: "บัตร SCB Visa", status: "pending" },
-  { id: 6, date: "08/03/2569", store: "Grab Food", category: "อาหาร", amount: 285, payment: "พร้อมเพย์", status: "confirmed" },
-  { id: 7, date: "10/03/2569", store: "Shell ปั๊มน้ำมัน", category: "เดินทาง", amount: 1500, payment: "บัตรเดบิต KBank", status: "confirmed" },
-  { id: 8, date: "12/03/2569", store: "7-Eleven", category: "อาหาร", amount: 175, payment: "เงินสด", status: "confirmed" },
-  { id: 9, date: "14/03/2569", store: "ค่าน้ำประปา MWA", category: "สาธารณูปโภค", amount: 320, payment: "พร้อมเพย์", status: "confirmed" },
-  { id: 10, date: "15/03/2569", store: "Watsons สยามสแควร์", category: "สุขภาพ", amount: 890, payment: "เงินสด", status: "pending" },
-];
+  await connectDB();
 
-const catColors: Record<string, string> = { "อาหาร": "bg-orange-500/10 text-orange-400", "เดินทาง": "bg-blue-500/10 text-blue-400", "ช็อปปิ้ง": "bg-purple-500/10 text-purple-400", "สาธารณูปโภค": "bg-pink-500/10 text-pink-400", "สุขภาพ": "bg-green-500/10 text-green-400" };
-const statusMap: Record<string, { label: string; cls: string }> = { confirmed: { label: "ยืนยันแล้ว", cls: "bg-green-500/10 text-green-400" }, pending: { label: "รอตรวจสอบ", cls: "bg-yellow-500/10 text-yellow-400" } };
+  const documents = await DocumentModel.find({
+    userId: session.userId,
+    direction: "expense",
+  })
+    .sort({ date: -1 })
+    .limit(100)
+    .lean();
 
-export default function ExpensesPage() {
-  const { isDark } = useTheme();
-  const [data, setData] = useState(INIT);
-  const total = data.reduce((s, d) => s + d.amount, 0);
+  const statsAgg = await DocumentModel.aggregate([
+    { $match: { userId: session.userId, direction: "expense" } },
+    { $group: { _id: null, totalAmount: { $sum: "$amount" }, count: { $sum: 1 } } },
+  ]);
 
-  const columns: Column<ExpenseEntry>[] = [
-    { key: "date", label: "วันที่" },
-    { key: "store", label: "ร้านค้า", render: (r, isDark) => <span className={`font-medium ${isDark ? "text-white" : "text-gray-900"}`}>{r.store}</span> },
-    { key: "category", label: "หมวดหมู่", render: (r) => <span className={`px-2.5 py-1 rounded-lg text-xs font-medium ${catColors[r.category] || "bg-gray-500/10 text-gray-400"}`}>{r.category}</span> },
-    { key: "amount", label: "จำนวนเงิน", align: "right", render: (r) => <span className="font-semibold text-red-500">-฿{r.amount.toLocaleString()}</span> },
-    { key: "payment", label: "วิธีจ่าย" },
-    { key: "status", label: "สถานะ", render: (r) => { const st = statusMap[r.status] || statusMap.pending; return <span className={`px-2.5 py-1 rounded-lg text-xs font-medium ${st.cls}`}>{st.label}</span>; } },
-  ];
+  const stats = statsAgg[0] || { totalAmount: 0, count: 0 };
 
-  return (
-    <div className="space-y-6">
-      <PageHeader title="รายจ่าย" description="จัดการรายจ่ายทั้งหมดของคุณ" onClear={() => setData([])} actionLabel="เพิ่มรายจ่าย" />
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-        <StatsCard label="รายจ่ายเดือนนี้" value={`฿${total.toLocaleString()}`} icon={<TrendingDown size={20} />} color="text-red-500" />
-        <StatsCard label="จำนวนรายการ" value={`${data.length} รายการ`} icon={<Hash size={20} />} color="text-blue-500" />
-        <StatsCard label="เฉลี่ย/รายการ" value={`฿${data.length > 0 ? Math.round(total / data.length).toLocaleString() : 0}`} icon={<Calculator size={20} />} color="text-purple-500" />
-      </div>
-      <DataTable columns={columns} data={data} rowKey={(r) => r.id} />
-    </div>
-  );
+  const expenses = documents.map((d) => ({
+    _id: String(d._id),
+    date: d.date.toISOString(),
+    merchant: d.merchant,
+    category: d.category,
+    categoryIcon: d.categoryIcon || "📋",
+    amount: d.amount,
+    paymentMethod: d.paymentMethod || undefined,
+    status: d.status,
+    createdAt: d.createdAt ? new Date(d.createdAt).toISOString() : undefined,
+  }));
+
+  return <ExpensesClient expenses={expenses} stats={{ totalAmount: stats.totalAmount, count: stats.count }} />;
 }
