@@ -18,6 +18,9 @@ interface MobileData {
   categories: any[];
   monthlyData: { month: string; expense: number; income: number }[];
   totalExpense: number;
+  topMerchants: { name: string; total: number; count: number }[];
+  paymentMethods: { method: string; total: number; count: number }[];
+  daysInMonth: number;
   stats: any;
 }
 
@@ -302,49 +305,148 @@ function ScanTab({ isDark, onDone }: { isDark: boolean; onDone: () => void }) {
 // ═══════════════════════════════
 //  REPORTS TAB
 // ═══════════════════════════════
+const PAY_LABELS: Record<string, string> = {
+  "bank-scb": "ไทยพาณิชย์", "bank-kbank": "กสิกร", "bank-bbl": "กรุงเทพ", "bank-ktb": "กรุงไทย",
+  "bank-bay": "กรุงศรี", "bank-tmb": "ทีทีบี", "bank-gsb": "ออมสิน", promptpay: "พร้อมเพย์",
+  cash: "เงินสด", transfer: "โอนเงิน", credit: "บัตรเครดิต", debit: "บัตรเดบิต",
+  "ewallet-truemoney": "TrueMoney", "ewallet-rabbit": "Rabbit LINE Pay", "ewallet-shopee": "ShopeePay",
+};
+
 function ReportsTab({ data, isDark }: { data: MobileData; isDark: boolean }) {
   const { card, border, txt, sub, muted } = useStyles(isDark);
   const maxMonthly = Math.max(...data.monthlyData.map((m) => Math.max(m.expense, m.income)), 1);
   const maxCat = Math.max(...data.categories.map((c: any) => c.total), 1);
+  const net = data.monthIncome - data.monthExpense;
+  const dailyAvg = data.daysInMonth > 0 ? Math.round(data.totalExpense / Math.min(new Date().getDate(), data.daysInMonth)) : 0;
 
   return (
     <div className="space-y-4 pt-2">
-      <p className={`text-lg font-bold ${txt}`}>สรุป & Trend</p>
-      <div className={`${card} border ${border} rounded-2xl p-4`}>
-        <p className={`text-xs font-semibold ${sub} mb-4`}>รายจ่าย 6 เดือนล่าสุด</p>
-        <div className="flex items-end justify-between gap-2 h-32">
-          {data.monthlyData.map((m) => (
-            <div key={m.month} className="flex-1 flex flex-col items-center gap-1">
-              <div className="w-full flex items-end justify-center gap-0.5 h-24">
-                <div className="w-3 rounded-t bg-red-500/70" style={{ height: `${Math.max(2, (m.expense / maxMonthly) * 100)}%` }} />
-                {m.income > 0 && <div className="w-3 rounded-t bg-green-500/70" style={{ height: `${Math.max(2, (m.income / maxMonthly) * 100)}%` }} />}
-              </div>
-              <span className={`text-[9px] ${muted}`}>{m.month}</span>
+      {/* ── Overview ── */}
+      <div className="rounded-2xl bg-gradient-to-br from-[#FA3633] to-[#ff6b6b] p-5 text-white">
+        <p className="text-xs text-white/70 mb-1">สรุปเดือนนี้</p>
+        <div className="grid grid-cols-3 gap-3">
+          <div>
+            <p className="text-[10px] text-white/50">รายจ่าย</p>
+            <p className="text-lg font-bold">฿{fmt(data.totalExpense)}</p>
+          </div>
+          <div>
+            <p className="text-[10px] text-white/50">รายรับ</p>
+            <p className="text-lg font-bold">฿{fmt(data.monthIncome)}</p>
+          </div>
+          <div>
+            <p className="text-[10px] text-white/50">คงเหลือ</p>
+            <p className={`text-lg font-bold ${net >= 0 ? "" : "text-yellow-200"}`}>{net >= 0 ? "+" : ""}฿{fmt(Math.abs(net))}</p>
+          </div>
+        </div>
+        <div className="flex items-center gap-4 mt-3 pt-3 border-t border-white/20">
+          <div>
+            <p className="text-[10px] text-white/50">เฉลี่ย/วัน</p>
+            <p className="text-sm font-semibold">฿{fmt(dailyAvg)}</p>
+          </div>
+          <div>
+            <p className="text-[10px] text-white/50">จำนวนรายการ</p>
+            <p className="text-sm font-semibold">{data.stats.monthReceipts} รายการ</p>
+          </div>
+          {data.profile.monthlyBudget > 0 && (
+            <div>
+              <p className="text-[10px] text-white/50">งบประมาณ</p>
+              <p className="text-sm font-semibold">{Math.round((data.totalExpense / data.profile.monthlyBudget) * 100)}%</p>
             </div>
-          ))}
+          )}
+        </div>
+      </div>
+
+      {/* ── Monthly Chart ── */}
+      <div className={`${card} border ${border} rounded-2xl p-4`}>
+        <p className={`text-xs font-semibold ${txt} mb-1`}>รายจ่าย vs รายรับ</p>
+        <p className={`text-[10px] ${muted} mb-4`}>6 เดือนล่าสุด</p>
+        <div className="flex items-end justify-between gap-1.5 h-36">
+          {data.monthlyData.map((m) => {
+            const expH = (m.expense / maxMonthly) * 100;
+            const incH = (m.income / maxMonthly) * 100;
+            const isThisMonth = data.monthlyData.indexOf(m) === data.monthlyData.length - 1;
+            return (
+              <div key={m.month} className="flex-1 flex flex-col items-center gap-1">
+                {m.expense > 0 && <span className={`text-[8px] ${muted}`}>{m.expense >= 1000 ? `${Math.round(m.expense / 1000)}k` : fmt(m.expense)}</span>}
+                <div className="w-full flex items-end justify-center gap-0.5 h-24">
+                  <div className={`w-3.5 rounded-t ${isThisMonth ? "bg-red-500" : "bg-red-500/50"}`} style={{ height: `${Math.max(3, expH)}%` }} />
+                  {m.income > 0 && <div className={`w-3.5 rounded-t ${isThisMonth ? "bg-green-500" : "bg-green-500/50"}`} style={{ height: `${Math.max(3, incH)}%` }} />}
+                </div>
+                <span className={`text-[10px] font-medium ${isThisMonth ? txt : muted}`}>{m.month}</span>
+              </div>
+            );
+          })}
         </div>
         <div className="flex items-center gap-4 mt-3 justify-center">
-          <div className="flex items-center gap-1"><div className="w-2 h-2 rounded-sm bg-red-500/70" /><span className={`text-[10px] ${muted}`}>รายจ่าย</span></div>
-          <div className="flex items-center gap-1"><div className="w-2 h-2 rounded-sm bg-green-500/70" /><span className={`text-[10px] ${muted}`}>รายรับ</span></div>
+          <div className="flex items-center gap-1.5"><div className="w-2.5 h-2.5 rounded-sm bg-red-500" /><span className={`text-[10px] ${sub}`}>รายจ่าย</span></div>
+          <div className="flex items-center gap-1.5"><div className="w-2.5 h-2.5 rounded-sm bg-green-500" /><span className={`text-[10px] ${sub}`}>รายรับ</span></div>
         </div>
       </div>
+
+      {/* ── Categories ── */}
       <div className={`${card} border ${border} rounded-2xl p-4`}>
-        <p className={`text-xs font-semibold ${sub} mb-3`}>หมวดหมู่ (เดือนนี้)</p>
+        <p className={`text-xs font-semibold ${txt} mb-1`}>หมวดหมู่รายจ่าย</p>
+        <p className={`text-[10px] ${muted} mb-3`}>เดือนนี้ · {data.categories.length} หมวด</p>
         <div className="space-y-3">
-          {data.categories.map((c: any) => (
-            <div key={c.name}>
-              <div className="flex items-center justify-between mb-1">
-                <span className={`text-xs ${txt}`}>{c.icon} {c.name}</span>
-                <span className={`text-xs font-bold ${txt}`}>฿{fmt(c.total)}</span>
+          {data.categories.map((c: any, i: number) => {
+            const pct = data.totalExpense > 0 ? Math.round((c.total / data.totalExpense) * 100) : 0;
+            return (
+              <div key={c.name} className="flex items-center gap-3">
+                <span className="text-base w-7 text-center">{c.icon}</span>
+                <div className="flex-1 min-w-0">
+                  <div className="flex items-center justify-between mb-0.5">
+                    <span className={`text-xs font-medium ${txt}`}>{c.name}</span>
+                    <span className={`text-xs font-bold ${txt}`}>฿{fmt(c.total)}</span>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <div className={`flex-1 h-1.5 rounded-full ${isDark ? "bg-white/10" : "bg-gray-100"}`}>
+                      <div className="h-full rounded-full bg-[#FA3633]" style={{ width: `${(c.total / maxCat) * 100}%`, opacity: 1 - i * 0.1 }} />
+                    </div>
+                    <span className={`text-[10px] font-medium ${sub} w-8 text-right`}>{pct}%</span>
+                  </div>
+                </div>
               </div>
-              <div className={`h-1.5 rounded-full ${isDark ? "bg-white/10" : "bg-gray-100"}`}>
-                <div className="h-full rounded-full bg-[#FA3633]" style={{ width: `${(c.total / maxCat) * 100}%` }} />
-              </div>
-            </div>
-          ))}
-          {data.categories.length === 0 && <p className={`text-center py-6 text-sm ${sub}`}>ยังไม่มีข้อมูล</p>}
+            );
+          })}
+          {data.categories.length === 0 && <p className={`text-center py-6 text-sm ${sub}`}>ยังไม่มีข้อมูลเดือนนี้</p>}
         </div>
       </div>
+
+      {/* ── Top Merchants ── */}
+      {data.topMerchants && data.topMerchants.length > 0 && (
+        <div className={`${card} border ${border} rounded-2xl p-4`}>
+          <p className={`text-xs font-semibold ${txt} mb-1`}>ร้านค้าที่จ่ายบ่อย</p>
+          <p className={`text-[10px] ${muted} mb-3`}>Top 5 เดือนนี้</p>
+          <div className="space-y-2.5">
+            {data.topMerchants.map((m: any, i: number) => (
+              <div key={m.name} className="flex items-center gap-3">
+                <span className={`w-5 h-5 rounded-full flex items-center justify-center text-[10px] font-bold ${i === 0 ? "bg-[#FA3633] text-white" : isDark ? "bg-white/10 text-white/50" : "bg-gray-100 text-gray-500"}`}>{i + 1}</span>
+                <span className={`text-xs flex-1 truncate ${txt}`}>{m.name}</span>
+                <span className={`text-xs ${muted}`}>{m.count}x</span>
+                <span className={`text-xs font-bold ${txt}`}>฿{fmt(m.total)}</span>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+
+      {/* ── Payment Methods ── */}
+      {data.paymentMethods && data.paymentMethods.length > 0 && (
+        <div className={`${card} border ${border} rounded-2xl p-4`}>
+          <p className={`text-xs font-semibold ${txt} mb-1`}>วิธีชำระเงิน</p>
+          <p className={`text-[10px] ${muted} mb-3`}>เดือนนี้</p>
+          <div className="space-y-2.5">
+            {data.paymentMethods.map((p: any) => (
+              <div key={p.method} className="flex items-center gap-3">
+                <BrandIcon brand={p.method} size={28} className="rounded-lg" />
+                <span className={`text-xs flex-1 ${txt}`}>{PAY_LABELS[p.method] || p.method}</span>
+                <span className={`text-xs ${muted}`}>{p.count}x</span>
+                <span className={`text-xs font-bold ${txt}`}>฿{fmt(p.total)}</span>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
     </div>
   );
 }

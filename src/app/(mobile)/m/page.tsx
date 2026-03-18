@@ -30,6 +30,8 @@ async function MobileData() {
     monthlyTotals,
     totalCount,
     recentDays,
+    topMerchants,
+    paymentMethods,
   ] = await Promise.all([
     Receipt.find({ userId: session.userId, status: { $ne: "cancelled" } })
       .select("merchant amount category categoryIcon direction paymentMethod date time status source imageHash createdAt")
@@ -61,6 +63,20 @@ async function MobileData() {
       { $group: { _id: { $dateToString: { format: "%Y-%m-%d", date: "$date" } } } },
       { $sort: { _id: -1 } },
       { $limit: 60 },
+    ]),
+    // Top merchants this month
+    Receipt.aggregate([
+      { $match: { userId: session.userId, date: { $gte: monthStart }, direction: { $ne: "income" }, status: { $ne: "cancelled" } } },
+      { $group: { _id: "$merchant", total: { $sum: "$amount" }, count: { $sum: 1 } } },
+      { $sort: { total: -1 } },
+      { $limit: 5 },
+    ]),
+    // Payment methods this month
+    Receipt.aggregate([
+      { $match: { userId: session.userId, date: { $gte: monthStart }, status: { $ne: "cancelled" } } },
+      { $group: { _id: "$paymentMethod", total: { $sum: "$amount" }, count: { $sum: 1 } } },
+      { $sort: { total: -1 } },
+      { $limit: 5 },
     ]),
   ]);
 
@@ -147,6 +163,9 @@ async function MobileData() {
     categories: catBreakdown.map((c: any) => ({ name: c._id || "อื่นๆ", icon: c.icon || "📦", total: c.total, count: c.count })),
     monthlyData,
     totalExpense: catBreakdown.reduce((s: number, c: any) => s + c.total, 0),
+    topMerchants: (topMerchants as any[]).map((m) => ({ name: m._id || "ไม่ระบุ", total: m.total, count: m.count })),
+    paymentMethods: (paymentMethods as any[]).filter((p) => p._id).map((p) => ({ method: p._id, total: p.total, count: p.count })),
+    daysInMonth: new Date(now.getFullYear(), now.getMonth() + 1, 0).getDate(),
     // Stats
     stats: {
       totalReceipts: totalCount,
