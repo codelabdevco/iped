@@ -52,6 +52,82 @@ function fmtAmt(n: number): string {
   });
 }
 
+// ─── Brand Data (synced with BrandIcon.tsx) ───
+const BRANDS: Record<string, { bg: string; fg: string; label: string }> = {
+  "bank-scb": { bg: "#4E2A84", fg: "#fff", label: "SCB" },
+  "bank-kbank": { bg: "#138F2D", fg: "#fff", label: "K" },
+  "bank-bbl": { bg: "#1E3A8A", fg: "#fff", label: "BBL" },
+  "bank-ktb": { bg: "#1AA5DE", fg: "#fff", label: "KTB" },
+  "bank-bay": { bg: "#FFC423", fg: "#1a1a1a", label: "BAY" },
+  "bank-tmb": { bg: "#0066B3", fg: "#fff", label: "ttb" },
+  "bank-gsb": { bg: "#E91E8C", fg: "#fff", label: "GSB" },
+  "bank-ghb": { bg: "#F26522", fg: "#fff", label: "GH" },
+  "bank-baac": { bg: "#0B7C3E", fg: "#fff", label: "ธกส" },
+  "bank-tisco": { bg: "#1B3A6B", fg: "#fff", label: "T" },
+  "bank-kk": { bg: "#003D6B", fg: "#fff", label: "KKP" },
+  "bank-lhbank": { bg: "#003366", fg: "#fff", label: "LH" },
+  "bank-cimb": { bg: "#ED1C24", fg: "#fff", label: "C" },
+  "bank-uob": { bg: "#0038A8", fg: "#fff", label: "UOB" },
+  "bank-icbc": { bg: "#C8102E", fg: "#fff", label: "I" },
+  cash: { bg: "#22c55e", fg: "#fff", label: "฿" },
+  promptpay: { bg: "#1A3365", fg: "#fff", label: "PP" },
+  transfer: { bg: "#6366f1", fg: "#fff", label: "โอน" },
+  credit: { bg: "#818CF8", fg: "#fff", label: "CC" },
+  debit: { bg: "#60A5FA", fg: "#fff", label: "DC" },
+  cheque: { bg: "#78716c", fg: "#fff", label: "เช็ค" },
+  "ewallet-truemoney": { bg: "#FF6600", fg: "#fff", label: "TM" },
+  "ewallet-rabbit": { bg: "#00B900", fg: "#fff", label: "R" },
+  "ewallet-shopee": { bg: "#EE4D2D", fg: "#fff", label: "S" },
+};
+
+// Payment method display names
+const PAY_NAMES: Record<string, string> = {
+  "bank-scb": "ไทยพาณิชย์",
+  "bank-kbank": "กสิกร",
+  "bank-bbl": "กรุงเทพ",
+  "bank-ktb": "กรุงไทย",
+  "bank-bay": "กรุงศรี",
+  "bank-tmb": "ทีทีบี",
+  "bank-gsb": "ออมสิน",
+  "bank-ghb": "อาคารสงเคราะห์",
+  "bank-baac": "ธ.ก.ส.",
+  cash: "เงินสด",
+  promptpay: "พร้อมเพย์",
+  transfer: "โอนเงิน",
+  credit: "บัตรเครดิต",
+  debit: "บัตรเดบิต",
+  cheque: "เช็ค",
+  "ewallet-truemoney": "TrueMoney",
+  "ewallet-rabbit": "Rabbit LINE Pay",
+  "ewallet-shopee": "ShopeePay",
+};
+
+/** Build brand icon box for LINE Flex (colored circle + label text) */
+function brandIconBox(key: string): any {
+  const b = BRANDS[key];
+  if (!b) return null;
+  return {
+    type: "box",
+    layout: "vertical",
+    flex: 0,
+    width: "40px",
+    height: "40px",
+    cornerRadius: "20px",
+    backgroundColor: b.bg,
+    contents: [
+      {
+        type: "text",
+        text: b.label,
+        size: "xxs",
+        color: b.fg,
+        align: "center",
+        gravity: "center",
+        weight: "bold",
+      },
+    ],
+  };
+}
+
 // ─── Shared Components ───
 
 /** Brand header: iPED logo + status text */
@@ -134,37 +210,41 @@ function amountHero(
   };
 }
 
-/** Merchant + category row */
+/** Merchant + category row (uses brand icon if paymentMethod matches) */
 function merchantInfo(
   icon: string,
   name: string,
   category: string,
-  subtext?: string,
+  opts?: { subtext?: string; paymentMethod?: string },
 ): any {
+  // Try brand icon from paymentMethod, fallback to emoji
+  const brandBox = opts?.paymentMethod ? brandIconBox(opts.paymentMethod) : null;
+  const iconBox = brandBox || {
+    type: "box",
+    layout: "vertical",
+    flex: 0,
+    width: "40px",
+    height: "40px",
+    cornerRadius: "10px",
+    backgroundColor: C.bg,
+    contents: [
+      {
+        type: "text",
+        text: icon,
+        size: "sm",
+        align: "center",
+        gravity: "center",
+      },
+    ],
+  };
+
   return {
     type: "box",
     layout: "horizontal",
     spacing: "md",
     margin: "md",
     contents: [
-      {
-        type: "box",
-        layout: "vertical",
-        flex: 0,
-        width: "40px",
-        height: "40px",
-        cornerRadius: "10px",
-        backgroundColor: C.bg,
-        contents: [
-          {
-            type: "text",
-            text: icon,
-            size: "sm",
-            align: "center",
-            gravity: "center",
-          },
-        ],
-      },
+      iconBox,
       {
         type: "box",
         layout: "vertical",
@@ -180,7 +260,7 @@ function merchantInfo(
           },
           {
             type: "text",
-            text: category + (subtext ? ` · ${subtext}` : ""),
+            text: category + (opts?.subtext ? ` · ${opts.subtext}` : ""),
             size: "xxs",
             color: C.sub,
             margin: "xs",

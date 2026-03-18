@@ -1,22 +1,16 @@
 "use client";
 
-import { useState, useMemo, useCallback, useRef } from "react";
+import { useState, useCallback, useRef } from "react";
 import { useRouter } from "next/navigation";
 import { useTheme } from "@/contexts/ThemeContext";
 import {
-  ScanLine, CheckCircle2, Copy, Upload, Loader2, ArrowRight, Check, X,
-  Mail, Clock, ToggleLeft, ToggleRight, Paperclip, Download,
+  Upload, Loader2, ArrowRight, Check, X,
+  Mail, Clock, Paperclip, Download, CheckCircle2, AlertCircle,
 } from "lucide-react";
 import PageHeader from "@/components/dashboard/PageHeader";
-import StatsCard from "@/components/dashboard/StatsCard";
-import DataTable, { Column } from "@/components/dashboard/DataTable";
 import BrandIcon from "@/components/dashboard/BrandIcon";
 
-interface FileInfo {
-  name: string;
-  type: string;
-  size: number;
-}
+interface FileInfo { name: string; type: string; size: number; }
 
 interface ReceiptRow {
   _id: string; storeName: string; amount: number; category: string;
@@ -31,46 +25,36 @@ interface MatchRow {
   _id: string;
   receiptA: ReceiptRow;
   receiptB: ReceiptRow;
-  matchScore: number; matchType: string; matchReason: string; status: string; createdAt?: string;
+  matchScore: number; matchType: string; matchReason: string; status: string;
 }
 
-interface GoogleAccountInfo {
-  _id: string;
-  email: string;
-  lastScanAt: string | null;
-  autoScan: boolean;
-}
+interface GoogleAccountInfo { _id: string; email: string; lastScanAt: string | null; autoScan: boolean; }
 
 interface GmailSettings {
-  connected: boolean;
-  email: string | null;
-  lastGmailScan: string | null;
-  autoGmailScan: boolean;
+  connected: boolean; email: string | null;
+  lastGmailScan: string | null; autoGmailScan: boolean;
   accounts?: GoogleAccountInfo[];
 }
 
-function Baht({ value, className = "" }: { value: number; className?: string }) {
+function Baht({ value }: { value: number }) {
+  if (!value) return <span className="opacity-30">-</span>;
   const whole = Math.floor(Math.abs(value)).toLocaleString();
   const dec = (Math.abs(value) % 1).toFixed(2).slice(1);
-  return <span className={className}>฿{whole}<span className="text-[0.75em] opacity-50">{dec}</span></span>;
+  return <span className="font-semibold">฿{whole}<span className="text-[0.75em] opacity-50">{dec}</span></span>;
 }
 
-function formatTimeAgo(dateStr: string): string {
+function timeAgo(dateStr: string): string {
   const diff = Date.now() - new Date(dateStr).getTime();
   const mins = Math.floor(diff / 60000);
   if (mins < 1) return "เมื่อสักครู่";
   if (mins < 60) return `${mins} นาทีที่แล้ว`;
   const hrs = Math.floor(mins / 60);
-  if (hrs < 24) return `${hrs} ชั่วโมงที่แล้ว`;
-  const days = Math.floor(hrs / 24);
-  return `${days} วันที่แล้ว`;
+  if (hrs < 24) return `${hrs} ชม.ที่แล้ว`;
+  return `${Math.floor(hrs / 24)} วันที่แล้ว`;
 }
 
-const DIR_CLR: Record<string, string> = { expense: "#FA3633", income: "#22c55e", savings: "#ec4899" };
-const DIR_LABEL: Record<string, string> = { expense: "รายจ่าย", income: "รายรับ", savings: "เงินออม" };
-
 export default function MatchingClient({
-  receipts, matches: initialMatches, gmailSettings: initialGmail,
+  receipts, matches: initialMatches, gmailSettings,
 }: {
   receipts: ReceiptRow[];
   matches: MatchRow[];
@@ -79,70 +63,33 @@ export default function MatchingClient({
   const { isDark } = useTheme();
   const router = useRouter();
   const [matches, setMatches] = useState(initialMatches);
-  const [tab, setTab] = useState<"email" | "all" | "matches">("email");
   const [uploading, setUploading] = useState(false);
   const [scanning, setScanning] = useState(false);
-  const [autoScan, setAutoScan] = useState(initialGmail.autoGmailScan);
-  const [lastScan, setLastScan] = useState(initialGmail.lastGmailScan);
-  const [scans, setScans] = useState<{ id: string; name: string; amount: number; status: string }[]>([]);
+  const [lastScan, setLastScan] = useState(gmailSettings.lastGmailScan);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
-  const muted = isDark ? "text-white/30" : "text-gray-400";
-  const sub = isDark ? "text-white/50" : "text-gray-500";
+  const bg = isDark ? "bg-[rgba(255,255,255,0.04)]" : "bg-white";
+  const bd = isDark ? "border-[rgba(255,255,255,0.06)]" : "border-gray-200";
   const txt = isDark ? "text-white" : "text-gray-900";
-  const card = isDark ? "bg-[rgba(255,255,255,0.04)]" : "bg-white";
-  const border = isDark ? "border-[rgba(255,255,255,0.06)]" : "border-gray-200";
+  const sub = isDark ? "text-white/50" : "text-gray-500";
+  const dim = isDark ? "text-white/25" : "text-gray-300";
 
-  // Split receipts by source
-  const emailReceipts = useMemo(() => receipts.filter((r) => r.source === "email"), [receipts]);
-  const lineReceipts = useMemo(() => receipts.filter((r) => r.source === "line"), [receipts]);
+  const emailDocs = receipts.filter((r) => r.source === "email");
+  const lineDocs = receipts.filter((r) => r.source === "line");
+  const pendingMatches = matches.filter((m) => m.status === "pending");
+  const confirmedMatches = matches.filter((m) => m.status === "matched");
 
-  const lineTotal = lineReceipts.reduce((s, r) => s + r.amount, 0);
-  const confirmed = matches.filter((m) => m.status === "matched").length;
-  const pending = matches.filter((m) => m.status === "pending").length;
-
-  // Toggle auto-scan
-  const handleToggleAutoScan = async () => {
-    const newVal = !autoScan;
-    setAutoScan(newVal);
-    try {
-      await fetch("/api/gmail/settings", {
-        method: "PUT",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ autoGmailScan: newVal }),
-      });
-    } catch { setAutoScan(!newVal); }
-  };
-
-  // Upload
+  // Upload slip
   const handleUpload = useCallback(async (file: File) => {
-    const id = `SC-${Date.now()}`;
-    setScans((prev) => [{ id, name: file.name, amount: 0, status: "processing" }, ...prev]);
     setUploading(true);
     try {
       const formData = new FormData();
       formData.append("file", file);
       const res = await fetch("/api/ocr", { method: "POST", body: formData });
-      if (res.status === 401) {
-        setScans((prev) => prev.map((s) => s.id === id ? { ...s, name: "กรุณาเข้าสู่ระบบใหม่", status: "failed" } : s));
-        return;
-      }
-      const json = await res.json();
-      if (json.success) {
-        setScans((prev) => prev.map((s) => s.id === id ? {
-          ...s,
-          name: json.data?.merchant || file.name,
-          amount: json.data?.amount || 0,
-          status: json.duplicate ? "duplicate" : "matched",
-        } : s));
-        // Delay refresh to let user see the result
-        setTimeout(() => router.refresh(), 1000);
-      } else {
-        setScans((prev) => prev.map((s) => s.id === id ? { ...s, name: json.error || "OCR ล้มเหลว", status: "failed" } : s));
-      }
-    } catch (e) {
-      setScans((prev) => prev.map((s) => s.id === id ? { ...s, name: "เกิดข้อผิดพลาด", status: "failed" } : s));
-    } finally { setUploading(false); }
+      if (res.ok) setTimeout(() => router.refresh(), 500);
+      else alert("อัปโหลดไม่สำเร็จ");
+    } catch { alert("เกิดข้อผิดพลาด"); }
+    finally { setUploading(false); }
   }, [router]);
 
   // Gmail scan
@@ -153,463 +100,282 @@ export default function MatchingClient({
       const json = await res.json();
       if (json.expired) { window.location.href = "/api/auth/google"; return; }
       if (json.error) { alert(json.error); return; }
-      json.results?.forEach((r: any) => setScans((prev) => [{ id: `GM-${Date.now()}-${Math.random()}`, name: r.subject, amount: 0, status: r.status === "saved" ? "matched" : r.status === "duplicate" ? "duplicate" : "failed" }, ...prev]));
       setLastScan(new Date().toISOString());
       router.refresh();
-    } catch { alert("เกิดข้อผิดพลาด"); } finally { setScanning(false); }
+    } catch { alert("เกิดข้อผิดพลาด"); }
+    finally { setScanning(false); }
   };
 
-  // Match actions
+  // Match action
   const handleAction = async (id: string, status: "matched" | "rejected") => {
     await fetch("/api/matches", { method: "PUT", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ id, status }) });
     setMatches((prev) => prev.map((m) => m._id === id ? { ...m, status } : m));
   };
 
-  // Receipt columns
-  const receiptColumns: Column<ReceiptRow>[] = useMemo(() => [
-    {
-      key: "storeName",
-      label: "รายละเอียด",
-      render: (r) => {
-        const dir = r.direction || "expense";
-        const dirLabel = DIR_LABEL[dir] || "รายจ่าย";
-        const dirCls = dir === "income" ? "bg-green-500/10 text-green-500" : dir === "savings" ? "bg-pink-500/10 text-pink-400" : "bg-red-500/10 text-red-400";
-        return (
-          <div className="leading-tight min-w-0">
-            <div className="flex items-center gap-2">
-              <span className="font-medium truncate">{r.storeName}</span>
-              <span className={`shrink-0 px-1.5 py-0.5 rounded text-[9px] font-semibold leading-none ${dirCls}`}>{dirLabel}</span>
-            </div>
-            <div className={`flex items-center gap-2 mt-0.5 text-[11px] ${muted}`}>
-              <span>{r.category}</span>
-              <span>·</span>
-              <span>{r.type === "receipt" ? "ใบเสร็จ" : r.type === "invoice" ? "ใบแจ้งหนี้" : r.type}</span>
-            </div>
-          </div>
-        );
-      },
-    },
-    { key: "amount", label: "จำนวนเงิน", align: "right", render: (r) => <Baht value={r.amount} className="font-semibold" /> },
-    {
-      key: "paidAt",
-      label: "เวลาในสลิป",
-      render: (r) => {
-        if (!r.rawDate) return <span className={muted}>-</span>;
-        const d = new Date(r.rawDate);
-        const day = d.getDate();
-        const mon = ["ม.ค.","ก.พ.","มี.ค.","เม.ย.","พ.ค.","มิ.ย.","ก.ค.","ส.ค.","ก.ย.","ต.ค.","พ.ย.","ธ.ค."][d.getMonth()];
-        const yr = d.getFullYear() + 543;
-        const isLine = r.source === "line";
-        const isEmail = r.source === "email";
-        return (
-          <div className="leading-tight">
-            <div className="text-sm whitespace-nowrap">{day} {mon} {yr}{r.time ? <span className={`text-[11px] ml-1 ${muted}`}>{r.time}</span> : ""}</div>
-            <div className="flex items-center gap-1 mt-0.5 text-[11px]">
-              <BrandIcon brand={isLine ? "line" : isEmail ? "gmail" : "web"} size={11} />
-              <span className={isLine ? "text-green-500" : isEmail ? "text-red-400" : "text-blue-400"}>{isLine ? "LINE" : isEmail ? "Gmail" : "เว็บ"}</span>
-            </div>
-          </div>
-        );
-      },
-    },
-    {
-      key: "matchStatus",
-      label: "จับคู่",
-      render: (r) => {
-        const match = matches.find((m) => (m.receiptA._id === r._id || m.receiptB._id === r._id) && m.status === "matched");
-        if (match) {
-          const other = match.receiptA._id === r._id ? match.receiptB : match.receiptA;
-          return (
-            <div className="leading-tight">
-              <span className="px-2 py-0.5 rounded-lg text-[10px] font-medium bg-green-500/10 text-green-400">ตรงกัน {match.matchScore}%</span>
-              <div className={`text-[10px] mt-0.5 ${muted}`}>{other.storeName}</div>
-            </div>
-          );
-        }
-        const pendingMatch = matches.find((m) => (m.receiptA._id === r._id || m.receiptB._id === r._id) && m.status === "pending");
-        if (pendingMatch) return <span className="px-2 py-0.5 rounded-lg text-[10px] font-medium bg-amber-500/10 text-amber-400">รอยืนยัน</span>;
-        return <span className={`text-[10px] ${muted}`}>-</span>;
-      },
-    },
-    {
-      key: "status",
-      label: "สถานะ",
-      render: (r) => {
-        const cfg: Record<string, { l: string; c: string }> = {
-          confirmed: { l: "ยืนยัน", c: "bg-green-500/10 text-green-400" },
-          pending: { l: "รอตรวจ", c: "bg-yellow-500/10 text-yellow-400" },
-          duplicate: { l: "สลิปซ้ำ", c: "bg-orange-500/10 text-orange-400" },
-          cancelled: { l: "ยกเลิก", c: "bg-gray-500/10 text-gray-400" },
-          edited: { l: "แก้ไข", c: "bg-blue-500/10 text-blue-400" },
-          matched: { l: "จับคู่แล้ว", c: "bg-green-500/10 text-green-400" },
-        };
-        const st = cfg[r.status] || cfg.pending;
-        return <span className={`px-2 py-1 rounded-lg text-[10px] font-medium ${st.c}`}>{st.l}</span>;
-      },
-    },
-  ], [muted, matches]);
-
-  // Email-specific columns — shows subject, sender, OCR result, match status
-  const emailColumns: Column<ReceiptRow>[] = useMemo(() => [
-    {
-      key: "emailSubject",
-      label: "หัวข้ออีเมล",
-      render: (r) => (
-        <div className="leading-tight min-w-0">
-          <div className="flex items-center gap-2">
-            <BrandIcon brand="gmail" size={14} />
-            <span className={`font-medium ${txt}`}>{r.emailSubject || r.note?.replace("จาก email: ", "") || r.storeName}</span>
-          </div>
-          {r.emailFrom && (
-            <div className={`text-[11px] mt-0.5 ${muted}`}>{r.emailFrom}</div>
-          )}
-        </div>
-      ),
-    },
-    {
-      key: "storeName",
-      label: "OCR อ่านได้",
-      render: (r) => (
-        <div className="leading-tight min-w-0">
-          <span className={`font-medium ${txt}`}>{r.storeName}</span>
-          <div className={`flex items-center gap-2 mt-0.5 text-[11px] ${muted}`}>
-            <span>{r.category}</span>
-            {r.ocrConfidence ? (
-              <>
-                <span>·</span>
-                <span className={r.ocrConfidence >= 80 ? "text-green-400" : "text-amber-400"}>
-                  แม่นยำ {Math.round(r.ocrConfidence > 1 ? r.ocrConfidence : r.ocrConfidence * 100)}%
-                </span>
-              </>
-            ) : null}
-          </div>
-        </div>
-      ),
-    },
-    { key: "amount", label: "จำนวนเงิน", align: "right", render: (r) => <Baht value={r.amount} className="font-semibold" /> },
-    {
-      key: "date",
-      label: "วันที่",
-      render: (r) => {
-        if (!r.rawDate) return <span className={muted}>-</span>;
-        const d = new Date(r.rawDate);
-        const day = d.getDate();
-        const mon = ["ม.ค.","ก.พ.","มี.ค.","เม.ย.","พ.ค.","มิ.ย.","ก.ค.","ส.ค.","ก.ย.","ต.ค.","พ.ย.","ธ.ค."][d.getMonth()];
-        const yr = d.getFullYear() + 543;
-        return <span className="text-sm whitespace-nowrap">{day} {mon} {yr}</span>;
-      },
-    },
-    {
-      key: "matchStatus",
-      label: "จับคู่กับสลิป",
-      render: (r) => {
-        const match = matches.find((m) => (m.receiptA._id === r._id || m.receiptB._id === r._id) && m.status === "matched");
-        if (match) {
-          const other = match.receiptA._id === r._id ? match.receiptB : match.receiptA;
-          const otherSrc = receipts.find((rr) => rr._id === other._id)?.source;
-          return (
-            <div className="leading-tight">
-              <span className="px-2 py-0.5 rounded-lg text-[10px] font-medium bg-green-500/10 text-green-400">ตรงกัน {match.matchScore}%</span>
-              <div className={`flex items-center gap-1 text-[10px] mt-0.5 ${muted}`}>
-                <BrandIcon brand={otherSrc === "line" ? "line" : "web"} size={10} />
-                <span>{other.storeName}</span>
-              </div>
-            </div>
-          );
-        }
-        const pendingMatch = matches.find((m) => (m.receiptA._id === r._id || m.receiptB._id === r._id) && m.status === "pending");
-        if (pendingMatch) {
-          const other = pendingMatch.receiptA._id === r._id ? pendingMatch.receiptB : pendingMatch.receiptA;
-          return (
-            <div className="leading-tight">
-              <span className="px-2 py-0.5 rounded-lg text-[10px] font-medium bg-amber-500/10 text-amber-400">รอยืนยัน</span>
-              <div className={`text-[10px] mt-0.5 ${muted}`}>{other.storeName}</div>
-            </div>
-          );
-        }
-        return <span className={`px-2 py-0.5 rounded-lg text-[10px] font-medium bg-gray-500/10 ${muted}`}>ยังไม่จับคู่</span>;
-      },
-    },
-    {
-      key: "files" as any,
-      label: "ไฟล์แนบ",
-      render: (r) => {
-        if (!r.files || r.files.length === 0) {
-          if (r.hasImage) return <span className={`text-[10px] ${muted}`}>รูป</span>;
-          return <span className={`text-[10px] ${muted}`}>-</span>;
-        }
-        return (
-          <div className="flex flex-col gap-1">
-            {r.files.map((f, i) => (
-              <a
-                key={i}
-                href={`/api/files/download?id=${r.fileIds?.[i]}`}
-                target="_blank"
-                rel="noopener"
-                onClick={(e) => e.stopPropagation()}
-                className="flex items-center gap-1.5 px-2 py-1 rounded-lg text-[10px] font-medium bg-blue-500/10 text-blue-400 hover:bg-blue-500/20 transition-colors"
-              >
-                <Paperclip size={10} />
-                <span className="truncate max-w-[80px]">{f.name}</span>
-                <Download size={9} />
-              </a>
-            ))}
-          </div>
-        );
-      },
-    },
-    {
-      key: "status",
-      label: "สถานะ",
-      render: (r) => {
-        const cfg: Record<string, { l: string; c: string }> = {
-          confirmed: { l: "ยืนยัน", c: "bg-green-500/10 text-green-400" },
-          pending: { l: "รอตรวจ", c: "bg-yellow-500/10 text-yellow-400" },
-          duplicate: { l: "ซ้ำ", c: "bg-orange-500/10 text-orange-400" },
-          matched: { l: "จับคู่แล้ว", c: "bg-green-500/10 text-green-400" },
-        };
-        const st = cfg[r.status] || cfg.pending;
-        return <span className={`px-2 py-1 rounded-lg text-[10px] font-medium ${st.c}`}>{st.l}</span>;
-      },
-    },
-  ], [txt, muted, matches, receipts]);
-
-  // Match columns — with receipt thumbnails
-  const matchColumns: Column<MatchRow>[] = useMemo(() => [
-    {
-      key: "docA",
-      label: "เอกสารจาก Email",
-      render: (m) => {
-        const isEmailA = receipts.find((r) => r._id === m.receiptA._id)?.source === "email";
-        const emailDoc = isEmailA ? m.receiptA : m.receiptB;
-        const emailReceipt = receipts.find((r) => r._id === emailDoc._id);
-        const fileId = emailReceipt?.fileIds?.[0];
-        return (
-          <div className="flex items-center gap-2.5">
-            {fileId ? (
-              <a href={`/api/files/download?id=${fileId}`} target="_blank" rel="noopener" onClick={(e) => e.stopPropagation()} className="flex-shrink-0">
-                <div className={`w-10 h-10 rounded-lg border overflow-hidden flex items-center justify-center ${isDark ? "border-white/10 bg-white/5" : "border-gray-200 bg-gray-50"}`}>
-                  <Paperclip size={14} className="text-blue-400" />
-                </div>
-              </a>
-            ) : (
-              <div className={`w-10 h-10 rounded-lg flex items-center justify-center flex-shrink-0 ${isDark ? "bg-white/5" : "bg-gray-50"}`}>
-                <BrandIcon brand="gmail" size={16} />
-              </div>
-            )}
-            <div className="leading-tight min-w-0">
-              <span className={`text-sm font-medium truncate block ${txt}`}>{emailDoc?.storeName || "?"}</span>
-              <div className={`text-[11px] ${muted}`}><Baht value={emailDoc?.amount || 0} className="" /></div>
-            </div>
-          </div>
-        );
-      },
-    },
-    { key: "arrow", label: "", render: () => <ArrowRight size={12} className={muted} /> },
-    {
-      key: "docB",
-      label: "สลิปบนระบบ",
-      render: (m) => {
-        const isEmailA = receipts.find((r) => r._id === m.receiptA._id)?.source === "email";
-        const sysDoc = isEmailA ? m.receiptB : m.receiptA;
-        const sysReceipt = receipts.find((r) => r._id === sysDoc._id);
-        const src = sysReceipt?.source;
-        const hasImg = sysReceipt?.hasImage;
-        return (
-          <div className="flex items-center gap-2.5">
-            {hasImg ? (
-              <img
-                src={`/api/receipts/image?id=${sysDoc._id}`}
-                alt=""
-                className={`w-10 h-10 rounded-lg object-cover flex-shrink-0 border ${isDark ? "border-white/10" : "border-gray-200"}`}
-                loading="lazy"
-              />
-            ) : (
-              <div className={`w-10 h-10 rounded-lg flex items-center justify-center flex-shrink-0 ${isDark ? "bg-white/5" : "bg-gray-50"}`}>
-                <BrandIcon brand={src === "line" ? "line" : "web"} size={16} />
-              </div>
-            )}
-            <div className="leading-tight min-w-0">
-              <span className={`text-sm font-medium truncate block ${txt}`}>{sysDoc?.storeName || "?"}</span>
-              <div className={`text-[11px] ${muted}`}><Baht value={sysDoc?.amount || 0} className="" /></div>
-            </div>
-          </div>
-        );
-      },
-    },
-    {
-      key: "score",
-      label: "คะแนน",
-      align: "center",
-      render: (m) => <span className={`text-sm font-bold ${m.matchScore >= 80 ? "text-green-500" : "text-amber-500"}`}>{m.matchScore}%</span>,
-    },
-    { key: "reason", label: "เหตุผล", render: (m) => <span className={`text-[11px] ${sub}`}>{m.matchReason}</span> },
-    {
-      key: "status",
-      label: "สถานะ",
-      render: (m) => {
-        if (m.status === "matched") return <span className="px-2 py-0.5 rounded-lg text-[10px] font-medium bg-green-500/10 text-green-400">ตรงกัน</span>;
-        if (m.status === "rejected") return <span className="px-2 py-0.5 rounded-lg text-[10px] font-medium bg-gray-500/10 text-gray-400">ปฏิเสธ</span>;
-        return <span className="px-2 py-0.5 rounded-lg text-[10px] font-medium bg-amber-500/10 text-amber-400">รอยืนยัน</span>;
-      },
-    },
-    {
-      key: "actions", label: "", configurable: false,
-      render: (m, dark) => m.status === "pending" ? (
-        <div className="flex gap-1" onClick={(e) => e.stopPropagation()}>
-          <button onClick={() => handleAction(m._id, "matched")} className="p-1.5 rounded-lg bg-green-500/10 text-green-500 hover:bg-green-500/20"><Check size={12} /></button>
-          <button onClick={() => handleAction(m._id, "rejected")} className={`p-1.5 rounded-lg ${dark ? "hover:bg-white/5 text-white/30" : "hover:bg-gray-100 text-gray-400"}`}><X size={12} /></button>
-        </div>
-      ) : null,
-    },
-  ], [txt, sub, muted, receipts]);
-
-  const scanStatusCls: Record<string, string> = { processing: "bg-amber-500/10 text-amber-500", matched: "bg-green-500/10 text-green-500", duplicate: "bg-orange-500/10 text-orange-400", failed: "bg-red-500/10 text-red-400" };
+  // Helper: get receipt info
+  const getReceipt = (id: string) => receipts.find((r) => r._id === id);
 
   return (
     <div className="space-y-6">
       <input ref={fileInputRef} type="file" accept="image/*,application/pdf" multiple onChange={(e) => { if (e.target.files) Array.from(e.target.files).forEach(handleUpload); e.target.value = ""; }} className="hidden" />
 
+      {/* Header */}
       <div className="flex items-center justify-between">
-        <PageHeader title="สแกน & จับคู่เอกสาร" description={`${lineReceipts.length} รายการจาก LINE — รวม ฿${lineTotal.toLocaleString("th-TH", { minimumFractionDigits: 2 })}`} />
+        <PageHeader title="สแกน & จับคู่" description="เปรียบเทียบสลิปจาก LINE กับเอกสารจากอีเมล" />
         <div className="flex gap-2">
-          <button onClick={handleGmail} disabled={scanning || !initialGmail.connected} className={`flex items-center gap-2 px-3 py-2.5 rounded-xl text-sm font-medium transition-colors disabled:opacity-50 ${isDark ? "bg-white/5 text-white/60 hover:bg-white/10" : "bg-gray-100 text-gray-600 hover:bg-gray-200"}`}>
-            {scanning ? <Loader2 size={14} className="animate-spin" /> : <BrandIcon brand="gmail" size={16} />}
-            {scanning ? "สแกน..." : "สแกน Gmail"}
+          <button onClick={handleGmail} disabled={scanning || !gmailSettings.connected} className={`flex items-center gap-2 px-3 py-2 rounded-xl text-sm font-medium transition-colors disabled:opacity-40 ${isDark ? "bg-white/5 hover:bg-white/10 text-white/60" : "bg-gray-100 hover:bg-gray-200 text-gray-600"}`}>
+            {scanning ? <Loader2 size={14} className="animate-spin" /> : <BrandIcon brand="gmail" size={14} />}
+            {scanning ? "สแกน..." : "ดึงจาก Gmail"}
           </button>
-          <button onClick={() => fileInputRef.current?.click()} disabled={uploading} className="flex items-center gap-2 px-4 py-2.5 rounded-xl text-sm font-medium bg-[#FA3633] text-white hover:bg-[#e0302d] transition-colors shadow-sm shadow-[#FA3633]/25 disabled:opacity-50">
-            {uploading ? <Loader2 size={16} className="animate-spin" /> : <Upload size={16} />}
-            {uploading ? "สแกน..." : "อัปโหลด & สแกน"}
+          <button onClick={() => fileInputRef.current?.click()} disabled={uploading} className="flex items-center gap-2 px-3 py-2 rounded-xl text-sm font-medium bg-[#FA3633] text-white hover:bg-[#e0302d] disabled:opacity-40">
+            {uploading ? <Loader2 size={14} className="animate-spin" /> : <Upload size={14} />}
+            อัปโหลดสลิป
           </button>
         </div>
       </div>
 
-      {/* Gmail Settings Card — multi-account */}
-      <div className={`${card} border ${border} rounded-2xl p-4`}>
-        <div className="flex items-center justify-between mb-3">
-          <div className="flex items-center gap-3">
-            <div className={`w-10 h-10 rounded-xl flex items-center justify-center ${initialGmail.connected ? "bg-green-500/10" : "bg-gray-500/10"}`}>
-              <BrandIcon brand="gmail" size={20} />
-            </div>
-            <div>
-              <span className={`font-medium ${txt}`}>
-                {initialGmail.connected
-                  ? `บัญชี Gmail (${(initialGmail.accounts?.length || 0) > 0 ? initialGmail.accounts!.length : 1})`
-                  : "ยังไม่ได้เชื่อมต่อ Gmail"}
-              </span>
-              {lastScan && (
-                <div className={`flex items-center gap-1.5 mt-0.5 text-xs ${sub}`}>
-                  <Clock size={11} />
-                  <span>สแกนล่าสุด: {formatTimeAgo(lastScan)}</span>
-                </div>
-              )}
-            </div>
-          </div>
-          <div className="flex items-center gap-2">
-            {initialGmail.connected && (
-              <button onClick={handleToggleAutoScan} className={`flex items-center gap-2 px-3 py-2 rounded-xl text-sm transition-colors ${autoScan ? "bg-green-500/10 text-green-400" : isDark ? "bg-white/5 text-white/40" : "bg-gray-100 text-gray-400"}`}>
-                {autoScan ? <ToggleRight size={18} /> : <ToggleLeft size={18} />}
-                <span className="font-medium">{autoScan ? "สแกนอัตโนมัติ" : "สแกนเอง"}</span>
-              </button>
-            )}
-            <a href="/api/auth/google" className="flex items-center gap-2 px-3 py-2 rounded-xl text-sm font-medium bg-blue-500/10 text-blue-400 hover:bg-blue-500/20 transition-colors">
-              {initialGmail.connected ? "+" : <Mail size={14} />}
-              {initialGmail.connected ? "เพิ่มบัญชี" : "เชื่อมต่อ Gmail"}
-            </a>
-          </div>
-        </div>
-        {/* Account list */}
-        {(initialGmail.accounts && initialGmail.accounts.length > 0) ? (
-          <div className="space-y-1.5">
-            {initialGmail.accounts.map((acc) => (
-              <div key={acc._id} className={`flex items-center justify-between px-3 py-2 rounded-lg ${isDark ? "bg-white/[0.03]" : "bg-gray-50"}`}>
-                <div className="flex items-center gap-2">
-                  <BrandIcon brand="gmail" size={12} />
-                  <span className={`text-sm ${txt}`}>{acc.email}</span>
-                </div>
-                <div className="flex items-center gap-2">
-                  {acc.lastScanAt && <span className={`text-[10px] ${muted}`}>{formatTimeAgo(acc.lastScanAt)}</span>}
-                  <span className="px-1.5 py-0.5 rounded text-[9px] font-medium bg-green-500/10 text-green-400">active</span>
-                </div>
-              </div>
-            ))}
-          </div>
-        ) : initialGmail.connected && initialGmail.email ? (
-          <div className={`flex items-center justify-between px-3 py-2 rounded-lg ${isDark ? "bg-white/[0.03]" : "bg-gray-50"}`}>
-            <div className="flex items-center gap-2">
-              <BrandIcon brand="gmail" size={12} />
-              <span className={`text-sm ${txt}`}>{initialGmail.email}</span>
-            </div>
-            <span className="px-1.5 py-0.5 rounded text-[9px] font-medium bg-green-500/10 text-green-400">active</span>
-          </div>
-        ) : null}
+      {/* Gmail status - one line */}
+      <div className={`flex items-center gap-3 px-4 py-2.5 rounded-xl border ${bg} ${bd}`}>
+        <BrandIcon brand="gmail" size={14} />
+        {gmailSettings.connected ? (
+          <>
+            <span className={`text-sm ${txt}`}>{gmailSettings.email}</span>
+            <span className="px-1.5 py-0.5 rounded text-[9px] font-medium bg-green-500/10 text-green-400">เชื่อมแล้ว</span>
+            {lastScan && <span className={`text-[11px] ${sub}`}><Clock size={10} className="inline mr-1" />สแกนล่าสุด {timeAgo(lastScan)}</span>}
+            <a href="/api/auth/google" className={`ml-auto text-[11px] ${sub} hover:text-blue-400`}>+ เพิ่มบัญชี</a>
+          </>
+        ) : (
+          <>
+            <span className={`text-sm ${sub}`}>ยังไม่ได้เชื่อมต่อ Gmail</span>
+            <a href="/api/auth/google" className="ml-auto text-sm font-medium text-blue-400 hover:underline">เชื่อมต่อ</a>
+          </>
+        )}
       </div>
 
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-        <StatsCard label="จาก LINE" value={`${lineReceipts.length} รายการ`} icon={<ScanLine size={20} />} color="text-green-500" />
-        <StatsCard label="จากอีเมล" value={`${emailReceipts.length} รายการ`} icon={<Mail size={20} />} color="text-red-500" />
-        <StatsCard label="จับคู่แล้ว" value={`${confirmed} คู่`} icon={<CheckCircle2 size={20} />} color="text-green-500" />
-        <StatsCard label="รอยืนยัน" value={`${pending} คู่`} icon={<Copy size={20} />} color="text-amber-500" />
+      {/* Summary counters */}
+      <div className="grid grid-cols-4 gap-3">
+        {[
+          { label: "สลิป LINE", value: lineDocs.length, color: "text-green-500", icon: "line" },
+          { label: "จาก Email", value: emailDocs.length, color: "text-red-400", icon: "gmail" },
+          { label: "จับคู่แล้ว", value: confirmedMatches.length, color: "text-emerald-500", icon: null },
+          { label: "รอยืนยัน", value: pendingMatches.length, color: "text-amber-500", icon: null },
+        ].map((s) => (
+          <div key={s.label} className={`${bg} border ${bd} rounded-xl px-4 py-3 text-center`}>
+            <div className={`text-2xl font-bold ${s.color}`}>{s.value}</div>
+            <div className={`text-[11px] mt-0.5 ${sub}`}>{s.label}</div>
+          </div>
+        ))}
       </div>
 
-      {/* Scan results */}
-      {scans.length > 0 && (
-        <div className={`${card} border ${border} rounded-2xl p-4`}>
-          <div className={`text-sm font-medium mb-3 ${txt}`}>ผลการสแกนล่าสุด</div>
-          <div className="space-y-2">
-            {scans.slice(0, 5).map((s) => (
-              <div key={s.id} className={`flex items-center justify-between px-3 py-2.5 rounded-xl ${isDark ? "bg-white/[0.03]" : "bg-gray-50"}`}>
-                <div className="flex items-center gap-3 min-w-0">
-                  <div className={`w-8 h-8 rounded-lg flex items-center justify-center flex-shrink-0 ${scanStatusCls[s.status] || scanStatusCls.failed}`}>
-                    {s.status === "processing" ? <Loader2 size={14} className="animate-spin" /> : s.status === "matched" ? <CheckCircle2 size={14} /> : <Upload size={14} />}
+      {/* ===== MAIN: Match Pairs as Cards ===== */}
+      {(pendingMatches.length > 0 || confirmedMatches.length > 0) && (
+        <div>
+          <h2 className={`text-lg font-semibold mb-3 ${txt}`}>คู่เอกสารที่จับคู่ได้</h2>
+          <div className="space-y-3">
+            {/* Pending first, then confirmed */}
+            {[...pendingMatches, ...confirmedMatches].map((m) => {
+              const isEmailA = getReceipt(m.receiptA._id)?.source === "email";
+              const emailDoc = isEmailA ? m.receiptA : m.receiptB;
+              const slipDoc = isEmailA ? m.receiptB : m.receiptA;
+              const slipReceipt = getReceipt(slipDoc._id);
+              const emailReceipt = getReceipt(emailDoc._id);
+              const fileId = emailReceipt?.fileIds?.[0];
+              const scoreColor = m.matchScore >= 80 ? "text-green-500 border-green-500/30 bg-green-500/5" : m.matchScore >= 50 ? "text-amber-500 border-amber-500/30 bg-amber-500/5" : "text-red-400 border-red-400/30 bg-red-400/5";
+
+              return (
+                <div key={m._id} className={`border rounded-2xl p-4 ${bg} ${bd} ${m.status === "matched" ? "opacity-60" : ""}`}>
+                  <div className="flex items-center gap-3">
+
+                    {/* Left: Email doc */}
+                    <div className="flex-1 min-w-0">
+                      <div className={`text-[10px] font-medium mb-1.5 ${sub}`}>
+                        <BrandIcon brand="gmail" size={10} /> เอกสารจากอีเมล
+                      </div>
+                      <div className="flex items-center gap-2.5">
+                        {fileId ? (
+                          <a href={`/api/files/download?id=${fileId}`} target="_blank" rel="noopener" onClick={(e) => e.stopPropagation()}>
+                            <div className={`w-12 h-12 rounded-lg border flex items-center justify-center ${isDark ? "border-white/10 bg-white/5 hover:bg-white/10" : "border-gray-200 bg-gray-50 hover:bg-gray-100"} transition-colors`}>
+                              <Paperclip size={16} className="text-blue-400" />
+                            </div>
+                          </a>
+                        ) : (
+                          <div className={`w-12 h-12 rounded-lg flex items-center justify-center ${isDark ? "bg-white/5" : "bg-gray-50"}`}>
+                            <Mail size={16} className={sub} />
+                          </div>
+                        )}
+                        <div className="min-w-0">
+                          <p className={`text-sm font-medium truncate ${txt}`}>{emailDoc.storeName}</p>
+                          <p className={`text-xs ${sub}`}><Baht value={emailDoc.amount} /></p>
+                          {emailReceipt?.emailSubject && emailReceipt.emailSubject !== emailDoc.storeName && (
+                            <p className={`text-[10px] truncate ${dim}`}>{emailReceipt.emailSubject}</p>
+                          )}
+                        </div>
+                      </div>
+                    </div>
+
+                    {/* Center: Score */}
+                    <div className="flex flex-col items-center gap-1 px-3">
+                      <div className={`w-12 h-12 rounded-full border-2 flex items-center justify-center font-bold text-sm ${scoreColor}`}>
+                        {m.matchScore}%
+                      </div>
+                      <ArrowRight size={10} className={dim} />
+                    </div>
+
+                    {/* Right: Slip */}
+                    <div className="flex-1 min-w-0">
+                      <div className={`text-[10px] font-medium mb-1.5 ${sub}`}>
+                        <BrandIcon brand={slipReceipt?.source === "line" ? "line" : "web"} size={10} /> สลิปบนระบบ
+                      </div>
+                      <div className="flex items-center gap-2.5">
+                        {slipReceipt?.hasImage ? (
+                          <img src={`/api/receipts/image?id=${slipDoc._id}`} alt="" className={`w-12 h-12 rounded-lg object-cover border ${isDark ? "border-white/10" : "border-gray-200"}`} loading="lazy" />
+                        ) : (
+                          <div className={`w-12 h-12 rounded-lg flex items-center justify-center ${isDark ? "bg-white/5" : "bg-gray-50"}`}>
+                            <BrandIcon brand={slipReceipt?.source === "line" ? "line" : "web"} size={16} />
+                          </div>
+                        )}
+                        <div className="min-w-0">
+                          <p className={`text-sm font-medium truncate ${txt}`}>{slipDoc.storeName}</p>
+                          <p className={`text-xs ${sub}`}><Baht value={slipDoc.amount} /></p>
+                          {slipReceipt?.date && <p className={`text-[10px] ${dim}`}>{slipReceipt.date}</p>}
+                        </div>
+                      </div>
+                    </div>
+
+                    {/* Actions */}
+                    <div className="flex-shrink-0 pl-2">
+                      {m.status === "pending" ? (
+                        <div className="flex flex-col gap-1.5">
+                          <button onClick={() => handleAction(m._id, "matched")} className="flex items-center gap-1 px-3 py-1.5 rounded-lg text-xs font-medium bg-green-500/10 text-green-500 hover:bg-green-500/20 transition-colors">
+                            <Check size={12} /> ยืนยัน
+                          </button>
+                          <button onClick={() => handleAction(m._id, "rejected")} className={`flex items-center gap-1 px-3 py-1.5 rounded-lg text-xs font-medium ${isDark ? "bg-white/5 text-white/30 hover:bg-white/10" : "bg-gray-100 text-gray-400 hover:bg-gray-200"} transition-colors`}>
+                            <X size={12} /> ปฏิเสธ
+                          </button>
+                        </div>
+                      ) : m.status === "matched" ? (
+                        <span className="flex items-center gap-1 px-2 py-1 rounded-lg text-[10px] font-medium bg-green-500/10 text-green-400">
+                          <CheckCircle2 size={10} /> ตรงกัน
+                        </span>
+                      ) : (
+                        <span className={`text-[10px] ${dim}`}>ปฏิเสธแล้ว</span>
+                      )}
+                    </div>
                   </div>
-                  <div className="min-w-0">
-                    <p className={`text-sm font-medium truncate ${txt}`}>{s.name}</p>
-                    {s.amount > 0 && <p className={`text-xs ${sub}`}>฿{s.amount.toLocaleString("th-TH", { minimumFractionDigits: 2 })}</p>}
-                  </div>
+
+                  {/* Match reason */}
+                  {m.matchReason && (
+                    <p className={`text-[10px] mt-2 pt-2 border-t ${isDark ? "border-white/5" : "border-gray-100"} ${dim}`}>
+                      เหตุผล: {m.matchReason}
+                    </p>
+                  )}
                 </div>
-                <span className={`px-2 py-0.5 rounded-lg text-[10px] font-medium flex-shrink-0 ${scanStatusCls[s.status] || scanStatusCls.failed}`}>
-                  {s.status === "processing" ? "กำลังสแกน..." : s.status === "matched" ? "สำเร็จ" : s.status === "duplicate" ? "ซ้ำ" : "ล้มเหลว"}
-                </span>
-              </div>
-            ))}
+              );
+            })}
           </div>
         </div>
       )}
 
-      {/* Tab switcher: Email-first */}
-      <div className={`${card} border ${border} rounded-xl p-1 flex`}>
-        <button onClick={() => setTab("email")} className={`flex-1 py-2.5 rounded-lg text-sm font-semibold transition-all ${tab === "email" ? "bg-[#FA3633] text-white shadow-sm" : `${sub} hover:text-white/70`}`}>
-          เอกสารจากอีเมล ({emailReceipts.length})
-        </button>
-        <button onClick={() => setTab("all")} className={`flex-1 py-2.5 rounded-lg text-sm font-semibold transition-all ${tab === "all" ? "bg-[#FA3633] text-white shadow-sm" : `${sub} hover:text-white/70`}`}>
-          ทั้งหมด ({receipts.length})
-        </button>
-        <button onClick={() => setTab("matches")} className={`flex-1 py-2.5 rounded-lg text-sm font-semibold transition-all ${tab === "matches" ? "bg-[#FA3633] text-white shadow-sm" : `${sub} hover:text-white/70`}`}>
-          คู่เอกสาร ({matches.length})
-        </button>
-      </div>
+      {/* Empty state for matches */}
+      {pendingMatches.length === 0 && confirmedMatches.length === 0 && (
+        <div className={`border rounded-2xl p-8 text-center ${bg} ${bd}`}>
+          <AlertCircle size={32} className={`mx-auto mb-3 ${dim}`} />
+          <p className={`font-medium ${txt}`}>ยังไม่มีคู่เอกสาร</p>
+          <p className={`text-sm mt-1 ${sub}`}>ส่งสลิปผ่าน LINE แล้วกด &quot;ดึงจาก Gmail&quot; เพื่อเริ่มจับคู่อัตโนมัติ</p>
+        </div>
+      )}
 
-      {/* Content */}
-      {tab === "email" ? (
-        <DataTable
-          columns={emailColumns}
-          data={emailReceipts}
-          rowKey={(r) => r._id}
-          dateField="rawDate"
-          columnConfigKey="matching-email"
-          emptyText="ยังไม่มีเอกสารจากอีเมล — กด สแกน Gmail เพื่อดึงเอกสาร"
-        />
-      ) : tab === "all" ? (
-        <DataTable columns={receiptColumns} data={receipts} rowKey={(r) => r._id} dateField="rawDate" columnConfigKey="matching-receipts" />
-      ) : (
-        <DataTable
-          columns={matchColumns}
-          data={matches}
-          rowKey={(m) => m._id}
-          columnConfigKey="matching-pairs"
-          emptyText="ยังไม่มีคู่เอกสาร — อัปโหลดหรือสแกน Gmail เพื่อเริ่มจับคู่"
-        />
+      {/* ===== Email documents list ===== */}
+      {emailDocs.length > 0 && (
+        <div>
+          <h2 className={`text-lg font-semibold mb-3 ${txt}`}>เอกสารจากอีเมล ({emailDocs.length})</h2>
+          <div className="space-y-2">
+            {emailDocs.map((r) => {
+              const match = matches.find((m) => (m.receiptA._id === r._id || m.receiptB._id === r._id) && m.status === "matched");
+              const fileId = r.fileIds?.[0];
+              return (
+                <div key={r._id} className={`flex items-center gap-3 px-4 py-3 rounded-xl border ${bg} ${bd}`}>
+                  {/* Icon/PDF */}
+                  {fileId ? (
+                    <a href={`/api/files/download?id=${fileId}`} target="_blank" rel="noopener" className={`w-9 h-9 rounded-lg border flex items-center justify-center flex-shrink-0 ${isDark ? "border-white/10 bg-white/5 hover:bg-white/10" : "border-gray-200 bg-gray-50 hover:bg-gray-100"} transition-colors`}>
+                      <Download size={12} className="text-blue-400" />
+                    </a>
+                  ) : (
+                    <div className={`w-9 h-9 rounded-lg flex items-center justify-center flex-shrink-0 ${isDark ? "bg-white/5" : "bg-gray-50"}`}>
+                      <Mail size={12} className={sub} />
+                    </div>
+                  )}
+                  {/* Info */}
+                  <div className="flex-1 min-w-0">
+                    <p className={`text-sm font-medium truncate ${txt}`}>{r.emailSubject || r.storeName}</p>
+                    <div className={`flex items-center gap-2 text-[11px] ${sub}`}>
+                      {r.emailFrom && <span>{r.emailFrom}</span>}
+                      {r.date && <span>{r.date}</span>}
+                    </div>
+                  </div>
+                  {/* Amount */}
+                  <div className="text-right flex-shrink-0">
+                    <Baht value={r.amount} />
+                  </div>
+                  {/* Match status */}
+                  <div className="flex-shrink-0 w-20 text-right">
+                    {match ? (
+                      <span className="px-2 py-0.5 rounded text-[9px] font-medium bg-green-500/10 text-green-400">จับคู่แล้ว</span>
+                    ) : r.amount > 0 ? (
+                      <span className="px-2 py-0.5 rounded text-[9px] font-medium bg-amber-500/10 text-amber-400">รอจับคู่</span>
+                    ) : (
+                      <span className={`text-[10px] ${dim}`}>-</span>
+                    )}
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        </div>
+      )}
+
+      {/* ===== LINE slips list ===== */}
+      {lineDocs.length > 0 && (
+        <div>
+          <h2 className={`text-lg font-semibold mb-3 ${txt}`}>สลิปจาก LINE ({lineDocs.length})</h2>
+          <div className="space-y-2">
+            {lineDocs.slice(0, 10).map((r) => {
+              const match = matches.find((m) => (m.receiptA._id === r._id || m.receiptB._id === r._id) && m.status === "matched");
+              return (
+                <div key={r._id} className={`flex items-center gap-3 px-4 py-3 rounded-xl border ${bg} ${bd}`}>
+                  {/* Thumbnail */}
+                  {r.hasImage ? (
+                    <img src={`/api/receipts/image?id=${r._id}`} alt="" className={`w-9 h-9 rounded-lg object-cover flex-shrink-0 border ${isDark ? "border-white/10" : "border-gray-200"}`} loading="lazy" />
+                  ) : (
+                    <div className={`w-9 h-9 rounded-lg flex items-center justify-center flex-shrink-0 ${isDark ? "bg-white/5" : "bg-gray-50"}`}>
+                      <BrandIcon brand="line" size={12} />
+                    </div>
+                  )}
+                  {/* Info */}
+                  <div className="flex-1 min-w-0">
+                    <p className={`text-sm font-medium truncate ${txt}`}>{r.storeName}</p>
+                    <div className={`flex items-center gap-2 text-[11px] ${sub}`}>
+                      <span>{r.date}</span>
+                      {r.time && <span>{r.time}</span>}
+                    </div>
+                  </div>
+                  {/* Amount */}
+                  <div className="text-right flex-shrink-0">
+                    <Baht value={r.amount} />
+                  </div>
+                  {/* Match status */}
+                  <div className="flex-shrink-0 w-20 text-right">
+                    {match ? (
+                      <span className="px-2 py-0.5 rounded text-[9px] font-medium bg-green-500/10 text-green-400">จับคู่แล้ว</span>
+                    ) : (
+                      <span className={`text-[10px] ${dim}`}>รอ</span>
+                    )}
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        </div>
       )}
     </div>
   );
