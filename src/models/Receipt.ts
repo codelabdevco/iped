@@ -54,6 +54,8 @@ const ReceiptSchema = new Schema<IReceipt>(
     imageUrl: String,
     imageHash: String,
     note: String,
+    emailSubject: String,
+    emailFrom: String,
     ocrConfidence: Number,
     ocrRawText: String,
     lineItems: [{ description: String, quantity: Number, unitPrice: Number, amount: Number }],

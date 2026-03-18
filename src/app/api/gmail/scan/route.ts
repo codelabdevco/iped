@@ -95,6 +95,8 @@ export async function POST(request: NextRequest) {
               ocrConfidence: (ocrResult.ocrConfidence || 0) / 100,
               ocrRawText: ocrResult.ocrRawText,
               userId: session.userId,
+              emailSubject: subject,
+              emailFrom: from,
               note: `จาก email: ${subject}`,
             });
 

@@ -16,8 +16,8 @@ async function MatchingData() {
   const [receipts, matches, user] = await Promise.all([
     Receipt.find({ userId: session.userId })
       .select("-imageUrl -ocrRawText")
-      .sort({ createdAt: -1 })
-      .limit(100)
+      .sort({ date: -1 })
+      .limit(200)
       .lean(),
     Match.find({ userId: session.userId })
       .sort({ createdAt: -1 })
@@ -45,6 +45,9 @@ async function MatchingData() {
       note: r.note || "",
       hasImage: !!r.imageHash,
       direction: r.direction || "expense",
+      emailSubject: r.emailSubject || "",
+      emailFrom: r.emailFrom || "",
+      ocrConfidence: r.ocrConfidence || 0,
       createdAt: r.createdAt ? new Date(r.createdAt).toISOString() : "",
     };
     receiptMap[obj._id] = obj;

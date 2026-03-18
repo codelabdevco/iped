@@ -17,6 +17,7 @@ interface ReceiptRow {
   date: string; rawDate?: string; time?: string; status: string;
   type: string; source: string; paymentMethod?: string; note?: string;
   hasImage?: boolean; direction?: string; createdAt?: string;
+  emailSubject?: string; emailFrom?: string; ocrConfidence?: number;
 }
 
 interface MatchRow {
@@ -222,6 +223,103 @@ export default function MatchingClient({
     },
   ], [muted, matches]);
 
+  // Email-specific columns — shows subject, sender, OCR result, match status
+  const emailColumns: Column<ReceiptRow>[] = useMemo(() => [
+    {
+      key: "emailSubject",
+      label: "หัวข้ออีเมล",
+      render: (r) => (
+        <div className="leading-tight min-w-0">
+          <div className="flex items-center gap-2">
+            <BrandIcon brand="gmail" size={14} />
+            <span className={`font-medium ${txt}`}>{r.emailSubject || r.note?.replace("จาก email: ", "") || r.storeName}</span>
+          </div>
+          {r.emailFrom && (
+            <div className={`text-[11px] mt-0.5 ${muted}`}>{r.emailFrom}</div>
+          )}
+        </div>
+      ),
+    },
+    {
+      key: "storeName",
+      label: "OCR อ่านได้",
+      render: (r) => (
+        <div className="leading-tight min-w-0">
+          <span className={`font-medium ${txt}`}>{r.storeName}</span>
+          <div className={`flex items-center gap-2 mt-0.5 text-[11px] ${muted}`}>
+            <span>{r.category}</span>
+            {r.ocrConfidence ? (
+              <>
+                <span>·</span>
+                <span className={r.ocrConfidence >= 80 ? "text-green-400" : "text-amber-400"}>
+                  แม่นยำ {Math.round(r.ocrConfidence > 1 ? r.ocrConfidence : r.ocrConfidence * 100)}%
+                </span>
+              </>
+            ) : null}
+          </div>
+        </div>
+      ),
+    },
+    { key: "amount", label: "จำนวนเงิน", align: "right", render: (r) => <Baht value={r.amount} className="font-semibold" /> },
+    {
+      key: "date",
+      label: "วันที่",
+      render: (r) => {
+        if (!r.rawDate) return <span className={muted}>-</span>;
+        const d = new Date(r.rawDate);
+        const day = d.getDate();
+        const mon = ["ม.ค.","ก.พ.","มี.ค.","เม.ย.","พ.ค.","มิ.ย.","ก.ค.","ส.ค.","ก.ย.","ต.ค.","พ.ย.","ธ.ค."][d.getMonth()];
+        const yr = d.getFullYear() + 543;
+        return <span className="text-sm whitespace-nowrap">{day} {mon} {yr}</span>;
+      },
+    },
+    {
+      key: "matchStatus",
+      label: "จับคู่กับสลิป",
+      render: (r) => {
+        const match = matches.find((m) => (m.receiptA._id === r._id || m.receiptB._id === r._id) && m.status === "matched");
+        if (match) {
+          const other = match.receiptA._id === r._id ? match.receiptB : match.receiptA;
+          const otherSrc = receipts.find((rr) => rr._id === other._id)?.source;
+          return (
+            <div className="leading-tight">
+              <span className="px-2 py-0.5 rounded-lg text-[10px] font-medium bg-green-500/10 text-green-400">ตรงกัน {match.matchScore}%</span>
+              <div className={`flex items-center gap-1 text-[10px] mt-0.5 ${muted}`}>
+                <BrandIcon brand={otherSrc === "line" ? "line" : "web"} size={10} />
+                <span>{other.storeName}</span>
+              </div>
+            </div>
+          );
+        }
+        const pendingMatch = matches.find((m) => (m.receiptA._id === r._id || m.receiptB._id === r._id) && m.status === "pending");
+        if (pendingMatch) {
+          const other = pendingMatch.receiptA._id === r._id ? pendingMatch.receiptB : pendingMatch.receiptA;
+          return (
+            <div className="leading-tight">
+              <span className="px-2 py-0.5 rounded-lg text-[10px] font-medium bg-amber-500/10 text-amber-400">รอยืนยัน</span>
+              <div className={`text-[10px] mt-0.5 ${muted}`}>{other.storeName}</div>
+            </div>
+          );
+        }
+        return <span className={`px-2 py-0.5 rounded-lg text-[10px] font-medium bg-gray-500/10 ${muted}`}>ยังไม่จับคู่</span>;
+      },
+    },
+    {
+      key: "status",
+      label: "สถานะ",
+      render: (r) => {
+        const cfg: Record<string, { l: string; c: string }> = {
+          confirmed: { l: "ยืนยัน", c: "bg-green-500/10 text-green-400" },
+          pending: { l: "รอตรวจ", c: "bg-yellow-500/10 text-yellow-400" },
+          duplicate: { l: "ซ้ำ", c: "bg-orange-500/10 text-orange-400" },
+          matched: { l: "จับคู่แล้ว", c: "bg-green-500/10 text-green-400" },
+        };
+        const st = cfg[r.status] || cfg.pending;
+        return <span className={`px-2 py-1 rounded-lg text-[10px] font-medium ${st.c}`}>{st.l}</span>;
+      },
+    },
+  ], [txt, muted, matches, receipts]);
+
   // Match columns
   const matchColumns: Column<MatchRow>[] = useMemo(() => [
     {
@@ -396,7 +494,7 @@ export default function MatchingClient({
       {/* Content */}
       {tab === "email" ? (
         <DataTable
-          columns={receiptColumns}
+          columns={emailColumns}
           data={emailReceipts}
           rowKey={(r) => r._id}
           dateField="rawDate"
