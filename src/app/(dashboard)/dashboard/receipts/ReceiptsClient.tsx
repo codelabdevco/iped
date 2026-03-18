@@ -431,7 +431,6 @@ export default function ReceiptsClient({ receipts: initialReceipts }: { receipts
       if (res.ok) {
         const json = await res.json();
         const now = new Date().toISOString();
-        // Add to local state immediately
         const newReceipt: ReceiptRow = {
           _id: json.receipt?._id || `temp-${Date.now()}`,
           storeName: editForm.storeName || "",
@@ -462,8 +461,13 @@ export default function ReceiptsClient({ receipts: initialReceipts }: { receipts
         setEditForm({});
         setEditItems([]);
         setSlipPreview(null);
+      } else {
+        const err = await res.json().catch(() => null);
+        alert(err?.error || "บันทึกไม่สำเร็จ กรุณาลองใหม่");
       }
-    } catch {} finally {
+    } catch (e: any) {
+      alert("เกิดข้อผิดพลาด: " + (e.message || "กรุณาลองใหม่"));
+    } finally {
       setSaving(false);
     }
   };
