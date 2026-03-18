@@ -192,6 +192,7 @@ export default function ReceiptsClient({ receipts: initialReceipts }: { receipts
   const [attachments, setAttachments] = useState<Attachment[]>([]);
   const [txType, setTxType] = useState<"income" | "expense">("expense");
   const [slipPreview, setSlipPreview] = useState<string | null>(null);
+  const [slipFiles, setSlipFiles] = useState<{ file: File; preview: string | null; name: string; type: string }[]>([]);
   const [slipDragging, setSlipDragging] = useState(false);
   const slipInputRef = useRef<HTMLInputElement>(null);
   const [lightboxUrl, setLightboxUrl] = useState<string | null>(null);
@@ -284,28 +285,54 @@ export default function ReceiptsClient({ receipts: initialReceipts }: { receipts
     }
   }, [searchParams, receipts]);
 
-  const handleSlipUpload = (file: File) => {
-    if (!file.type.startsWith("image/")) return;
-    const reader = new FileReader();
-    reader.onload = (e) => setSlipPreview(e.target?.result as string);
-    reader.readAsDataURL(file);
+  const handleSlipUpload = (files: FileList | File[]) => {
+    const arr = Array.from(files);
+    const newFiles = arr.map((file) => {
+      const isImage = file.type.startsWith("image/");
+      return { file, preview: null as string | null, name: file.name, type: file.type };
+    });
+    // Generate previews for images
+    newFiles.forEach((f, i) => {
+      if (f.file.type.startsWith("image/")) {
+        const reader = new FileReader();
+        reader.onload = (e) => {
+          const preview = e.target?.result as string;
+          setSlipFiles((prev) => prev.map((p) => p.name === f.name && p.file === f.file ? { ...p, preview } : p));
+          // Set first image as main slip preview
+          if (i === 0 && !slipPreview) setSlipPreview(preview);
+        };
+        reader.readAsDataURL(f.file);
+      }
+    });
+    setSlipFiles((prev) => [...prev, ...newFiles]);
   };
 
   const handleSlipInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (file) handleSlipUpload(file);
+    const files = e.target.files;
+    if (files && files.length > 0) handleSlipUpload(files);
     if (slipInputRef.current) slipInputRef.current.value = "";
   };
 
   const handleSlipDrop = (e: React.DragEvent) => {
     e.preventDefault();
     setSlipDragging(false);
-    const file = e.dataTransfer.files?.[0];
-    if (file) handleSlipUpload(file);
+    const files = e.dataTransfer.files;
+    if (files && files.length > 0) handleSlipUpload(files);
   };
 
-  const handleSlipRemove = () => {
-    setSlipPreview(null);
+  const handleSlipRemove = (index?: number) => {
+    if (index !== undefined) {
+      setSlipFiles((prev) => {
+        const next = prev.filter((_, i) => i !== index);
+        // Update main preview
+        const firstImage = next.find((f) => f.preview);
+        setSlipPreview(firstImage?.preview || null);
+        return next;
+      });
+    } else {
+      setSlipPreview(null);
+      setSlipFiles([]);
+    }
   };
 
   const handleSaveEdit = async () => {
@@ -316,6 +343,19 @@ export default function ReceiptsClient({ receipts: initialReceipts }: { receipts
     const wht = whtEnabled ? Math.round(itemsTotal * 0.03) : 0;
     const total = itemsTotal + vat - wht;
     try {
+      // Upload new files
+      const fileIds: string[] = [];
+      for (const sf of slipFiles) {
+        const fd = new FormData();
+        fd.append("file", sf.file);
+        fd.append("category", "receipt");
+        const uploadRes = await fetch("/api/files", { method: "POST", body: fd });
+        if (uploadRes.ok) {
+          const uploadJson = await uploadRes.json();
+          if (uploadJson.file?._id) fileIds.push(uploadJson.file._id);
+        }
+      }
+
       await fetch(`/api/receipts/${editingId}`, {
         method: "PUT",
         headers: { "Content-Type": "application/json" },
@@ -334,6 +374,7 @@ export default function ReceiptsClient({ receipts: initialReceipts }: { receipts
           vat: vat || undefined,
           wht: wht || undefined,
           imageUrl: slipPreview || undefined,
+          fileIds: fileIds.length > 0 ? fileIds : undefined,
           items: editItems,
           direction: txType === "income" ? "income" : (txType as string) === "savings" ? "savings" : "expense",
         }),
@@ -385,6 +426,7 @@ export default function ReceiptsClient({ receipts: initialReceipts }: { receipts
     setTxType("expense");
     setAttachments([]);
     setSlipPreview(null);
+    setSlipFiles([]);
   };
 
   const handleSaveAdd = async () => {
@@ -395,6 +437,19 @@ export default function ReceiptsClient({ receipts: initialReceipts }: { receipts
     const wht = whtEnabled ? Math.round(itemsTotal * 0.03) : 0;
     const total = itemsTotal + vat - wht;
     try {
+      // Upload files first
+      const fileIds: string[] = [];
+      for (const sf of slipFiles) {
+        const fd = new FormData();
+        fd.append("file", sf.file);
+        fd.append("category", "receipt");
+        const uploadRes = await fetch("/api/files", { method: "POST", body: fd });
+        if (uploadRes.ok) {
+          const uploadJson = await uploadRes.json();
+          if (uploadJson.file?._id) fileIds.push(uploadJson.file._id);
+        }
+      }
+
       const res = await fetch("/api/receipts", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -413,6 +468,7 @@ export default function ReceiptsClient({ receipts: initialReceipts }: { receipts
           documentNumber: editForm.documentNumber || undefined,
           merchantTaxId: editForm.merchantTaxId || undefined,
           imageUrl: slipPreview || undefined,
+          fileIds: fileIds.length > 0 ? fileIds : undefined,
           source: "web",
           direction: txType === "income" ? "income" : (txType as string) === "savings" ? "savings" : "expense",
         }),
@@ -450,6 +506,7 @@ export default function ReceiptsClient({ receipts: initialReceipts }: { receipts
         setEditForm({});
         setEditItems([]);
         setSlipPreview(null);
+        setSlipFiles([]);
       } else {
         const err = await res.json().catch(() => null);
         alert(err?.error || "บันทึกไม่สำเร็จ กรุณาลองใหม่");
@@ -739,29 +796,45 @@ export default function ReceiptsClient({ receipts: initialReceipts }: { receipts
               <button onClick={handleCancelEdit} className="w-8 h-8 rounded-lg hover:bg-white/5 text-white/40 hover:text-white flex items-center justify-center text-xl transition-colors">&times;</button>
             </div>
 
-            {/* Slip image — upload / preview */}
-            <input ref={slipInputRef} type="file" accept="image/*" onChange={handleSlipInputChange} className="hidden" />
-            {slipPreview ? (
-              <div className="relative w-full rounded-xl overflow-hidden bg-white/5 border border-white/10 group">
-                <img src={slipPreview} alt="สลิป" className="w-full max-h-72 object-contain" />
-                <div className="absolute inset-0 bg-black/0 group-hover:bg-black/40 transition-colors flex items-center justify-center gap-2 opacity-0 group-hover:opacity-100">
-                  <button onClick={() => slipInputRef.current?.click()} className="px-3 py-1.5 rounded-lg text-xs font-medium bg-white/20 text-white hover:bg-white/30 transition-colors">เปลี่ยนรูป</button>
-                  <button onClick={handleSlipRemove} className="p-1.5 rounded-lg bg-red-500/20 text-red-400 hover:bg-red-500/30 transition-colors"><X size={14} /></button>
+            {/* Slip / files — multi upload */}
+            <input ref={slipInputRef} type="file" multiple onChange={handleSlipInputChange} className="hidden" />
+            <div
+              onDragOver={(e) => { e.preventDefault(); setSlipDragging(true); }}
+              onDragLeave={() => setSlipDragging(false)}
+              onDrop={handleSlipDrop}
+              className="space-y-2"
+            >
+              {slipFiles.length > 0 && (
+                <div className="grid grid-cols-3 gap-2">
+                  {slipFiles.map((sf, i) => (
+                    <div key={i} className="relative rounded-lg overflow-hidden bg-white/5 border border-white/10 group">
+                      {sf.preview ? (
+                        <img src={sf.preview} alt={sf.name} className="w-full h-24 object-cover" />
+                      ) : (
+                        <div className="w-full h-24 flex flex-col items-center justify-center gap-1">
+                          <FileText size={20} className="text-white/30" />
+                          <p className="text-[9px] text-white/40 px-1 truncate w-full text-center">{sf.name}</p>
+                        </div>
+                      )}
+                      <button
+                        onClick={(e) => { e.stopPropagation(); handleSlipRemove(i); }}
+                        className="absolute top-1 right-1 w-5 h-5 rounded-full bg-black/60 text-red-400 hover:bg-black/80 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity"
+                      >
+                        <X size={10} />
+                      </button>
+                    </div>
+                  ))}
                 </div>
-              </div>
-            ) : (
+              )}
               <div
                 onClick={() => slipInputRef.current?.click()}
-                onDragOver={(e) => { e.preventDefault(); setSlipDragging(true); }}
-                onDragLeave={() => setSlipDragging(false)}
-                onDrop={handleSlipDrop}
-                className={`w-full h-44 rounded-xl border-2 border-dashed cursor-pointer transition-colors flex flex-col items-center justify-center gap-2 ${slipDragging ? "border-[#FA3633]/50 bg-[#FA3633]/5" : "border-white/10 bg-white/[0.02] hover:border-white/20 hover:bg-white/[0.04]"}`}
+                className={`w-full rounded-xl border-2 border-dashed cursor-pointer transition-colors flex flex-col items-center justify-center gap-2 ${slipFiles.length > 0 ? "h-20 py-3" : "h-44"} ${slipDragging ? "border-[#FA3633]/50 bg-[#FA3633]/5" : "border-white/10 bg-white/[0.02] hover:border-white/20 hover:bg-white/[0.04]"}`}
               >
-                <Upload size={28} className="text-white/20" />
-                <p className="text-xs text-white/40">คลิกหรือลากรูปสลิปมาวาง</p>
-                <p className="text-[10px] text-white/20">PNG, JPG, WEBP</p>
+                <Upload size={slipFiles.length > 0 ? 18 : 28} className="text-white/20" />
+                <p className="text-xs text-white/40">{slipFiles.length > 0 ? "เพิ่มไฟล์" : "คลิกหรือลากไฟล์มาวาง"}</p>
+                <p className="text-[10px] text-white/20">รูป, PDF, เอกสาร — หลายไฟล์ได้</p>
               </div>
-            )}
+            </div>
 
             {/* Income / Expense / Savings toggle */}
             <div className="flex p-1 rounded-xl bg-white/5">

@@ -33,6 +33,10 @@ async function SettingsData() {
   const profile = {
     _id: String(u._id),
     name: u.name || "",
+    firstNameTh: u.firstNameTh || "",
+    lastNameTh: u.lastNameTh || "",
+    firstNameEn: u.firstNameEn || "",
+    lastNameEn: u.lastNameEn || "",
     lineDisplayName: u.lineDisplayName || "",
     lineProfilePic: u.lineProfilePic || "",
     email: u.email || "",

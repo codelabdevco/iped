@@ -57,6 +57,10 @@ async function ProfileData() {
   const profile = {
     _id: String(user._id),
     name: user.name || "",
+    firstNameTh: user.firstNameTh || "",
+    lastNameTh: user.lastNameTh || "",
+    firstNameEn: user.firstNameEn || "",
+    lastNameEn: user.lastNameEn || "",
     lineDisplayName: user.lineDisplayName || "",
     lineProfilePic: user.lineProfilePic || "",
     email: user.email || "",

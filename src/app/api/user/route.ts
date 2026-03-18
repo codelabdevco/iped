@@ -25,6 +25,10 @@ export async function PUT(request: NextRequest) {
     // Whitelist of updatable fields
     const allowed: Record<string, boolean> = {
       name: true,
+      firstNameTh: true,
+      lastNameTh: true,
+      firstNameEn: true,
+      lastNameEn: true,
       phone: true,
       occupation: true,
       gender: true,

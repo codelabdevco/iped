@@ -10,6 +10,10 @@ import PageHeader from "@/components/dashboard/PageHeader";
 interface Profile {
   _id: string;
   name: string;
+  firstNameTh: string;
+  lastNameTh: string;
+  firstNameEn: string;
+  lastNameEn: string;
   lineDisplayName: string;
   lineProfilePic: string;
   email: string;
@@ -67,6 +71,10 @@ export default function SettingsClient({ profile, categoryStats = [] }: { profil
   const [mode, setMode] = useState<Mode>("personal");
   const [form, setForm] = useState({
     name: profile.name,
+    firstNameTh: profile.firstNameTh,
+    lastNameTh: profile.lastNameTh,
+    firstNameEn: profile.firstNameEn,
+    lastNameEn: profile.lastNameEn,
     phone: profile.phone,
     occupation: profile.occupation,
     gender: profile.gender,
@@ -179,11 +187,35 @@ export default function SettingsClient({ profile, categoryStats = [] }: { profil
                 {profile.email && <p className={`text-xs ${muted}`}>{profile.email}</p>}
               </div>
             </div>
+            {/* Thai name */}
+            <p className={`text-xs font-semibold ${sub} mt-2`}>ชื่อ-นามสกุล (ภาษาไทย)</p>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div>
-                <label className={`block text-sm ${labelCls} mb-1.5`}>ชื่อ</label>
-                <input value={form.name} onChange={(e) => setForm({ ...form, name: e.target.value })} className={`w-full h-10 px-3 ${inputCls} border rounded-lg text-sm focus:outline-none focus:border-[#FA3633]/50`} />
+                <label className={`block text-sm ${labelCls} mb-1.5`}>ชื่อ (ไทย)</label>
+                <input value={form.firstNameTh} onChange={(e) => setForm({ ...form, firstNameTh: e.target.value })} placeholder="เช่น นคร" className={`w-full h-10 px-3 ${inputCls} border rounded-lg text-sm focus:outline-none focus:border-[#FA3633]/50`} />
               </div>
+              <div>
+                <label className={`block text-sm ${labelCls} mb-1.5`}>นามสกุล (ไทย)</label>
+                <input value={form.lastNameTh} onChange={(e) => setForm({ ...form, lastNameTh: e.target.value })} placeholder="เช่น นิ่มเซียน" className={`w-full h-10 px-3 ${inputCls} border rounded-lg text-sm focus:outline-none focus:border-[#FA3633]/50`} />
+              </div>
+            </div>
+
+            {/* English name */}
+            <p className={`text-xs font-semibold ${sub} mt-2`}>ชื่อ-นามสกุล (English)</p>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div>
+                <label className={`block text-sm ${labelCls} mb-1.5`}>First Name</label>
+                <input value={form.firstNameEn} onChange={(e) => setForm({ ...form, firstNameEn: e.target.value })} placeholder="e.g. Nakorn" className={`w-full h-10 px-3 ${inputCls} border rounded-lg text-sm focus:outline-none focus:border-[#FA3633]/50`} />
+              </div>
+              <div>
+                <label className={`block text-sm ${labelCls} mb-1.5`}>Last Name</label>
+                <input value={form.lastNameEn} onChange={(e) => setForm({ ...form, lastNameEn: e.target.value })} placeholder="e.g. Nimsian" className={`w-full h-10 px-3 ${inputCls} border rounded-lg text-sm focus:outline-none focus:border-[#FA3633]/50`} />
+              </div>
+            </div>
+
+            {/* Other info */}
+            <p className={`text-xs font-semibold ${sub} mt-2`}>ข้อมูลอื่นๆ</p>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div>
                 <label className={`block text-sm ${labelCls} mb-1.5`}>เบอร์โทร</label>
                 <input value={form.phone} onChange={(e) => setForm({ ...form, phone: e.target.value })} className={`w-full h-10 px-3 ${inputCls} border rounded-lg text-sm focus:outline-none focus:border-[#FA3633]/50`} />

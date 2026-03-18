@@ -31,7 +31,7 @@ export async function PUT(
       "merchant", "amount", "date", "category", "categoryIcon",
       "subCategory", "paymentMethod", "vat", "wht", "note",
       "documentNumber", "merchantTaxId", "type", "status",
-      "imageUrl", "time", "items", "direction",
+      "imageUrl", "time", "items", "direction", "fileIds",
     ];
     const updateData: any = {};
     for (const field of allowedFields) {

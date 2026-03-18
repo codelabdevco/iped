@@ -51,8 +51,25 @@ async function getMerchantKnowledge(): Promise<string> {
   }
 }
 
+/** Get user's name context for OCR */
+async function getUserNameContext(lineUserId: string): Promise<string> {
+  try {
+    await connectDB();
+    const user = await User.findOne({ lineUserId })
+      .select("firstNameTh lastNameTh firstNameEn lastNameEn name lineDisplayName")
+      .lean() as any;
+    if (!user) return "";
+    const names: string[] = [];
+    if (user.firstNameTh) names.push(`${user.firstNameTh} ${user.lastNameTh || ""}`.trim());
+    if (user.firstNameEn) names.push(`${user.firstNameEn} ${user.lastNameEn || ""}`.trim());
+    if (user.name && !names.some(n => n.includes(user.name))) names.push(user.name);
+    if (names.length === 0) return "";
+    return `\n\nIMPORTANT — The user's name is: ${names.join(" / ")}. Use this to determine income vs expense: if the user's name appears as the RECEIVER/ผู้รับ, it's INCOME. If the user's name appears as the SENDER/ผู้โอน, it's EXPENSE. Match any variation of their name (first name only, full name, Thai or English).`;
+  } catch { return ""; }
+}
+
 /** OCR receipt image with Claude Vision + merchant knowledge context */
-async function ocrReceipt(imageBuffer: Buffer, knowledgeCtx: string): Promise<any> {
+async function ocrReceipt(imageBuffer: Buffer, knowledgeCtx: string, userCtx: string = ""): Promise<any> {
   const base64img = imageBuffer.toString("base64");
   const prompt = `Analyze this image. First determine if it is a receipt, invoice, bill, or tax document.
 
@@ -75,7 +92,7 @@ If it IS a receipt/invoice/bill, extract and return ONLY this JSON:
   "type": "expense, income, or savings — determine from context and category: expense = user PAID/sent money (shopping, bills, food). income = user RECEIVED money (salary, refund, incoming transfer, ได้รับเงิน). savings = user moved money to savings (ออมเงิน, กองทุน, ฝากประจำ). For bank slips: check sender vs receiver direction.",
   "paymentMethod": "detect payment method from slip/receipt. Use these exact values: promptpay (if QR/พร้อมเพย์/PromptPay), bank-scb (SCB/ไทยพาณิชย์), bank-kbank (KBank/กสิกร), bank-bbl (BBL/กรุงเทพ), bank-ktb (KTB/กรุงไทย), bank-bay (BAY/กรุงศรี), bank-tmb (TTB/ทีเอ็มบี), bank-gsb (GSB/ออมสิน), credit (บัตรเครดิต/VISA/MC), debit (บัตรเดบิต), transfer (โอนธนาคารทั่วไป), cash (เงินสด), ewallet-truemoney (TrueMoney), ewallet-rabbit (Rabbit LINE Pay), ewallet-shopee (ShopeePay), other. If it's a bank transfer slip, identify the bank from logo/name.",
   "confidence": 0_to_100_confidence_score
-}` + knowledgeCtx + "\n\nReturn ONLY valid JSON, no markdown fences.";
+}` + knowledgeCtx + userCtx + "\n\nReturn ONLY valid JSON, no markdown fences.";
 
   const response = await anthropic.messages.create({
     model: "claude-sonnet-4-20250514",
@@ -314,15 +331,18 @@ export async function POST(request: NextRequest) {
         if (uid) { await showLoading(uid, 60); }
 
         try {
-          // 1. Get merchant knowledge from DB
-          const knowledge = await getMerchantKnowledge();
-          console.log("Knowledge merchants:", knowledge ? "yes" : "none");
+          // 1. Get merchant knowledge + user name context
+          const [knowledge, userNameCtx] = await Promise.all([
+            getMerchantKnowledge(),
+            getUserNameContext(uid || ""),
+          ]);
+          console.log("Knowledge merchants:", knowledge ? "yes" : "none", "userCtx:", userNameCtx ? "yes" : "none");
 
           // 2. Download image & OCR
           const imageBuffer = await getMessageContent(ev.message.id);
           const imgHash = crypto.createHash("md5").update(imageBuffer).digest("hex");
           console.log("Image size:", imageBuffer.length, "hash:", imgHash);
-          const ocr = await ocrReceipt(imageBuffer, knowledge);
+          const ocr = await ocrReceipt(imageBuffer, knowledge, userNameCtx);
           console.log("OCR:", JSON.stringify(ocr));
 
           // 3. Not a receipt? (📄)

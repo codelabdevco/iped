@@ -7,6 +7,10 @@ export interface IUser extends Document {
   email?: string;
   passwordHash?: string;
   name: string;
+  firstNameTh?: string;
+  lastNameTh?: string;
+  firstNameEn?: string;
+  lastNameEn?: string;
   age?: number;
   gender?: string;
   occupation?: string;
@@ -53,8 +57,12 @@ const UserSchema = new Schema<IUser>(
     email: { type: String, unique: true, sparse: true },
     passwordHash: String,
     name: { type: String, required: true },
+    firstNameTh: String,
+    lastNameTh: String,
+    firstNameEn: String,
+    lastNameEn: String,
     age: Number,
-  birthDate: Date,
+    birthDate: Date,
     gender: String,
     occupation: String,
     phone: String,

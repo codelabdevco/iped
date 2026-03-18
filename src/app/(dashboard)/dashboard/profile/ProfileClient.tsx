@@ -9,6 +9,10 @@ interface ProfileProps {
   profile: {
     _id: string;
     name: string;
+    firstNameTh: string;
+    lastNameTh: string;
+    firstNameEn: string;
+    lastNameEn: string;
     lineDisplayName: string;
     lineProfilePic: string;
     email: string;
@@ -137,7 +141,9 @@ export default function ProfileClient({ profile, stats }: ProfileProps) {
       <div className={`${card} border ${border} rounded-2xl p-5`}>
         <p className={`text-sm font-semibold ${txt} mb-3`}>ข้อมูลส่วนตัว</p>
         <div className="space-y-2.5">
-          <InfoRow label="ชื่อ" value={profile.name} isDark={isDark} />
+          {profile.firstNameTh && <InfoRow label="ชื่อ (ไทย)" value={`${profile.firstNameTh} ${profile.lastNameTh}`.trim()} isDark={isDark} />}
+          {profile.firstNameEn && <InfoRow label="Name (EN)" value={`${profile.firstNameEn} ${profile.lastNameEn}`.trim()} isDark={isDark} />}
+          {!profile.firstNameTh && <InfoRow label="ชื่อ" value={profile.name} isDark={isDark} />}
           {profile.phone && <InfoRow label="เบอร์โทร" value={profile.phone} isDark={isDark} />}
           {profile.email && <InfoRow label="อีเมล" value={profile.email} isDark={isDark} />}
           {profile.occupation && <InfoRow label="อาชีพ" value={profile.occupation} isDark={isDark} />}
