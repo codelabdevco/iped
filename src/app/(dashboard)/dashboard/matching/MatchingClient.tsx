@@ -116,15 +116,26 @@ export default function MatchingClient({
       const formData = new FormData();
       formData.append("file", file);
       const res = await fetch("/api/ocr", { method: "POST", body: formData });
+      if (res.status === 401) {
+        setScans((prev) => prev.map((s) => s.id === id ? { ...s, name: "กรุณาเข้าสู่ระบบใหม่", status: "failed" } : s));
+        return;
+      }
       const json = await res.json();
       if (json.success) {
-        setScans((prev) => prev.map((s) => s.id === id ? { ...s, name: json.data.merchant, amount: json.data.amount, status: json.duplicate ? "duplicate" : "matched" } : s));
-        router.refresh();
+        setScans((prev) => prev.map((s) => s.id === id ? {
+          ...s,
+          name: json.data?.merchant || file.name,
+          amount: json.data?.amount || 0,
+          status: json.duplicate ? "duplicate" : "matched",
+        } : s));
+        // Delay refresh to let user see the result
+        setTimeout(() => router.refresh(), 1000);
       } else {
-        setScans((prev) => prev.map((s) => s.id === id ? { ...s, status: "failed" } : s));
+        setScans((prev) => prev.map((s) => s.id === id ? { ...s, name: json.error || "OCR ล้มเหลว", status: "failed" } : s));
       }
-    } catch { setScans((prev) => prev.map((s) => s.id === id ? { ...s, status: "failed" } : s)); }
-    finally { setUploading(false); }
+    } catch (e) {
+      setScans((prev) => prev.map((s) => s.id === id ? { ...s, name: "เกิดข้อผิดพลาด", status: "failed" } : s));
+    } finally { setUploading(false); }
   }, [router]);
 
   // Gmail scan
@@ -481,15 +492,28 @@ export default function MatchingClient({
         <StatsCard label="รอยืนยัน" value={`${pending} คู่`} icon={<Copy size={20} />} color="text-amber-500" />
       </div>
 
-      {/* Scan results chips */}
+      {/* Scan results */}
       {scans.length > 0 && (
-        <div className="flex flex-wrap gap-2">
-          {scans.slice(0, 8).map((s) => (
-            <span key={s.id} className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs ${scanStatusCls[s.status] || scanStatusCls.failed}`}>
-              {s.status === "processing" && <Loader2 size={10} className="animate-spin" />}
-              {s.name.slice(0, 20)}{s.amount > 0 && ` ฿${s.amount.toLocaleString()}`}
-            </span>
-          ))}
+        <div className={`${card} border ${border} rounded-2xl p-4`}>
+          <div className={`text-sm font-medium mb-3 ${txt}`}>ผลการสแกนล่าสุด</div>
+          <div className="space-y-2">
+            {scans.slice(0, 5).map((s) => (
+              <div key={s.id} className={`flex items-center justify-between px-3 py-2.5 rounded-xl ${isDark ? "bg-white/[0.03]" : "bg-gray-50"}`}>
+                <div className="flex items-center gap-3 min-w-0">
+                  <div className={`w-8 h-8 rounded-lg flex items-center justify-center flex-shrink-0 ${scanStatusCls[s.status] || scanStatusCls.failed}`}>
+                    {s.status === "processing" ? <Loader2 size={14} className="animate-spin" /> : s.status === "matched" ? <CheckCircle2 size={14} /> : <Upload size={14} />}
+                  </div>
+                  <div className="min-w-0">
+                    <p className={`text-sm font-medium truncate ${txt}`}>{s.name}</p>
+                    {s.amount > 0 && <p className={`text-xs ${sub}`}>฿{s.amount.toLocaleString("th-TH", { minimumFractionDigits: 2 })}</p>}
+                  </div>
+                </div>
+                <span className={`px-2 py-0.5 rounded-lg text-[10px] font-medium flex-shrink-0 ${scanStatusCls[s.status] || scanStatusCls.failed}`}>
+                  {s.status === "processing" ? "กำลังสแกน..." : s.status === "matched" ? "สำเร็จ" : s.status === "duplicate" ? "ซ้ำ" : "ล้มเหลว"}
+                </span>
+              </div>
+            ))}
+          </div>
         </div>
       )}
 
