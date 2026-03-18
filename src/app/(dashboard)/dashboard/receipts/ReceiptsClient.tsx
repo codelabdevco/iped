@@ -671,7 +671,7 @@ export default function ReceiptsClient({ receipts: initialReceipts }: { receipts
         </div>
       ),
     },
-  ], [handleDelete]);
+  ], [handleDelete, selected]);
 
   const expandRender = (r: ReceiptRow, dark: boolean) => {
     const items = r.items && r.items.length > 0 ? r.items : [{ name: r.storeName, qty: 1, price: r.amount }];
