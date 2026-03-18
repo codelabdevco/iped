@@ -514,16 +514,21 @@ export default function ReceiptsClient({ receipts: initialReceipts }: { receipts
         const iso = r.rawDate;
         if (!iso) return <span className={muted}>-</span>;
         const d = new Date(iso);
-        const date = d.toLocaleDateString("th-TH", { day: "2-digit", month: "short" });
+        const day = d.getDate();
+        const mon = ["ม.ค.","ก.พ.","มี.ค.","เม.ย.","พ.ค.","มิ.ย.","ก.ค.","ส.ค.","ก.ย.","ต.ค.","พ.ย.","ธ.ค."][d.getMonth()];
+        const yr = d.getFullYear() + 543;
         const time = r.time || "";
         const isLine = r.source === "line";
         return (
           <div className="leading-tight">
-            <div className="text-sm whitespace-nowrap">{date}{time ? ` ${time}` : ""}</div>
-            <div className={`flex items-center gap-1 mt-0.5 text-[11px] ${isLine ? "text-green-500" : "text-blue-400"}`}>
-              {isLine ? <MessageCircle size={10} /> : <Globe size={10} />}
-              {isLine ? "LINE" : "เว็บ"}
-              {r.submittedBy && <span className={`ml-1 ${muted}`}>· {r.submittedBy}</span>}
+            <div className="text-sm whitespace-nowrap">{day} {mon} {yr}</div>
+            <div className={`flex items-center gap-1 mt-0.5 text-[11px]`}>
+              {time && <span className={muted}>{time}</span>}
+              {time && <span className={muted}>·</span>}
+              <span className={isLine ? "text-green-500" : "text-blue-400"}>
+                {isLine ? "LINE" : "เว็บ"}
+              </span>
+              {r.submittedBy && <span className={muted}>· {r.submittedBy}</span>}
             </div>
           </div>
         );

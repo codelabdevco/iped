@@ -78,8 +78,27 @@ export default function DataTable<T>({ columns, data, rowKey, emptyText = "à¹„à¸
   const [customFrom, setCustomFrom] = useState("");
   const [customTo, setCustomTo] = useState("");
   const [expandedRow, setExpandedRow] = useState<string | number | null>(null);
-  const [colOrder, setColOrder] = useState<number[]>(() => columns.map((_, i) => i));
+  const [colOrder, setColOrder] = useState<number[]>(() => {
+    if (columnConfigKey && typeof window !== "undefined") {
+      try {
+        const saved = localStorage.getItem(`dt-order-${columnConfigKey}`);
+        if (saved) {
+          const parsed = JSON.parse(saved);
+          // Validate: must have same length as columns
+          if (Array.isArray(parsed) && parsed.length === columns.length) return parsed;
+        }
+      } catch {}
+    }
+    return columns.map((_, i) => i);
+  });
   const dragFrom = useRef<number | null>(null);
+
+  // Persist colOrder
+  useEffect(() => {
+    if (columnConfigKey) {
+      localStorage.setItem(`dt-order-${columnConfigKey}`, JSON.stringify(colOrder));
+    }
+  }, [colOrder, columnConfigKey]);
 
   // Column visibility
   const defaultVisibility = useMemo(() => {
