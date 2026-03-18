@@ -77,6 +77,7 @@ export async function POST(request: NextRequest) {
 
   await connectDB();
   const userId = session.userId;
+  const accountType = session.accountType || "personal";
 
   // Get all connected Google accounts
   const accounts: any[] = await GoogleAccount.find({ userId, status: "active" }).lean();
@@ -236,6 +237,7 @@ export async function POST(request: NextRequest) {
                   ocrConfidence: (ocrResult.ocrConfidence || 0) / 100,
                   ocrRawText: ocrResult.ocrRawText,
                   userId: userId,
+                  accountType,
                   emailSubject: subject,
                   emailFrom: cleanEmail(from),
                   emailAccount: account.email,

@@ -19,10 +19,10 @@ function LoginForm() {
         <div className="h-2" style={{ backgroundColor: '#FA3633' }}></div>
         <div className="p-8">
           <div className="text-center mb-8">
-            <img src="/logo-cropped.png" alt="อาซิ่ม" className="w-24 h-24 rounded-2xl mx-auto mb-4 object-cover shadow-sm" />
-            <h1 className="text-2xl font-bold text-gray-800">อาซิ่ม</h1>
-            <p className="text-gray-400 text-sm mt-1">ระบบจัดการใบเสร็จอัจฉริยะ</p>
-            <p className="text-gray-300 text-[10px] mt-1">Powered by codelabs tech</p>
+            <img src="/logo-cropped.png" alt="อาซิ่ม" className="w-24 h-24 rounded-2xl mx-auto mb-5 object-cover shadow-sm" />
+            <h1 className="text-2xl font-bold text-gray-800 leading-none">อาซิ่ม</h1>
+            <p className="text-gray-400 text-sm mt-1.5">ระบบจัดการใบเสร็จอัจฉริยะ</p>
+            <p className="text-gray-300/60 text-[10px] tracking-wide mt-2 uppercase">Powered by codelabs tech</p>
           </div>
 
           {error && (
