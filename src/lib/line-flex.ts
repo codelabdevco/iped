@@ -526,11 +526,24 @@ interface ReceiptFlexData {
   confidence: number;
   receiptId: string;
   webAppUrl: string;
+  direction?: "expense" | "income" | "savings";
+  /** @deprecated use direction instead */
   isExpense?: boolean;
 }
 
+// Direction display config
+const DIR_CONFIG = {
+  expense: { label: "รายจ่าย", color: "#E53E3E", bg: "#FEE2E2", prefix: "-" },
+  income: { label: "รายรับ", color: "#06C755", bg: "#E8F8EE", prefix: "+" },
+  savings: { label: "เงินออม", color: "#EC4899", bg: "#FCE7F3", prefix: "" },
+} as const;
+
 export function receiptConfirmFlex(data: ReceiptFlexData) {
-  const isExpense = data.isExpense !== false;
+  // Resolve direction
+  const dir: "expense" | "income" | "savings" =
+    data.direction || (data.isExpense === false ? "income" : "expense");
+  const dc = DIR_CONFIG[dir];
+
   const isWarn = data.confidence < 70;
   const isLow = data.confidence < 40;
 
@@ -541,7 +554,7 @@ export function receiptConfirmFlex(data: ReceiptFlexData) {
       : "✅ สำเร็จ";
   const statusColor = isLow ? C.red : isWarn ? C.amber : C.green;
   const bandColor = isLow ? C.redBg : isWarn ? C.amberBg : C.greenBg;
-  const amtColor = isExpense ? C.red : C.green;
+  const amtColor = dc.color;
 
   // Items — max 3 lines
   const itemLines = data.items
@@ -552,7 +565,7 @@ export function receiptConfirmFlex(data: ReceiptFlexData) {
 
   return {
     type: "flex" as const,
-    altText: `${isExpense ? "รายจ่าย" : "รายรับ"} ${data.merchant} ฿${fmtAmt(data.amount)}`,
+    altText: `${dc.label} ${data.merchant} ฿${fmtAmt(data.amount)}`,
     contents: {
       type: "bubble",
       size: "mega",
@@ -569,7 +582,55 @@ export function receiptConfirmFlex(data: ReceiptFlexData) {
             data.category,
             { subtext: data.merchantTaxId || undefined, paymentMethod: data.paymentMethod || undefined },
           ),
-          amountHero(data.amount, isExpense, amtColor),
+          // Direction label + category
+          {
+            type: "box",
+            layout: "horizontal",
+            spacing: "sm",
+            margin: "md",
+            contents: [
+              {
+                type: "box",
+                layout: "horizontal",
+                flex: 0,
+                cornerRadius: "12px",
+                backgroundColor: dc.bg,
+                paddingStart: "10px",
+                paddingEnd: "10px",
+                paddingTop: "4px",
+                paddingBottom: "4px",
+                contents: [
+                  { type: "text", text: dc.label, size: "xs", color: dc.color, weight: "bold" },
+                ],
+              },
+              {
+                type: "text",
+                text: `${data.categoryIcon} ${data.category}`,
+                size: "xs",
+                color: C.sub,
+                flex: 0,
+                gravity: "center",
+              },
+              { type: "filler" },
+            ],
+          },
+
+          // Amount
+          {
+            type: "box",
+            layout: "vertical",
+            margin: "md",
+            contents: [
+              {
+                type: "text",
+                text: `${dc.prefix}฿${fmtAmt(data.amount)}`,
+                size: "xxl",
+                weight: "bold",
+                color: amtColor,
+                align: "center",
+              },
+            ],
+          },
 
           sep(),
 

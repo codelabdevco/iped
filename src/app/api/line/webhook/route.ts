@@ -68,11 +68,11 @@ If it IS a receipt/invoice/bill, extract and return ONLY this JSON:
   "time": "HH:MM (24hr format from receipt/slip, or null if not shown)",
   "amount": total_amount_as_number,
   "vat": vat_amount_or_null,
-  "category": "category name in Thai (e.g. \u0e2d\u0e32\u0e2b\u0e32\u0e23, \u0e04\u0e21\u0e19\u0e32\u0e04\u0e21, \u0e2a\u0e32\u0e18\u0e32\u0e23\u0e13\u0e39\u0e1b\u0e42\u0e20\u0e04, \u0e40\u0e14\u0e34\u0e19\u0e17\u0e32\u0e07, \u0e17\u0e35\u0e48\u0e1e\u0e31\u0e01, \u0e0a\u0e47\u0e2d\u0e1b\u0e1b\u0e34\u0e49\u0e07, \u0e2a\u0e38\u0e02\u0e20\u0e32\u0e1e, \u0e1a\u0e31\u0e19\u0e40\u0e17\u0e34\u0e07, \u0e01\u0e32\u0e23\u0e28\u0e36\u0e01\u0e29\u0e32, \u0e2d\u0e37\u0e48\u0e19\u0e46)",
-  "categoryIcon": "single emoji for the category",
+  "category": "MUST use one of these exact names — รายจ่าย: อาหาร, เดินทาง, ช็อปปิ้ง, สาธารณูปโภค, ของใช้ในบ้าน, สุขภาพ, การศึกษา, บันเทิง, ที่พัก, ธุรกิจ, อื่นๆ | รายรับ: เงินเดือน, ฟรีแลนซ์, ขายของ, ลงทุน, โบนัส, คืนเงิน, อื่นๆ | เงินออม: ท่องเที่ยว, กองทุนฉุกเฉิน, บ้าน/รถ, เกษียณ, เงินออม, อื่นๆ",
+  "categoryIcon": "emoji matching the category: 🍜อาหาร 🚗เดินทาง 🛒ช็อปปิ้ง 💡สาธารณูปโภค 🏠ของใช้ 🏥สุขภาพ 📚การศึกษา 🎬บันเทิง 🏨ที่พัก 💼ธุรกิจ 💰เงินเดือน 💻ฟรีแลนซ์ 🛍️ขายของ 📈ลงทุน 🎁โบนัส ↩️คืนเงิน ✈️ท่องเที่ยว 🛡️ฉุกเฉิน 🏡บ้าน/รถ 🌴เกษียณ 🐷เงินออม 📦อื่นๆ",
   "items": "brief summary of items in Thai",
   "documentType": "receipt or invoice or tax_invoice or billing",
-  "type": "expense or income — determine from context: if the user PAID/sent money it's expense, if the user RECEIVED money it's income. For bank transfer slips: check sender vs receiver — if the slip shows money coming IN to the user (ได้รับเงิน/เงินเข้า/ผู้โอนคือคนอื่น) it's income; if the user sent money OUT (โอนเงิน/จ่ายเงิน/ชำระเงิน) it's expense. Salary deposits, refunds, and incoming transfers are income. Shopping, bills, and outgoing transfers are expense.",
+  "type": "expense, income, or savings — determine from context and category: expense = user PAID/sent money (shopping, bills, food). income = user RECEIVED money (salary, refund, incoming transfer, ได้รับเงิน). savings = user moved money to savings (ออมเงิน, กองทุน, ฝากประจำ). For bank slips: check sender vs receiver direction.",
   "paymentMethod": "detect payment method from slip/receipt. Use these exact values: promptpay (if QR/พร้อมเพย์/PromptPay), bank-scb (SCB/ไทยพาณิชย์), bank-kbank (KBank/กสิกร), bank-bbl (BBL/กรุงเทพ), bank-ktb (KTB/กรุงไทย), bank-bay (BAY/กรุงศรี), bank-tmb (TTB/ทีเอ็มบี), bank-gsb (GSB/ออมสิน), credit (บัตรเครดิต/VISA/MC), debit (บัตรเดบิต), transfer (โอนธนาคารทั่วไป), cash (เงินสด), ewallet-truemoney (TrueMoney), ewallet-rabbit (Rabbit LINE Pay), ewallet-shopee (ShopeePay), other. If it's a bank transfer slip, identify the bank from logo/name.",
   "confidence": 0_to_100_confidence_score
 }` + knowledgeCtx + "\n\nReturn ONLY valid JSON, no markdown fences.";
@@ -146,7 +146,7 @@ async function saveReceipt(ocr: any, lineUserId: string, imgHash: string, imageB
       category: ocr.category,
       categoryIcon: ocr.categoryIcon || "\ud83d\udcdd",
       paymentMethod: ocr.paymentMethod || undefined,
-      direction: ocr.type === "income" ? "income" : "expense",
+      direction: ocr.type === "income" ? "income" : ocr.type === "savings" ? "savings" : "expense",
       status: "pending",
       imageUrl,
       imageHash: imgHash,
@@ -285,7 +285,7 @@ export async function POST(request: NextRequest) {
               category: ocr.category,
               categoryIcon: ocr.categoryIcon || "\ud83d\udcdd",
               paymentMethod: ocr.paymentMethod || undefined,
-              direction: ocr.type === "income" ? "income" : "expense",
+              direction: ocr.type === "income" ? "income" : ocr.type === "savings" ? "savings" : "expense",
               status: "duplicate",
               imageUrl: dupImageUrl,
               imageHash: imgHash,
@@ -326,7 +326,7 @@ export async function POST(request: NextRequest) {
             confidence: ocr.confidence || 50,
             receiptId: rid,
             webAppUrl: APP_URL,
-            isExpense: ocr.type !== "income",
+            direction: ocr.type === "income" ? "income" : ocr.type === "savings" ? "savings" : "expense",
           });
 
           // 8. Reply: status text (quoted on image) + flex summary
