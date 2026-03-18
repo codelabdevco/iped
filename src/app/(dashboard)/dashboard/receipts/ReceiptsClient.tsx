@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useMemo, useCallback, useRef, useEffect } from "react";
-import { useRouter } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 import { Search, Filter, Receipt, FileText, CheckCircle, Clock, Pencil, Trash2, ImageIcon, Cloud, CloudOff, HardDrive, Upload, X, MessageCircle, Globe, User, Plus, Loader2 } from "lucide-react";
 import BrandIcon from "@/components/dashboard/BrandIcon";
 import Select from "@/components/dashboard/Select";
@@ -47,6 +47,7 @@ interface ReceiptRow {
   savingsAmount?: string;
   savingsGoal?: string;
   direction?: string;
+  linkedEmail?: { merchant: string; subject: string } | null;
 }
 
 const statusStyle: Record<string, string> = {
@@ -216,6 +217,7 @@ export default function ReceiptsClient({ receipts: initialReceipts }: { receipts
   const [statusFilter, setStatusFilter] = useState("all");
   const [typeFilter, setTypeFilter] = useState("all");
   const [driveFilter, setDriveFilter] = useState("all");
+  const searchParams = useSearchParams();
   const [editingId, setEditingId] = useState<string | null>(null);
   const [editForm, setEditForm] = useState<Partial<ReceiptRow>>({});
   const [editItems, setEditItems] = useState<LineItem[]>([]);
@@ -293,6 +295,15 @@ export default function ReceiptsClient({ receipts: initialReceipts }: { receipts
       setSlipPreview(null);
     }
   };
+
+  // Auto-open edit panel from LINE Flex ?edit=receiptId
+  useEffect(() => {
+    const editId = searchParams.get("edit");
+    if (editId && receipts.length > 0 && !editingId) {
+      const target = receipts.find((r) => r._id === editId);
+      if (target) handleEdit(target);
+    }
+  }, [searchParams, receipts]);
 
   const handleSlipUpload = (file: File) => {
     if (!file.type.startsWith("image/")) return;

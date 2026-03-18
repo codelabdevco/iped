@@ -643,7 +643,7 @@ export function receiptConfirmFlex(data: ReceiptFlexData) {
       },
       footer: footerBox([
         actionBtn("แก้ไข", "secondary", C.sub, {
-          url: `${APP_URL}/receipt/${data.receiptId}/edit`,
+          url: `${APP_URL}/dashboard/receipts?edit=${data.receiptId}`,
         }),
         actionBtn(
           "ยืนยัน",
