@@ -3,6 +3,7 @@ import { connectDB } from "@/lib/mongodb";
 import { withAuth, apiSuccess, apiError, getPagination } from "@/lib/api-helpers";
 import { JWTPayload } from "@/lib/auth";
 import Receipt from "@/models/Receipt";
+import User from "@/models/User";
 
 export async function GET(request: NextRequest) {
   return withAuth(request, async (session: JWTPayload, req: NextRequest) => {
@@ -43,12 +44,14 @@ export async function GET(request: NextRequest) {
       ]),
     ]);
 
+    const user = await User.findById(session.userId).select("monthlyBudget").lean() as { monthlyBudget?: number } | null;
+
     const stats = {
       totalToday: todayStats[0]?.total || 0,
       totalMonth: monthStats[0]?.total || 0,
       countToday: todayStats[0]?.count || 0,
       countMonth: monthStats[0]?.count || 0,
-      budget: 50000,
+      budget: user?.monthlyBudget ?? 50000,
     };
 
     return NextResponse.json({

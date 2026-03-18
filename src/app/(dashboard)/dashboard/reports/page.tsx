@@ -2,6 +2,7 @@ import { Suspense } from "react";
 import { getSession } from "@/lib/auth";
 import { redirect } from "next/navigation";
 import { connectDB } from "@/lib/mongodb";
+import { getAccountMode } from "@/lib/mode";
 import Receipt from "@/models/Receipt";
 import ReportsClient from "./ReportsClient";
 
@@ -10,6 +11,7 @@ async function ReportsData() {
   if (!session) redirect("/login");
 
   await connectDB();
+  const accountType = await getAccountMode();
   const now = new Date();
   const twelveMonthsAgo = new Date(now.getFullYear() - 1, now.getMonth(), 1);
   const thisMonthStart = new Date(now.getFullYear(), now.getMonth(), 1);
@@ -17,26 +19,26 @@ async function ReportsData() {
 
   const [monthlyAgg, categoryAgg, merchantAgg, compAgg, paymentAgg] = await Promise.all([
     Receipt.aggregate([
-      { $match: { userId: session.userId, date: { $gte: twelveMonthsAgo }, status: { $ne: "cancelled" } } },
+      { $match: { userId: session.userId, accountType, date: { $gte: twelveMonthsAgo }, status: { $ne: "cancelled" } } },
       { $group: { _id: { year: { $year: "$date" }, month: { $month: "$date" }, direction: { $ifNull: ["$direction", "expense"] } }, total: { $sum: "$amount" }, count: { $sum: 1 } } },
       { $sort: { "_id.year": 1, "_id.month": 1 } },
     ]),
     Receipt.aggregate([
-      { $match: { userId: session.userId, direction: { $in: ["expense", null, undefined] }, date: { $gte: thisMonthStart }, status: { $ne: "cancelled" } } },
+      { $match: { userId: session.userId, accountType, direction: { $in: ["expense", null, undefined] }, date: { $gte: thisMonthStart }, status: { $ne: "cancelled" } } },
       { $group: { _id: "$category", total: { $sum: "$amount" }, count: { $sum: 1 } } },
       { $sort: { total: -1 } }, { $limit: 10 },
     ]),
     Receipt.aggregate([
-      { $match: { userId: session.userId, date: { $gte: thisMonthStart }, status: { $ne: "cancelled" } } },
+      { $match: { userId: session.userId, accountType, date: { $gte: thisMonthStart }, status: { $ne: "cancelled" } } },
       { $group: { _id: "$merchant", total: { $sum: "$amount" }, count: { $sum: 1 } } },
       { $sort: { total: -1 } }, { $limit: 5 },
     ]),
     Receipt.aggregate([
-      { $match: { userId: session.userId, date: { $gte: lastMonthStart }, status: { $ne: "cancelled" } } },
+      { $match: { userId: session.userId, accountType, date: { $gte: lastMonthStart }, status: { $ne: "cancelled" } } },
       { $group: { _id: { month: { $month: "$date" }, direction: { $ifNull: ["$direction", "expense"] } }, total: { $sum: "$amount" } } },
     ]),
     Receipt.aggregate([
-      { $match: { userId: session.userId, date: { $gte: thisMonthStart }, status: { $ne: "cancelled" } } },
+      { $match: { userId: session.userId, accountType, date: { $gte: thisMonthStart }, status: { $ne: "cancelled" } } },
       { $group: { _id: { $ifNull: ["$paymentMethod", "other"] }, total: { $sum: "$amount" }, count: { $sum: 1 } } },
       { $sort: { total: -1 } },
     ]),

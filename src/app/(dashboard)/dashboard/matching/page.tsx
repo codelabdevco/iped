@@ -4,6 +4,7 @@ import { Suspense } from "react";
 import { getSession } from "@/lib/auth";
 import { redirect } from "next/navigation";
 import { connectDB } from "@/lib/mongodb";
+import { getAccountMode } from "@/lib/mode";
 import Receipt from "@/models/Receipt";
 import Match from "@/models/Match";
 import User from "@/models/User";
@@ -16,9 +17,10 @@ async function MatchingData() {
   if (!session) redirect("/login");
 
   await connectDB();
+  const accountType = await getAccountMode();
 
   const [receipts, matches, user, googleAccounts] = await Promise.all([
-    Receipt.find({ userId: session.userId })
+    Receipt.find({ userId: session.userId, accountType })
       .select("-imageUrl -ocrRawText")
       .sort({ date: -1 })
       .limit(200)

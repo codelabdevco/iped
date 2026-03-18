@@ -18,6 +18,8 @@ export async function GET(req: NextRequest) {
 
     await connectDB();
     const userId = (decoded as { userId: string }).userId;
+    const accountType = req.headers.get("x-account-type") || (decoded as any).accountType || "personal";
+    const modeFilter = { userId, accountType };
 
     const now = new Date();
     const from = fromStr ? new Date(fromStr) : new Date(now.getFullYear(), 0, 1);
@@ -29,9 +31,9 @@ export async function GET(req: NextRequest) {
     const prevTo = new Date(from.getTime() - 1);
 
     const [currentReceipts, prevReceipts, recentReceipts] = await Promise.all([
-      Receipt.find({ userId, createdAt: { $gte: from, $lte: to } }).sort({ createdAt: -1 }).lean(),
-      Receipt.find({ userId, createdAt: { $gte: prevFrom, $lte: prevTo } }).lean(),
-      Receipt.find({ userId }).sort({ createdAt: -1 }).limit(10).lean(),
+      Receipt.find({ ...modeFilter, createdAt: { $gte: from, $lte: to } }).sort({ createdAt: -1 }).lean(),
+      Receipt.find({ ...modeFilter, createdAt: { $gte: prevFrom, $lte: prevTo } }).lean(),
+      Receipt.find(modeFilter).sort({ createdAt: -1 }).limit(10).lean(),
     ]);
 
     const totalCurrent = currentReceipts.reduce((s: number, r: any) => s + (r.amount || 0), 0);
@@ -53,7 +55,7 @@ export async function GET(req: NextRequest) {
 
     const monthlyTrend = await Promise.all(
       months.map(async (m) => {
-        const recs = await Receipt.find({ userId, createdAt: { $gte: m.start, $lte: m.end } }).lean();
+        const recs = await Receipt.find({ ...modeFilter, createdAt: { $gte: m.start, $lte: m.end } }).lean();
         const categories: Record<string, number> = {};
         let total = 0;
         recs.forEach((r: any) => {
@@ -96,7 +98,7 @@ export async function GET(req: NextRequest) {
     });
 
     // Savings by category
-    const savingsReceipts = await Receipt.find({ userId, direction: "savings", status: { $ne: "cancelled" } }).select("amount category").lean();
+    const savingsReceipts = await Receipt.find({ ...modeFilter, direction: "savings", status: { $ne: "cancelled" } }).select("amount category").lean();
     const savingsByCategory: Record<string, number> = {};
     (savingsReceipts as any[]).forEach((r: any) => {
       const cat = r.category || "เงินออม";

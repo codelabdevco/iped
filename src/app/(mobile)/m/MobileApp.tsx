@@ -7,6 +7,7 @@ import BrandIcon from "@/components/dashboard/BrandIcon";
 import StatsCard from "@/components/dashboard/StatsCard";
 import GoalCard from "@/components/dashboard/GoalCard";
 import Baht from "@/components/dashboard/Baht";
+import { formatNumber as fmt } from "@/lib/utils";
 
 type Tab = "home" | "receipts" | "scan" | "reports" | "profile";
 
@@ -26,8 +27,6 @@ interface MobileData {
   daysInMonth: number;
   stats: any;
 }
-
-const fmt = (n: number) => n.toLocaleString("th-TH", { minimumFractionDigits: 0 });
 const PAY_LABELS: Record<string, string> = {
   "bank-scb": "ไทยพาณิชย์", "bank-kbank": "กสิกร", "bank-bbl": "กรุงเทพ", "bank-ktb": "กรุงไทย",
   "bank-bay": "กรุงศรี", "bank-tmb": "ทีทีบี", "bank-gsb": "ออมสิน", promptpay: "พร้อมเพย์",
@@ -65,7 +64,7 @@ export default function MobileApp({ data }: { data: MobileData }) {
       <header className="sticky top-0 z-40 flex items-center justify-between px-4 h-12 shell-theme backdrop-blur-xl border-b border-transparent" style={{ opacity: 0.98 }}>
         <div className="flex items-center gap-2">
           <img src="/logo-cropped.png" alt="" className="w-6 h-6 rounded-md object-cover" />
-          <span className={`text-sm font-bold ${txt}`}>iPED</span>
+          <span className={`text-sm font-bold ${txt}`}>อาซิ่ม</span>
         </div>
         <div className="flex items-center gap-2">
           <button onClick={toggleTheme} className={`w-8 h-8 rounded-full flex items-center justify-center ${isDark ? "hover:bg-white/5" : "hover:bg-gray-100"}`}>
@@ -699,7 +698,7 @@ function ProfileTab({ data, isDark, toggleTheme }: { data: MobileData; isDark: b
         <InfoRow l="สถานะ" v="✅ ใช้งานอยู่" d={isDark} />
       </div>
 
-      <p className={`text-center text-[10px] ${muted} py-2`}>iPED v1.0</p>
+      <p className={`text-center text-[10px] ${muted} py-2`}>อาซิ่ม v1.0 — Powered by codelabs tech</p>
     </div>
   );
 }

@@ -5,6 +5,7 @@ import { connectDB } from "@/lib/mongodb";
 import Receipt from "@/models/Receipt";
 import User from "@/models/User";
 import DashboardClient from "./DashboardClient";
+import { getAccountMode } from "@/lib/mode";
 
 interface JwtPayload {
   userId: string;
@@ -12,6 +13,8 @@ interface JwtPayload {
 
 async function getDashboardData(userId: string) {
   await connectDB();
+  const accountType = await getAccountMode();
+  const mf = { userId, accountType };
 
   const now = new Date();
   const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1);
@@ -20,14 +23,14 @@ async function getDashboardData(userId: string) {
 
   const [currentMonthReceipts, lastMonthReceipts, recentReceipts] =
     await Promise.all([
-      Receipt.find({ userId, createdAt: { $gte: startOfMonth } })
+      Receipt.find({ ...mf, createdAt: { $gte: startOfMonth } })
         .sort({ createdAt: -1 })
         .lean(),
       Receipt.find({
-        userId,
+        ...mf,
         createdAt: { $gte: startOfLastMonth, $lte: endOfLastMonth },
       }).lean(),
-      Receipt.find({ userId }).sort({ createdAt: -1 }).limit(10).lean(),
+      Receipt.find(mf).sort({ createdAt: -1 }).limit(10).lean(),
     ]);
 
   const totalThisMonth = currentMonthReceipts.reduce(

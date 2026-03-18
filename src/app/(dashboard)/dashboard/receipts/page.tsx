@@ -3,6 +3,7 @@ import { verifyToken } from "@/lib/auth";
 import { cookies } from "next/headers";
 
 import { connectDB } from "@/lib/mongodb";
+import { getAccountMode } from "@/lib/mode";
 import Receipt from "@/models/Receipt";
 import Match from "@/models/Match";
 import User from "@/models/User";
@@ -18,9 +19,10 @@ async function ReceiptsData() {
   if (!decoded) return null;
 
   await connectDB();
+  const accountType = await getAccountMode();
 
   const [receipts, currentUser] = await Promise.all([
-    Receipt.find({ userId: decoded.userId, source: { $in: ["line", "web"] } })
+    Receipt.find({ userId: decoded.userId, accountType, source: { $in: ["line", "web"] } })
       .select("-imageUrl -ocrRawText")
       .sort({ createdAt: -1 })
       .limit(100)

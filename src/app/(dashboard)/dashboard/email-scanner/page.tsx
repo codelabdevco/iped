@@ -2,6 +2,7 @@ import { Suspense } from "react";
 import { getSession } from "@/lib/auth";
 import { redirect } from "next/navigation";
 import { connectDB } from "@/lib/mongodb";
+import { getAccountMode } from "@/lib/mode";
 import Receipt from "@/models/Receipt";
 import Match from "@/models/Match";
 import User from "@/models/User";
@@ -13,6 +14,7 @@ async function EmailScannerData() {
   if (!session) redirect("/login");
 
   await connectDB();
+  const accountType = await getAccountMode();
 
   const [user, googleAccounts, docs] = await Promise.all([
     User.findById(session.userId)
@@ -20,7 +22,7 @@ async function EmailScannerData() {
       .lean() as any,
     GoogleAccount.find({ userId: session.userId, status: "active" }).lean(),
     // Query from Receipt model (where Gmail scan actually saves data)
-    Receipt.find({ userId: session.userId, source: "email" })
+    Receipt.find({ userId: session.userId, accountType, source: "email" })
       .select("emailSubject emailFrom merchant amount date status ocrConfidence category note")
       .sort({ date: -1 })
       .limit(100)

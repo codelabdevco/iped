@@ -22,6 +22,10 @@ export function formatDate(date: string | Date): string {
   }).format(new Date(date));
 }
 
+export function formatNumber(n: number): string {
+  return n.toLocaleString("th-TH", { minimumFractionDigits: 0 });
+}
+
 export function formatDateShort(date: string | Date): string {
   return new Intl.DateTimeFormat("th-TH", {
     day: "numeric",

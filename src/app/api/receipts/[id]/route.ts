@@ -13,7 +13,7 @@ export async function GET(
     const { id } = await params;
     const receipt = await Receipt.findById(id);
     if (!receipt) {
-      return NextResponse.json({ success: false, error: "" }, { status: 404 });
+      return NextResponse.json({ success: false, error: "ไม่พบใบเสร็จที่ต้องการ" }, { status: 404 });
     }
     return NextResponse.json({ success: true, data: receipt });
   });
@@ -31,7 +31,7 @@ export async function PUT(
       "merchant", "amount", "date", "category", "categoryIcon",
       "subCategory", "paymentMethod", "vat", "wht", "note",
       "documentNumber", "merchantTaxId", "type", "status",
-      "imageUrl", "time", "items", "direction", "fileIds",
+      "imageUrl", "time", "items", "direction", "fileIds", "accountType",
     ];
     const updateData: any = {};
     for (const field of allowedFields) {
@@ -43,7 +43,7 @@ export async function PUT(
     if (!body.status) updateData.status = "edited";
     const receipt = await Receipt.findByIdAndUpdate(id, updateData, { new: true });
     if (!receipt) {
-      return NextResponse.json({ success: false, error: "" }, { status: 404 });
+      return NextResponse.json({ success: false, error: "ไม่พบใบเสร็จที่ต้องการแก้ไข" }, { status: 404 });
     }
     return NextResponse.json({ success: true, data: receipt });
   });
@@ -58,7 +58,7 @@ export async function DELETE(
     const { id } = await params;
     const receipt = await Receipt.findOneAndDelete({ _id: id, userId: session.userId });
     if (!receipt) {
-      return NextResponse.json({ success: false, error: "not found" }, { status: 404 });
+      return NextResponse.json({ success: false, error: "ไม่พบใบเสร็จที่ต้องการลบ" }, { status: 404 });
     }
     // Cascade: remove related matches
     await Match.deleteMany({

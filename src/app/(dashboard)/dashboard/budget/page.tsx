@@ -2,6 +2,7 @@ import { Suspense } from "react";
 import { getSession } from "@/lib/auth";
 import { redirect } from "next/navigation";
 import { connectDB } from "@/lib/mongodb";
+import { getAccountMode } from "@/lib/mode";
 import Receipt from "@/models/Receipt";
 import BudgetClient from "./BudgetClient";
 
@@ -10,6 +11,7 @@ async function BudgetData() {
   if (!session) redirect("/login");
 
   await connectDB();
+  const accountType = await getAccountMode();
 
   // Get this month's spending by category
   const now = new Date();
@@ -19,6 +21,7 @@ async function BudgetData() {
     {
       $match: {
         userId: session.userId,
+        accountType,
         direction: { $in: ["expense", null, undefined] },
         status: { $ne: "cancelled" },
         date: { $gte: thisMonthStart },

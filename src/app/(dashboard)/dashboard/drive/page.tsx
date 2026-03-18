@@ -2,6 +2,7 @@ import { Suspense } from "react";
 import { getSession } from "@/lib/auth";
 import { redirect } from "next/navigation";
 import { connectDB } from "@/lib/mongodb";
+import { getAccountMode } from "@/lib/mode";
 import Receipt from "@/models/Receipt";
 import FileModel from "@/models/File";
 import DriveClient from "./DriveClient";
@@ -11,8 +12,10 @@ async function DriveData() {
   if (!session) redirect("/login");
 
   await connectDB();
+  const accountType = await getAccountMode();
+
   const [receipts, files] = await Promise.all([
-    Receipt.find({ userId: session.userId })
+    Receipt.find({ userId: session.userId, accountType })
       .select("merchant category date time status source direction imageHash paymentMethod amount createdAt")
       .sort({ createdAt: -1 }).limit(200).lean(),
     FileModel.find({ userId: session.userId })

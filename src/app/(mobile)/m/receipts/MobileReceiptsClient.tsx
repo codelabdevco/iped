@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { useTheme } from "@/contexts/ThemeContext";
 import BrandIcon from "@/components/dashboard/BrandIcon";
+import { formatNumber as fmt } from "@/lib/utils";
 
 interface ReceiptItem {
   _id: string;
@@ -30,8 +31,6 @@ export default function MobileReceiptsClient({ receipts }: { receipts: ReceiptIt
   const muted = isDark ? "text-white/30" : "text-gray-400";
 
   const filtered = filter === "all" ? receipts : receipts.filter((r) => r.direction === filter);
-  const fmt = (n: number) => n.toLocaleString("th-TH", { minimumFractionDigits: 0 });
-
   const statusLabel: Record<string, { text: string; cls: string }> = {
     pending: { text: "รอยืนยัน", cls: "bg-amber-500/10 text-amber-500" },
     confirmed: { text: "ยืนยันแล้ว", cls: "bg-green-500/10 text-green-500" },

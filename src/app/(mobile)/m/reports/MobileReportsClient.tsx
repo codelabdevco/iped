@@ -1,6 +1,7 @@
 "use client";
 
 import { useTheme } from "@/contexts/ThemeContext";
+import { formatNumber as fmt } from "@/lib/utils";
 
 interface ReportsData {
   categories: { name: string; icon: string; total: number; count: number }[];
@@ -17,7 +18,6 @@ export default function MobileReportsClient({ data }: { data: ReportsData }) {
   const sub = isDark ? "text-white/50" : "text-gray-500";
   const muted = isDark ? "text-white/30" : "text-gray-400";
 
-  const fmt = (n: number) => n.toLocaleString("th-TH", { minimumFractionDigits: 0 });
   const maxMonthly = Math.max(...data.monthlyData.map((m) => Math.max(m.expense, m.income)), 1);
   const maxCat = Math.max(...data.categories.map((c) => c.total), 1);
 

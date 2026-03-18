@@ -126,7 +126,10 @@ export default function Sidebar({ onNavigate, badges = {} }: { onNavigate?: () =
 
   useEffect(() => {
     const saved = localStorage.getItem("iped-mode") as Mode | null;
-    if (saved) setMode(saved);
+    if (saved) {
+      setMode(saved);
+      document.cookie = `iped-mode=${saved}; path=/; max-age=${365 * 24 * 60 * 60}; SameSite=Lax`;
+    }
     // Listen for mode changes from other components (e.g. Settings page)
     const handleModeChange = (e: Event) => {
       const newMode = (e as CustomEvent).detail as Mode;
@@ -151,6 +154,7 @@ export default function Sidebar({ onNavigate, badges = {} }: { onNavigate?: () =
   const switchMode = (m: Mode) => {
     setMode(m);
     localStorage.setItem("iped-mode", m);
+    document.cookie = `iped-mode=${m}; path=/; max-age=${365 * 24 * 60 * 60}; SameSite=Lax`;
     window.dispatchEvent(new CustomEvent("iped-mode-change", { detail: m }));
     if (!isValidRoute(pathname, m)) router.push("/dashboard");
   };
@@ -200,9 +204,9 @@ export default function Sidebar({ onNavigate, badges = {} }: { onNavigate?: () =
       <div className={`h-16 flex items-center px-4 border-b ${borderCls} overflow-hidden`}>
         <div className="flex items-center gap-3 whitespace-nowrap">
           <img src="/logo-cropped.png" alt="อาซิ่ม" className="w-10 h-10 rounded-xl shrink-0 object-cover" />
-          <div className="flex flex-col justify-center" style={fadeStyle()}>
-            <span className={`text-[17px] font-bold tracking-tight leading-none ${isDark ? "text-white" : "text-gray-900"}`}>อาซิ่ม</span>
-            <span className={`text-[8px] tracking-[0.05em] mt-1 leading-none ${isDark ? "text-white/20" : "text-gray-300"}`}>Powered by codelabs tech</span>
+          <div className="flex flex-col items-start justify-center h-10" style={fadeStyle()}>
+            <span className={`text-[17px] font-bold tracking-tight leading-tight ${isDark ? "text-white" : "text-gray-900"}`}>อาซิ่ม</span>
+            <span className={`text-[8px] tracking-[0.05em] leading-tight ${isDark ? "text-white/20" : "text-gray-300"}`}>Powered by codelabs tech</span>
           </div>
         </div>
       </div>

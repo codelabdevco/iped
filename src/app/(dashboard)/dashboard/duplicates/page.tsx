@@ -2,6 +2,7 @@ import { Suspense } from "react";
 import { getSession } from "@/lib/auth";
 import { redirect } from "next/navigation";
 import { connectDB } from "@/lib/mongodb";
+import { getAccountMode } from "@/lib/mode";
 import Receipt from "@/models/Receipt";
 import DuplicatesClient from "./DuplicatesClient";
 
@@ -10,9 +11,10 @@ async function DuplicatesData() {
   if (!session) redirect("/login");
 
   await connectDB();
+  const accountType = await getAccountMode();
 
   // Find potential duplicates: same amount + similar merchant + within 3 days
-  const receipts = await Receipt.find({ userId: session.userId, status: { $ne: "cancelled" } })
+  const receipts = await Receipt.find({ userId: session.userId, accountType, status: { $ne: "cancelled" } })
     .select("merchant amount date time status source imageHash category createdAt")
     .sort({ date: -1 })
     .limit(200)

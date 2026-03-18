@@ -2,7 +2,7 @@
 
 import { useState, useMemo, useCallback, useRef, useEffect } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
-import { Search, Filter, Receipt, FileText, CheckCircle, Clock, Pencil, Trash2, ImageIcon, Cloud, CloudOff, HardDrive, Upload, X, MessageCircle, Globe, User, Plus, Loader2, Mail, Link2 } from "lucide-react";
+import { Search, Filter, Receipt, FileText, CheckCircle, Clock, Pencil, Trash2, ImageIcon, Cloud, CloudOff, HardDrive, Upload, X, MessageCircle, Globe, User, Plus, Loader2, Mail, Link2, ArrowRightLeft, Building2 } from "lucide-react";
 import BrandIcon from "@/components/dashboard/BrandIcon";
 import Select from "@/components/dashboard/Select";
 import DatePicker from "@/components/dashboard/DatePicker";
@@ -248,6 +248,30 @@ export default function ReceiptsClient({ receipts: initialReceipts }: { receipts
     setDeleteTarget(null);
     router.refresh();
   }, [deleteTarget, router]);
+
+  const [transferring, setTransferring] = useState(false);
+  const handleTransfer = useCallback(async (ids: string[]) => {
+    if (ids.length === 0) return;
+    const currentMode = localStorage.getItem("iped-mode") || "personal";
+    const targetMode = currentMode === "personal" ? "business" : "personal";
+    const label = targetMode === "business" ? "บริษัท" : "ส่วนตัว";
+    if (!confirm(`ส่งต่อ ${ids.length} รายการไป "${label}" ?`)) return;
+    setTransferring(true);
+    try {
+      const res = await fetch("/api/receipts/transfer", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ ids, targetMode }),
+      });
+      if (res.ok) {
+        setReceipts((prev) => prev.filter((r) => !ids.includes(r._id)));
+        setSelected((prev) => prev.filter((s) => !ids.includes(s)));
+      } else {
+        alert("ส่งต่อไม่สำเร็จ");
+      }
+    } catch { alert("เกิดข้อผิดพลาด"); }
+    setTransferring(false);
+  }, []);
 
   const handleEdit = (r: ReceiptRow) => {
     setEditingId(r._id);
@@ -778,6 +802,9 @@ export default function ReceiptsClient({ receipts: initialReceipts }: { receipts
       configurable: false,
       render: (r, dark) => (
         <div className="flex items-center gap-1" onClick={(e) => e.stopPropagation()}>
+          <button onClick={() => handleTransfer([r._id])} className={`p-2 rounded-lg transition-colors ${dark ? "hover:bg-white/5 text-white/40 hover:text-blue-400" : "hover:bg-gray-100 text-gray-400 hover:text-blue-500"}`} title={`ส่งต่อไป${(typeof window !== "undefined" && localStorage.getItem("iped-mode") || "personal") === "personal" ? "บริษัท" : "ส่วนตัว"}`}>
+            <ArrowRightLeft size={14} />
+          </button>
           <button onClick={() => handleEdit(r)} className={`p-2 rounded-lg transition-colors ${dark ? "hover:bg-white/5 text-white/40 hover:text-blue-400" : "hover:bg-gray-100 text-gray-400 hover:text-blue-500"}`} title="แก้ไข">
             <Pencil size={14} />
           </button>
@@ -787,7 +814,7 @@ export default function ReceiptsClient({ receipts: initialReceipts }: { receipts
         </div>
       ),
     },
-  ], [handleDelete, selected]);
+  ], [handleDelete, handleTransfer, selected]);
 
   const expandRender = (r: ReceiptRow, dark: boolean) => {
     const items = r.items && r.items.length > 0 ? r.items : [{ name: r.storeName, qty: 1, price: r.amount }];
@@ -1218,6 +1245,9 @@ export default function ReceiptsClient({ receipts: initialReceipts }: { receipts
             {selected.length === filtered.length && <svg width="12" height="12" viewBox="0 0 12 12" fill="none"><path d="M2.5 6L5 8.5L9.5 3.5" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/></svg>}
           </button>
           <span className={`text-sm font-medium ${txt}`}>เลือก {selected.length} รายการ</span>
+          <button onClick={() => handleTransfer(selected)} disabled={transferring} className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium transition-colors ${isDark ? "bg-blue-500/10 text-blue-400 hover:bg-blue-500/20" : "bg-blue-50 text-blue-600 hover:bg-blue-100"}`}>
+            <ArrowRightLeft size={12} /> {transferring ? "กำลังส่ง..." : `ส่งต่อไป${(localStorage.getItem("iped-mode") || "personal") === "personal" ? "บริษัท" : "ส่วนตัว"}`}
+          </button>
           <button onClick={handleBulkDelete} className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium bg-red-500 text-white hover:bg-red-600 transition-colors">
             <Trash2 size={12} /> ลบที่เลือก
           </button>

@@ -3,6 +3,7 @@
 import { useTheme } from "@/contexts/ThemeContext";
 import { ScanLine, ArrowUpRight, ArrowDownLeft } from "lucide-react";
 import BrandIcon from "@/components/dashboard/BrandIcon";
+import { formatNumber as fmt } from "@/lib/utils";
 
 interface HomeData {
   displayName: string;
@@ -37,8 +38,6 @@ export default function MobileHomeClient({ data }: { data: HomeData }) {
   const muted = isDark ? "text-white/30" : "text-gray-400";
 
   const budgetPct = data.monthlyBudget > 0 ? Math.min(100, (data.monthExpense / data.monthlyBudget) * 100) : 0;
-
-  const fmt = (n: number) => n.toLocaleString("th-TH", { minimumFractionDigits: 0 });
 
   return (
     <div className="space-y-4 pt-2">

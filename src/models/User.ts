@@ -12,6 +12,7 @@ export interface IUser extends Document {
   firstNameEn?: string;
   lastNameEn?: string;
   age?: number;
+  birthDate?: Date;
   gender?: string;
   occupation?: string;
   phone?: string;
@@ -42,6 +43,13 @@ export interface IUser extends Document {
   businessName?: string;
   monthlyBudget?: number;
   status: "active" | "inactive" | "suspended" | "pending";
+  // Google OAuth
+  googleAccessToken?: string;
+  googleRefreshToken?: string;
+  googleEmail?: string;
+  googleConnectedAt?: Date;
+  lastGmailScan?: Date;
+  autoGmailScan?: boolean;
   lastLogin?: Date;
   loginCount: number;
   documentsCount: number;
