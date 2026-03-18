@@ -585,7 +585,7 @@ export function receiptConfirmFlex(data: ReceiptFlexData) {
             data.categoryIcon,
             data.merchant,
             data.category,
-            data.merchantTaxId || undefined,
+            { subtext: data.merchantTaxId || undefined, paymentMethod: data.paymentMethod || undefined },
           ),
 
           sep(),
@@ -599,7 +599,7 @@ export function receiptConfirmFlex(data: ReceiptFlexData) {
             contents: [
               detailItem("วันที่", fmtDate(data.date)),
               detailItem("เวลา", fmtTime(data.time)),
-              detailItem("ชำระ", data.paymentMethod || "—"),
+              detailItem("ชำระ", PAY_NAMES[data.paymentMethod || ""] || data.paymentMethod || "—"),
               ...(data.vat
                 ? [detailItem("VAT", `฿${fmtAmt(data.vat)}`)]
                 : []),
@@ -703,7 +703,7 @@ export function duplicateWarningFlex(data: {
             data.categoryIcon || "🏪",
             data.merchant,
             data.category || "ไม่ระบุ",
-            data.merchantTaxId || undefined,
+            { subtext: data.merchantTaxId || undefined },
           ),
 
           sep(),
