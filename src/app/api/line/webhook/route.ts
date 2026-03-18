@@ -141,11 +141,21 @@ async function resolveUserId(lineUserId: string): Promise<string> {
   }
 }
 
+/** Resolve LINE userId → User's accountType */
+async function getUserAccountType(lineUserId: string): Promise<string> {
+  try {
+    await connectDB();
+    const user = await User.findOne({ lineUserId }).select("accountType").lean() as any;
+    return user?.accountType || "personal";
+  } catch { return "personal"; }
+}
+
 /** Save receipt to MongoDB */
 async function saveReceipt(ocr: any, lineUserId: string, imgHash: string, imageBuffer?: Buffer): Promise<string> {
   try {
     await connectDB();
     const mongoUserId = await resolveUserId(lineUserId);
+    const accountType = await getUserAccountType(lineUserId);
     // Store image as base64 data URL
     let imageUrl: string | undefined;
     if (imageBuffer) {
@@ -170,8 +180,9 @@ async function saveReceipt(ocr: any, lineUserId: string, imgHash: string, imageB
       ocrConfidence: (ocr.confidence || 0) / 100,
       ocrRawText: ocr.items || "",
       userId: mongoUserId,
+      accountType,
     });
-    console.log("Saved receipt:", r._id, "userId:", mongoUserId, "time:", ocr.time);
+    console.log("Saved receipt:", r._id, "userId:", mongoUserId, "accountType:", accountType);
     return r._id.toString();
   } catch (e: any) {
     console.error("Save error:", e.message);
@@ -370,6 +381,7 @@ export async function POST(request: NextRequest) {
           if (status.type === "duplicate") {
             // Still save with "duplicate" status so it shows in dashboard
             const mongoUidDup = await resolveUserId(uid || "");
+            const dupAccountType = await getUserAccountType(uid || "");
             let dupImageUrl: string | undefined;
             if (imageBuffer) dupImageUrl = `data:image/jpeg;base64,${imageBuffer.toString("base64")}`;
             const dupReceipt = await Receipt.create({
@@ -391,6 +403,7 @@ export async function POST(request: NextRequest) {
               ocrConfidence: (ocr.confidence || 0) / 100,
               ocrRawText: ocr.items || "",
               userId: mongoUidDup,
+              accountType: dupAccountType,
               note: `พบสลิปซ้ำกับ ${dup.merchant} (${dup.date ? new Date(dup.date).toLocaleDateString("th-TH") : ""})`,
             });
             console.log("Saved duplicate:", dupReceipt._id);

@@ -1,5 +1,6 @@
 "use client";
 
+import "@/lib/fetch-mode"; // Inject x-account-type header into all API fetches
 import { createContext, useContext, useState, useEffect, useCallback, ReactNode } from "react";
 
 interface User {
