@@ -293,7 +293,7 @@ function detailItem(label: string, value: string): any {
 
 /** Direction badge (รายจ่าย / รายรับ) */
 function directionBadge(isExpense: boolean): any {
-  const text = isExpense ? "📤 รายจ่าย" : "📥 รายรับ";
+  const text = isExpense ? "รายจ่าย" : "รายรับ";
   const color = isExpense ? C.red : C.green;
   const bg = isExpense ? C.redBg : C.greenBg;
   return {
