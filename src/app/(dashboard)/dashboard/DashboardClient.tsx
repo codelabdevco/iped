@@ -439,6 +439,95 @@ export default function DashboardClient({ data: initialData }: { data: Dashboard
         </div>
       </div>
 
+      {/* Budget + Recurring */}
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+        {/* Budget summary */}
+        {(() => {
+          const catEntries = Object.entries(data.categoryData || {}).sort((a, b) => b[1] - a[1]).slice(0, 5);
+          const budgets: Record<string, number> = {};
+          try { const s = typeof window !== "undefined" ? localStorage.getItem("iped-budgets") : null; if (s) JSON.parse(s).forEach((b: any) => { budgets[b.category] = b.budget; }); } catch {}
+          const hasBudgets = Object.keys(budgets).length > 0;
+          return (
+            <div className={`${card} border border-[var(--color-border)] rounded-2xl p-5`}>
+              <div className="flex items-center justify-between mb-4">
+                <h3 className={`font-semibold ${txt}`}>งบประมาณ</h3>
+                <a href="/dashboard/budget" className="text-sm text-[#FA3633] hover:underline">จัดการ &rarr;</a>
+              </div>
+              {catEntries.length === 0 ? (
+                <p className={`text-sm ${txtSub}`}>ยังไม่มีข้อมูล</p>
+              ) : (
+                <div className="space-y-3">
+                  {catEntries.map(([cat, spent]) => {
+                    const budget = budgets[cat];
+                    const pct = budget ? Math.min((spent / budget) * 100, 100) : 0;
+                    const isOver = budget ? spent > budget : false;
+                    return (
+                      <div key={cat}>
+                        <div className="flex items-center justify-between mb-1">
+                          <div className="flex items-center gap-1.5">
+                            <div className="w-2 h-2 rounded-full" style={{ backgroundColor: getCatColor(cat) }} />
+                            <span className={`text-xs ${txt}`}>{cat}</span>
+                          </div>
+                          <span className={`text-xs font-medium ${isOver ? "text-red-500" : txt}`}>
+                            ฿{spent.toLocaleString("th-TH", { minimumFractionDigits: 2 })}
+                            {budget ? <span className={txtSub}> / ฿{budget.toLocaleString()}</span> : ""}
+                          </span>
+                        </div>
+                        {budget ? (
+                          <div className="h-1.5 rounded-full" style={{ background: isDark ? "rgba(255,255,255,0.06)" : "rgba(0,0,0,0.06)" }}>
+                            <div className="h-full rounded-full" style={{ width: `${pct}%`, backgroundColor: isOver ? "#EF4444" : getCatColor(cat), opacity: 0.7 }} />
+                          </div>
+                        ) : (
+                          <div className="h-1.5 rounded-full" style={{ background: isDark ? "rgba(255,255,255,0.06)" : "rgba(0,0,0,0.06)" }}>
+                            <div className="h-full rounded-full opacity-30" style={{ width: "100%", backgroundColor: getCatColor(cat) }} />
+                          </div>
+                        )}
+                      </div>
+                    );
+                  })}
+                </div>
+              )}
+            </div>
+          );
+        })()}
+
+        {/* Recurring summary */}
+        {(() => {
+          const items = [
+            { name: "ค่าเช่าคอนโด", type: "expense", amount: 12000, cycle: "รายเดือน", active: true },
+            { name: "ค่าอินเทอร์เน็ต", type: "expense", amount: 599, cycle: "รายเดือน", active: true },
+            { name: "Netflix", type: "expense", amount: 419, cycle: "รายเดือน", active: true },
+          ];
+          try { const s = typeof window !== "undefined" ? localStorage.getItem("iped-recurring") : null; if (s) { const p = JSON.parse(s); if (p.length) items.splice(0, items.length, ...p); } } catch {}
+          const totalExp = items.filter((i) => i.type === "expense" && i.active).reduce((s, i) => s + i.amount, 0);
+          return (
+            <div className={`${card} border border-[var(--color-border)] rounded-2xl p-5`}>
+              <div className="flex items-center justify-between mb-4">
+                <h3 className={`font-semibold ${txt}`}>รายการประจำ</h3>
+                <a href="/dashboard/recurring" className="text-sm text-[#FA3633] hover:underline">จัดการ &rarr;</a>
+              </div>
+              <div className="space-y-2">
+                {items.filter((i) => i.active).slice(0, 5).map((item, i) => (
+                  <div key={i} className="flex items-center justify-between">
+                    <div className="flex items-center gap-2">
+                      <span className={`px-1.5 py-0.5 rounded text-[9px] font-bold leading-none ${item.type === "income" ? "bg-green-500/15 text-green-500" : "bg-red-500/15 text-red-500"}`}>{item.type === "income" ? "รับ" : "จ่าย"}</span>
+                      <span className={`text-xs ${txt}`}>{item.name}</span>
+                    </div>
+                    <span className={`text-xs font-medium ${txt}`}>฿{item.amount.toLocaleString("th-TH", { minimumFractionDigits: 2 })}<span className={`text-[10px] ${txtSub} ml-1`}>/{item.cycle.replace("ราย", "")}</span></span>
+                  </div>
+                ))}
+              </div>
+              {totalExp > 0 && (
+                <div className={`mt-3 pt-3 border-t border-[var(--color-border)] flex justify-between`}>
+                  <span className={`text-xs ${txtSub}`}>รายจ่ายประจำ/เดือน</span>
+                  <span className={`text-xs font-semibold text-red-500`}>฿{totalExp.toLocaleString("th-TH", { minimumFractionDigits: 2 })}</span>
+                </div>
+              )}
+            </div>
+          );
+        })()}
+      </div>
+
       {/* Payment methods */}
       {data.paymentData && Object.keys(data.paymentData).length > 0 && (() => {
         const PM_INFO: Record<string, { label: string; icon: string; color: string }> = {

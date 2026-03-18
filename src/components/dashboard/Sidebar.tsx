@@ -32,8 +32,6 @@ const personalNav: NavGroup[] = [
       { label: "รายรับ", href: "/dashboard/income", icon: TrendingUp },
       { label: "รายจ่าย", href: "/dashboard/expenses", icon: TrendingDown },
       { label: "เงินออม", href: "/dashboard/savings", icon: PiggyBank },
-      { label: "รายการประจำ", href: "/dashboard/recurring", icon: Repeat },
-      { label: "งบประมาณ", href: "/dashboard/budget", icon: Wallet },
     ],
   },
   {
@@ -72,8 +70,7 @@ const businessNav: NavGroup[] = [
       { label: "ภาพรวม", href: "/dashboard", icon: LayoutDashboard },
       { label: "รายรับ", href: "/dashboard/income", icon: TrendingUp },
       { label: "รายจ่าย", href: "/dashboard/expenses", icon: TrendingDown },
-      { label: "รายการประจำ", href: "/dashboard/recurring", icon: Repeat },
-      { label: "งบประมาณ", href: "/dashboard/budget", icon: Wallet },
+      { label: "เงินออม", href: "/dashboard/savings", icon: PiggyBank },
       { label: "VAT / WHT", href: "/dashboard/tax", icon: BadgeDollarSign },
     ],
   },
