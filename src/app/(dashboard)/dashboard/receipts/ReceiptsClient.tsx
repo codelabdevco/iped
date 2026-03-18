@@ -9,6 +9,7 @@ import DatePicker from "@/components/dashboard/DatePicker";
 import TimePicker from "@/components/dashboard/TimePicker";
 import FileAttachments, { Attachment } from "@/components/dashboard/FileAttachments";
 import { useTheme } from "@/contexts/ThemeContext";
+import Baht from "@/components/dashboard/Baht";
 import PageHeader from "@/components/dashboard/PageHeader";
 import StatsCard from "@/components/dashboard/StatsCard";
 import DataTable, { Column } from "@/components/dashboard/DataTable";
@@ -122,18 +123,6 @@ function LazyImage({ id, hasImage, onClickFull, isDark }: { id: string; hasImage
   );
 }
 
-/** Format currency with .00 in smaller muted style */
-function Baht({ value, className = "" }: { value: number; className?: string }) {
-  const abs = Math.abs(value);
-  const whole = Math.floor(abs).toLocaleString();
-  const dec = (abs % 1).toFixed(2).slice(1); // ".00" or ".50"
-  const sign = value < 0 ? "-" : "";
-  return (
-    <span className={className}>
-      {sign}฿{whole}<span className="text-[0.75em] opacity-50">{dec}</span>
-    </span>
-  );
-}
 
 function getCatColor(cat: string): string {
   if (CATEGORY_COLORS[cat]) return CATEGORY_COLORS[cat];
@@ -272,15 +261,16 @@ export default function ReceiptsClient({ receipts: initialReceipts }: { receipts
     setWhtEnabled((r.wht || 0) > 0);
     setTxType((r.direction === "income" ? "income" : r.direction === "savings" ? "savings" : "expense") as any);
     setAttachments([]);
-    // Load image lazily for edit panel
+    // Load image for edit panel
     if (r.imageUrl) {
       setSlipPreview(r.imageUrl);
     } else if (r.hasImage) {
-      setSlipPreview(null);
+      // Show loading placeholder, then fetch
+      setSlipPreview("loading");
       fetch(`/api/receipts/image?id=${r._id}`)
         .then((res) => res.json())
-        .then((d) => { if (d.imageUrl) setSlipPreview(d.imageUrl); })
-        .catch(() => {});
+        .then((d) => setSlipPreview(d.imageUrl || null))
+        .catch(() => setSlipPreview(null));
     } else {
       setSlipPreview(null);
     }
@@ -542,7 +532,7 @@ export default function ReceiptsClient({ receipts: initialReceipts }: { receipts
       align: "right",
       render: (r) => {
         const dir = r.direction || "expense";
-        return <Baht value={r.amount} className="font-semibold" />;
+        return <Baht value={r.amount} direction={r.direction} className="font-semibold" />;
       },
     },
     {
@@ -753,7 +743,12 @@ export default function ReceiptsClient({ receipts: initialReceipts }: { receipts
 
             {/* Slip image — upload / preview */}
             <input ref={slipInputRef} type="file" accept="image/*" onChange={handleSlipInputChange} className="hidden" />
-            {slipPreview ? (
+            {slipPreview === "loading" ? (
+              <div className="w-full h-44 rounded-xl bg-white/5 border border-white/10 flex flex-col items-center justify-center gap-2">
+                <Loader2 size={24} className="text-white/30 animate-spin" />
+                <p className="text-xs text-white/30">กำลังโหลดรูปสลิป...</p>
+              </div>
+            ) : slipPreview ? (
               <div className="relative w-full rounded-xl overflow-hidden bg-white/5 border border-white/10 group">
                 <img src={slipPreview} alt="สลิป" className="w-full max-h-72 object-contain" />
                 <div className="absolute inset-0 bg-black/0 group-hover:bg-black/40 transition-colors flex items-center justify-center gap-2 opacity-0 group-hover:opacity-100">
