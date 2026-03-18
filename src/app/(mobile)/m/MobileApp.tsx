@@ -2,8 +2,11 @@
 
 import { useState, useRef } from "react";
 import { useTheme } from "@/contexts/ThemeContext";
-import { Home, Receipt, ScanLine, BarChart3, User, Camera, Image, Loader2, Check, X, Bell, Pencil, Moon, Sun, ChevronRight } from "lucide-react";
+import { Home, Receipt, ScanLine, BarChart3, User, Camera, Image, Loader2, Check, X, Bell, Pencil, Moon, Sun, ChevronRight, TrendingUp, Calculator, FolderOpen } from "lucide-react";
 import BrandIcon from "@/components/dashboard/BrandIcon";
+import StatsCard from "@/components/dashboard/StatsCard";
+import GoalCard from "@/components/dashboard/GoalCard";
+import Baht from "@/components/dashboard/Baht";
 
 type Tab = "home" | "receipts" | "scan" | "reports" | "profile";
 
@@ -34,10 +37,8 @@ export default function MobileApp({ data }: { data: MobileData }) {
       {/* Top bar */}
       <header className="sticky top-0 z-40 flex items-center justify-between px-4 h-14 shell-theme backdrop-blur-xl" style={{ opacity: 0.97 }}>
         <div className="flex items-center gap-2">
-          <div className="w-7 h-7 rounded-lg bg-[#FA3633] flex items-center justify-center">
-            <span className="text-white text-xs font-bold">i</span>
-          </div>
-          <span className={`text-sm font-bold ${txt}`}>iPED</span>
+          <img src="/logo-cropped.png" alt="อาซิ่ม" className="w-7 h-7 rounded-lg object-cover" />
+          <span className={`text-sm font-bold ${txt}`}>อาซิ่ม</span>
         </div>
         <button onClick={() => setTab("profile")}>
           {data.profile.lineProfilePic ? (
@@ -173,24 +174,18 @@ function HomeTab({ data, isDark, onScan }: { data: MobileData; isDark: boolean; 
         <ScanLine size={20} /> สแกนใบเสร็จ
       </button>
 
-      {/* Stats grid (4 cards like dashboard) */}
+      {/* Stats grid (same StatsCard as dashboard) */}
       <div className="grid grid-cols-2 gap-3">
-        <div className={`${card} border ${border} rounded-xl p-3`}>
-          <p className={`text-[10px] ${muted}`}>ยอดรวมเดือนนี้</p>
-          <p className={`text-base font-bold text-[#FA3633] mt-0.5`}>฿{fmt(data.totalExpense)}</p>
-        </div>
-        <div className={`${card} border ${border} rounded-xl p-3`}>
-          <p className={`text-[10px] ${muted}`}>จำนวนใบเสร็จ</p>
-          <p className={`text-base font-bold ${txt} mt-0.5`}>{data.stats.monthReceipts} ใบ</p>
-        </div>
-        <div className={`${card} border ${border} rounded-xl p-3`}>
-          <p className={`text-[10px] ${muted}`}>เฉลี่ย/วัน</p>
-          <p className={`text-base font-bold ${txt} mt-0.5`}>฿{fmt(avgPerDay)}</p>
-        </div>
-        <div className={`${card} border ${border} rounded-xl p-3`}>
-          <p className={`text-[10px] ${muted}`}>เฉลี่ย/ใบ</p>
-          <p className={`text-base font-bold ${txt} mt-0.5`}>฿{fmt(avgPerReceipt)}</p>
-        </div>
+        <StatsCard label="ยอดรวมเดือนนี้" value={`฿${fmt(data.totalExpense)}`} icon={<TrendingUp size={18} />} />
+        <StatsCard label="จำนวนใบเสร็จ" value={`${data.stats.monthReceipts} ใบ`} icon={<Receipt size={18} />} />
+        <StatsCard label="เฉลี่ย/วัน" value={`฿${fmt(avgPerDay)}`} icon={<Calculator size={18} />} />
+        <StatsCard label="เฉลี่ย/ใบ" value={`฿${fmt(avgPerReceipt)}`} icon={<FolderOpen size={18} />} />
+      </div>
+
+      {/* Goals (same GoalCard as dashboard) */}
+      <div className="grid grid-cols-2 gap-3">
+        <GoalCard storageKey="goal-expense" current={data.monthExpense} label="เป้ารายจ่าย" color="red" />
+        <GoalCard storageKey="goal-income" current={data.monthIncome} label="เป้ารายรับ" color="green" />
       </div>
 
       {/* Month summary: income / expense / net */}
@@ -713,7 +708,7 @@ function ReceiptRow({ r, isDark }: { r: any; isDark: boolean }) {
         <p className={`text-[10px] ${muted}`}>{r.date} {r.time && `· ${r.time}`}</p>
       </div>
       <div className="text-right shrink-0">
-        <p className={`text-sm font-bold ${isIncome ? "text-green-500" : txt}`}>{isIncome ? "+" : "-"}฿{fmt(r.amount)}</p>
+        <Baht value={r.amount} direction={r.direction} className="text-sm font-bold" />
         <p className={`text-[10px] ${muted}`}>{r.category}</p>
       </div>
     </div>
