@@ -264,6 +264,7 @@ export default function ReceiptsClient({ receipts: initialReceipts }: { receipts
       status: r.status,
       type: r.type,
       date: r.rawDate || r.date,
+      time: r.time || "",
       paymentMethod: r.paymentMethod || "",
       note: r.note || "",
       documentNumber: r.documentNumber || "",
@@ -350,6 +351,7 @@ export default function ReceiptsClient({ receipts: initialReceipts }: { receipts
       type: "receipt",
       paymentMethod: "cash",
       date: new Date().toISOString().slice(0, 10),
+      time: new Date().toLocaleTimeString("th-TH", { hour: "2-digit", minute: "2-digit", hour12: false }),
       note: "",
       documentNumber: "",
       merchantTaxId: "",
@@ -406,6 +408,7 @@ export default function ReceiptsClient({ receipts: initialReceipts }: { receipts
           type: editForm.type || "receipt",
           source: "web",
           paymentMethod: editForm.paymentMethod || "cash",
+          time: editForm.time || "",
           note: editForm.note || "",
           vat,
           wht,
@@ -476,18 +479,18 @@ export default function ReceiptsClient({ receipts: initialReceipts }: { receipts
     },
     { key: "amount", label: "จำนวนเงิน", align: "right", render: (r) => <Baht value={r.amount} className="font-semibold" /> },
     {
-      key: "createdAt",
-      label: "แนบเมื่อ",
+      key: "paidAt",
+      label: "วันที่จ่าย",
       render: (r) => {
-        const iso = r.createdAt || r.rawDate;
+        const iso = r.rawDate;
         if (!iso) return <span className={muted}>-</span>;
         const d = new Date(iso);
         const date = d.toLocaleDateString("th-TH", { day: "2-digit", month: "short" });
-        const time = d.toLocaleTimeString("th-TH", { hour: "2-digit", minute: "2-digit" });
+        const time = r.time || "";
         const isLine = r.source === "line";
         return (
           <div className="leading-tight">
-            <div className="text-sm whitespace-nowrap">{date} {time}</div>
+            <div className="text-sm whitespace-nowrap">{date}{time ? ` ${time}` : ""}</div>
             <div className={`flex items-center gap-1 mt-0.5 text-[11px] ${isLine ? "text-green-500" : "text-blue-400"}`}>
               {isLine ? <MessageCircle size={10} /> : <Globe size={10} />}
               {isLine ? "LINE" : "เว็บ"}
@@ -698,8 +701,9 @@ export default function ReceiptsClient({ receipts: initialReceipts }: { receipts
               <p className="text-xs font-semibold text-white/50">ข้อมูลใบเสร็จ</p>
               <div><label className={lbl}>ร้านค้า</label><input value={editForm.storeName || ""} onChange={(e) => setEditForm({ ...editForm, storeName: e.target.value })} className={inp} /></div>
               <div><label className={lbl}>หมายเหตุ</label><textarea rows={2} value={editForm.note || ""} onChange={(e) => setEditForm({ ...editForm, note: e.target.value })} placeholder="หมายเหตุ, รายละเอียดเพิ่มเติม..." className={`${inp} h-auto py-2`} /></div>
-              <div className="grid grid-cols-2 gap-3">
-                <div><label className={lbl}>วันที่</label><DatePicker value={editForm.date || ""} onChange={(v) => setEditForm({ ...editForm, date: v })} /></div>
+              <div className="grid grid-cols-3 gap-3">
+                <div><label className={lbl}>วันที่จ่าย</label><DatePicker value={editForm.date || ""} onChange={(v) => setEditForm({ ...editForm, date: v })} /></div>
+                <div><label className={lbl}>เวลา</label><input type="time" value={editForm.time || ""} onChange={(e) => setEditForm({ ...editForm, time: e.target.value })} className={inp} /></div>
                 <div><label className={lbl}>วิธีจ่าย</label>
                   <Select value={editForm.paymentMethod || "cash"} onChange={(v) => setEditForm({ ...editForm, paymentMethod: v })} options={PAYMENT_METHODS} />
                 </div>
