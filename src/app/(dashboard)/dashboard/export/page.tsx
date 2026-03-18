@@ -1,48 +1,114 @@
 "use client";
+
 import { useState } from "react";
 import { useTheme } from "@/contexts/ThemeContext";
-import { Download, FileText, Table, FileSpreadsheet, Trash2 } from "lucide-react";
+import { Download, FileText, Table, Loader2, CheckCircle } from "lucide-react";
 import PageHeader from "@/components/dashboard/PageHeader";
-import DataTable, { Column } from "@/components/dashboard/DataTable";
+import StatsCard from "@/components/dashboard/StatsCard";
 
-interface ExportEntry {
-  id: number; name: string; date: string; size: string; type: string;
-}
-
-const INIT: ExportEntry[] = [
-  { id: 1, name: "iPED-report-2569-03.pdf", date: "15/03/2569", size: "2.4 MB", type: "PDF" },
-  { id: 2, name: "receipts-march-2569.csv", date: "14/03/2569", size: "156 KB", type: "CSV" },
-  { id: 3, name: "expenses-q1-2569.xlsx", date: "10/03/2569", size: "890 KB", type: "Excel" },
-  { id: 4, name: "categories-summary.pdf", date: "01/03/2569", size: "1.1 MB", type: "PDF" },
-];
 export default function ExportPage() {
   const { isDark } = useTheme();
-  const [data, setData] = useState(INIT);
-  const c = isDark ? "bg-[rgba(255,255,255,0.04)]" : "bg-white";
-  const b = isDark ? "border-[rgba(255,255,255,0.06)]" : "border-gray-200";
-  const t = isDark ? "text-white" : "text-gray-900";
-  const s = isDark ? "text-white/50" : "text-gray-500";
-  const btn = isDark ? "bg-white/5 text-white/60 hover:bg-white/10" : "bg-gray-100 text-gray-600 hover:bg-gray-200";
-  const colors: Record<string, string> = { PDF: "text-red-500 bg-red-500/10", CSV: "text-green-500 bg-green-500/10", Excel: "text-blue-500 bg-blue-500/10" };
+  const [exporting, setExporting] = useState<string | null>(null);
+  const [done, setDone] = useState<string[]>([]);
 
-  const columns: Column<ExportEntry>[] = [
-    { key: "name", label: "ชื่อไฟล์", render: (r, isDark) => <span className={`font-medium ${isDark ? "text-white" : "text-gray-900"}`}>{r.name}</span> },
-    { key: "date", label: "วันที่" },
-    { key: "size", label: "ขนาด" },
-    { key: "type", label: "ประเภท", render: (r) => <span className={`px-2.5 py-1 rounded-lg text-xs font-medium ${colors[r.type]}`}>{r.type}</span> },
-    { key: "actions", label: "", render: () => <button className={`p-2 rounded-lg ${btn}`}><Download size={14}/></button> },
+  const card = isDark ? "bg-[rgba(255,255,255,0.04)]" : "bg-white";
+  const border = isDark ? "border-[rgba(255,255,255,0.06)]" : "border-gray-200";
+  const txt = isDark ? "text-white" : "text-gray-900";
+  const sub = isDark ? "text-white/50" : "text-gray-500";
+  const muted = isDark ? "text-white/30" : "text-gray-400";
+
+  const handleExport = async (type: string) => {
+    setExporting(type);
+    try {
+      const res = await fetch(`/api/receipts?limit=100`);
+      const data = await res.json();
+      const receipts = data.receipts || [];
+
+      if (type === "csv") {
+        const BOM = "\uFEFF";
+        let csv = BOM + "ร้านค้า,หมวดหมู่,จำนวนเงิน,VAT,WHT,สถานะ,ประเภท,วิธีจ่าย,วันที่,ที่มา\n";
+        receipts.forEach((r: any) => {
+          csv += `"${r.merchant || ""}","${r.category || ""}",${r.amount || 0},${r.vat || 0},${r.wht || 0},"${r.status || ""}","${r.type || ""}","${r.paymentMethod || ""}","${r.date ? new Date(r.date).toLocaleDateString("th-TH") : ""}","${r.source || ""}"\n`;
+        });
+        downloadFile(csv, `iPED-receipts-${dateStr()}.csv`, "text/csv;charset=utf-8;");
+      } else if (type === "pdf") {
+        const rows = receipts.map((r: any) =>
+          `<tr><td>${r.merchant || ""}</td><td>${r.category || ""}</td><td style="text-align:right">฿${(r.amount || 0).toLocaleString("th-TH", { minimumFractionDigits: 2 })}</td><td>${r.status || ""}</td><td>${r.date ? new Date(r.date).toLocaleDateString("th-TH") : ""}</td></tr>`
+        ).join("");
+        const total = receipts.reduce((s: number, r: any) => s + (r.amount || 0), 0);
+        const html = `<!DOCTYPE html><html><head><meta charset="utf-8"><title>iPED Report</title>
+<style>body{font-family:'Sarabun',sans-serif;max-width:900px;margin:0 auto;padding:30px;color:#111}
+h1{color:#FA3633;font-size:24px}table{width:100%;border-collapse:collapse;margin:20px 0}
+th{text-align:left;padding:8px 10px;background:#f8f8f8;font-size:13px;border-bottom:2px solid #eee}
+td{padding:6px 10px;border-bottom:1px solid #f0f0f0;font-size:12px}
+.stats{display:flex;gap:12px;margin:16px 0}.stat{flex:1;background:#f8f8f8;padding:14px;border-radius:10px;text-align:center}
+.stat b{font-size:20px;color:#FA3633;display:block}.stat span{font-size:11px;color:#888}
+@media print{body{padding:10px}}</style></head><body>
+<h1>iPED — รายงานสรุป</h1><p style="color:#888;margin-top:-8px">${new Date().toLocaleDateString("th-TH", { day: "numeric", month: "long", year: "numeric" })}</p>
+<div class="stats"><div class="stat"><b>${receipts.length}</b><span>รายการ</span></div><div class="stat"><b>฿${total.toLocaleString("th-TH", { minimumFractionDigits: 2 })}</b><span>ยอดรวม</span></div></div>
+<table><tr><th>ร้านค้า</th><th>หมวดหมู่</th><th style="text-align:right">จำนวนเงิน</th><th>สถานะ</th><th>วันที่</th></tr>${rows}</table>
+<p style="text-align:center;color:#ccc;font-size:10px;margin-top:30px">iPED — ระบบจัดการใบเสร็จอัจฉริยะ</p></body></html>`;
+        const w = window.open("", "_blank");
+        if (w) { w.document.write(html); w.document.close(); setTimeout(() => w.print(), 500); }
+      }
+      setDone((prev) => [...prev, type]);
+    } catch {} finally { setExporting(null); }
+  };
+
+  const dateStr = () => new Date().toISOString().slice(0, 10);
+  const downloadFile = (content: string, fileName: string, mimeType: string) => {
+    const blob = new Blob([content], { type: mimeType });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url; a.download = fileName; a.click();
+    URL.revokeObjectURL(url);
+  };
+
+  const exports = [
+    { type: "csv", label: "CSV (Excel)", desc: "ส่งออกข้อมูลทั้งหมดเป็นไฟล์ CSV เปิดใน Excel ได้", icon: Table, color: "#22c55e" },
+    { type: "pdf", label: "PDF (พิมพ์ได้)", desc: "รายงานสรุปพร้อมพิมพ์ หรือบันทึกเป็น PDF", icon: FileText, color: "#EF4444" },
   ];
 
   return (
     <div className="space-y-6">
-      <PageHeader title="ส่งออก PDF / CSV" description="ส่งออกข้อมูลในรูปแบบต่างๆ" onClear={() => setData([])} />
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-        {[{ label: "PDF Report", desc: "รายงานสรุปพร้อมกราฟ", icon: FileText, color: "text-red-500 bg-red-500/10" }, { label: "CSV Data", desc: "ข้อมูลดิบสำหรับ Excel", icon: Table, color: "text-green-500 bg-green-500/10" }, { label: "Excel (.xlsx)", desc: "ไฟล์ Excel พร้อมใช้", icon: FileSpreadsheet, color: "text-blue-500 bg-blue-500/10" }].map((e, i) => {
-          const Icon = e.icon;
-          return <div key={i} className={`${c} border ${b} rounded-2xl p-5 cursor-pointer transition-all ${isDark ? "hover:bg-white/5" : "hover:bg-gray-50"}`}><div className={`w-10 h-10 rounded-xl flex items-center justify-center ${e.color} mb-3`}><Icon size={20} /></div><p className={`font-semibold ${t}`}>{e.label}</p><p className={`text-xs ${s} mt-1`}>{e.desc}</p><button className="mt-3 px-4 py-2 rounded-xl text-xs font-medium bg-[#FA3633] text-white hover:bg-[#e0302d] transition-colors">ส่งออก</button></div>;
+      <PageHeader title="ส่งออกข้อมูล" description="ส่งออกใบเสร็จและรายงานในรูปแบบต่างๆ" />
+
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+        {exports.map((exp) => {
+          const Icon = exp.icon;
+          const isExporting = exporting === exp.type;
+          const isDone = done.includes(exp.type);
+          return (
+            <div key={exp.type} className={`${card} border ${border} rounded-2xl p-6`}>
+              <div className="flex items-center gap-3 mb-3">
+                <div className="w-10 h-10 rounded-xl flex items-center justify-center" style={{ backgroundColor: exp.color + "18" }}>
+                  <Icon size={20} style={{ color: exp.color }} />
+                </div>
+                <div>
+                  <p className={`text-sm font-semibold ${txt}`}>{exp.label}</p>
+                  <p className={`text-xs ${muted}`}>{exp.desc}</p>
+                </div>
+              </div>
+              <button onClick={() => handleExport(exp.type)} disabled={isExporting} className={`w-full py-2.5 rounded-xl text-sm font-medium transition-colors flex items-center justify-center gap-2 ${isDone ? "bg-green-500/10 text-green-500" : "bg-[#FA3633] text-white hover:bg-[#e0302d]"} disabled:opacity-50`}>
+                {isExporting ? <><Loader2 size={14} className="animate-spin" /> กำลังส่งออก...</> : isDone ? <><CheckCircle size={14} /> ส่งออกแล้ว</> : <><Download size={14} /> ส่งออก {exp.label}</>}
+              </button>
+            </div>
+          );
         })}
       </div>
-      <DataTable dateField="date" columns={columns} data={data} rowKey={(r) => r.id} />
+
+      <div className={`${card} border ${border} rounded-2xl p-6`}>
+        <h3 className={`font-semibold ${txt} mb-1`}>ข้อมูลที่ส่งออก</h3>
+        <p className={`text-xs ${sub} mb-4`}>ข้อมูลทั้งหมดจากใบเสร็จ / เอกสาร สูงสุด 100 รายการล่าสุด</p>
+        <div className="space-y-2">
+          {["ร้านค้า / ชื่อ", "หมวดหมู่", "จำนวนเงิน + VAT + WHT", "สถานะ + ประเภท", "วิธีจ่าย", "วันที่ + เวลา", "ที่มา (LINE / เว็บ)"].map((item) => (
+            <div key={item} className="flex items-center gap-2">
+              <CheckCircle size={12} className="text-green-500 shrink-0" />
+              <span className={`text-xs ${txt}`}>{item}</span>
+            </div>
+          ))}
+        </div>
+      </div>
     </div>
   );
 }
