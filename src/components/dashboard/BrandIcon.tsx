@@ -16,7 +16,7 @@ const SVG_BRANDS: Record<string, { slug: string; color?: string; darkColor?: str
   email: { slug: "gmail" },
 };
 
-// Thai bank logos from omise/banks-logo (local SVG files)
+// Thai bank & payment logos from css-finances (local SVG, white on transparent)
 const BANK_LOGOS: Record<string, { file: string; color: string }> = {
   "bank-scb": { file: "scb", color: "#4e2e7f" },
   "bank-kbank": { file: "kbank", color: "#138f2d" },
@@ -24,7 +24,7 @@ const BANK_LOGOS: Record<string, { file: string; color: string }> = {
   "bank-ktb": { file: "ktb", color: "#1ba5e1" },
   "bank-bay": { file: "bay", color: "#fec43b" },
   "bank-tmb": { file: "tmb", color: "#1279be" },
-  "bank-ttb": { file: "ttb", color: "#ecf0f1" },
+  "bank-ttb": { file: "ttb", color: "#0066b3" },
   "bank-gsb": { file: "gsb", color: "#eb198d" },
   "bank-ghb": { file: "ghb", color: "#f57d23" },
   "bank-baac": { file: "baac", color: "#4b9b1d" },
@@ -36,17 +36,17 @@ const BANK_LOGOS: Record<string, { file: string; color: string }> = {
   "bank-icbc": { file: "icbc", color: "#c50f1c" },
   "bank-tcrb": { file: "tcrb", color: "#0a4ab3" },
   "bank-ibank": { file: "ibank", color: "#184615" },
+  promptpay: { file: "pp", color: "#00427a" },
+  "ewallet-truemoney": { file: "tmn", color: "#FF6600" },
 };
 
-// Brands with colored circle + text (payments, e-wallets)
+// Brands with colored circle + text (no SVG available)
 const TEXT_BRANDS: Record<string, { bg: string; fg: string; label: string }> = {
   cash: { bg: "#22c55e", fg: "#fff", label: "฿" },
-  promptpay: { bg: "#1A3365", fg: "#fff", label: "PP" },
   transfer: { bg: "#6366f1", fg: "#fff", label: "โอน" },
   credit: { bg: "#818CF8", fg: "#fff", label: "CC" },
   debit: { bg: "#60A5FA", fg: "#fff", label: "DC" },
   cheque: { bg: "#78716c", fg: "#fff", label: "เช็ค" },
-  "ewallet-truemoney": { bg: "#FF6600", fg: "#fff", label: "TM" },
   "ewallet-rabbit": { bg: "#00B900", fg: "#fff", label: "R" },
   "ewallet-shopee": { bg: "#EE4D2D", fg: "#fff", label: "S" },
   web: { bg: "#3b82f6", fg: "#fff", label: "W" },
@@ -63,7 +63,7 @@ export default function BrandIcon({ brand, size = 20, className = "" }: BrandIco
     return <img src={src} alt={brand} width={size} height={size} className={`inline-block shrink-0 ${className}`} />;
   }
 
-  // Bank logo from local SVG (white logo on brand-colored background)
+  // Bank/payment logo from local SVG (white logo on brand-colored background)
   const bank = BANK_LOGOS[brand];
   if (bank) {
     const pad = Math.max(2, Math.round(size * 0.15));
@@ -84,7 +84,7 @@ export default function BrandIcon({ brand, size = 20, className = "" }: BrandIco
     );
   }
 
-  // Text icon (payments, e-wallets, fallback)
+  // Text icon fallback
   const info = TEXT_BRANDS[brand] || TEXT_BRANDS.other;
   const fontSize = size <= 16 ? 6 : size <= 20 ? 7 : size <= 24 ? 8 : 10;
 
