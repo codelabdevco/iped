@@ -44,8 +44,8 @@ export default async function ReceiptsPage() {
     ocrConfidence: r.ocrConfidence ?? null,
     imageUrl: r.imageUrl || "",
     driveUploaded: !!r.imageUrl,
-    items: Array.isArray(r.items) ? r.items : [],
-    itemCount: Array.isArray(r.items) ? r.items.length : 0,
+    items: Array.isArray(r.items) ? r.items : (Array.isArray(r.lineItems) ? r.lineItems.map((li: any) => ({ name: li.description, qty: li.quantity, price: li.unitPrice })) : []),
+    itemCount: Array.isArray(r.items) ? r.items.length : (Array.isArray(r.lineItems) ? r.lineItems.length : 0),
     updatedAt: r.updatedAt ? new Date(r.updatedAt).toISOString() : "",
     createdAt: r.createdAt ? new Date(r.createdAt).toISOString() : "",
   }));

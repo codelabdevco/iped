@@ -50,6 +50,7 @@ const statusStyle: Record<string, string> = {
   overdue: "bg-red-500/10 text-red-400",
   matched: "bg-cyan-500/10 text-cyan-400",
   cancelled: "bg-gray-500/10 text-gray-400",
+  duplicate: "bg-orange-500/10 text-orange-400",
 };
 const statusLabel: Record<string, string> = {
   pending: "รอตรวจสอบ",
@@ -59,9 +60,10 @@ const statusLabel: Record<string, string> = {
   overdue: "เกินกำหนด",
   matched: "จับคู่แล้ว",
   cancelled: "ยกเลิก",
+  duplicate: "สลิปซ้ำ",
 };
 const STATUS_DOTS: Record<string, string> = {
-  pending: "#eab308", confirmed: "#22c55e", edited: "#3b82f6", paid: "#10b981", overdue: "#ef4444", matched: "#06b6d4", cancelled: "#6b7280",
+  pending: "#eab308", confirmed: "#22c55e", edited: "#3b82f6", paid: "#10b981", overdue: "#ef4444", matched: "#06b6d4", cancelled: "#6b7280", duplicate: "#f97316",
 };
 const STATUS_OPTIONS = Object.entries(statusLabel).map(([k, v]) => ({ value: k, label: v, dot: STATUS_DOTS[k] }));
 const CATEGORY_COLORS: Record<string, string> = {

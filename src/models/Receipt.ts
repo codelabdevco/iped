@@ -15,13 +15,14 @@ export interface IReceipt extends Document {
   categoryIcon: string;
   subCategory?: string;
   paymentMethod?: "cash" | "transfer" | "credit" | "debit" | "other";
-  status: "pending" | "confirmed" | "edited" | "paid" | "overdue" | "matched" | "cancelled";
+  status: "pending" | "confirmed" | "edited" | "paid" | "overdue" | "matched" | "cancelled" | "duplicate";
   matchedWith?: string[];
   imageUrl?: string;
   imageHash?: string;
   note?: string;
   ocrConfidence?: number;
   ocrRawText?: string;
+  lineItems?: { description: string; quantity: number; unitPrice: number; amount: number }[];
   userId?: string;
   orgId?: string;
   accountType: "personal" | "business";
@@ -45,13 +46,14 @@ const ReceiptSchema = new Schema<IReceipt>(
     categoryIcon: { type: String, default: "📋" },
     subCategory: String,
     paymentMethod: { type: String, enum: ["cash", "transfer", "credit", "debit", "other"] },
-    status: { type: String, enum: ["pending", "confirmed", "edited", "paid", "overdue", "matched", "cancelled"], default: "pending" },
+    status: { type: String, enum: ["pending", "confirmed", "edited", "paid", "overdue", "matched", "cancelled", "duplicate"], default: "pending" },
     matchedWith: [String],
     imageUrl: String,
     imageHash: String,
     note: String,
     ocrConfidence: Number,
     ocrRawText: String,
+    lineItems: [{ description: String, quantity: Number, unitPrice: Number, amount: Number }],
     userId: String,
     orgId: String,
     accountType: { type: String, enum: ["personal", "business"], default: "personal" },
