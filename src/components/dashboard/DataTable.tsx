@@ -1,8 +1,8 @@
 "use client";
 
-import { useState, useMemo, useRef, Fragment } from "react";
+import { useState, useMemo, useRef, useEffect, Fragment } from "react";
 import { useTheme } from "@/contexts/ThemeContext";
-import { ChevronLeft, ChevronRight, ChevronsLeft, ChevronsRight, Calendar, ChevronDown } from "lucide-react";
+import { ChevronLeft, ChevronRight, ChevronsLeft, ChevronsRight, Calendar, ChevronDown, Settings2, Check, RotateCcw } from "lucide-react";
 import DatePicker from "@/components/dashboard/DatePicker";
 
 export interface Column<T> {
@@ -10,6 +10,10 @@ export interface Column<T> {
   label: string;
   align?: "left" | "right" | "center";
   render?: (row: T, isDark: boolean) => React.ReactNode;
+  /** default true — set false to hide by default */
+  defaultVisible?: boolean;
+  /** set false to prevent hiding (e.g. actions column) */
+  configurable?: boolean;
 }
 
 interface DataTableProps<T> {
@@ -20,6 +24,8 @@ interface DataTableProps<T> {
   dateField?: string;
   /** Render expandable content below a row when clicked */
   expandRender?: (row: T, isDark: boolean) => React.ReactNode;
+  /** localStorage key for persisting column visibility */
+  columnConfigKey?: string;
 }
 
 const DATE_PRESETS = [
@@ -62,7 +68,7 @@ function getPresetRange(key: string): { from: Date; to: Date } | null {
   }
 }
 
-export default function DataTable<T>({ columns, data, rowKey, emptyText = "ไม่มีข้อมูล", dateField, expandRender }: DataTableProps<T>) {
+export default function DataTable<T>({ columns, data, rowKey, emptyText = "ไม่มีข้อมูล", dateField, expandRender, columnConfigKey }: DataTableProps<T>) {
   const { isDark } = useTheme();
   const [perPage, setPerPage] = useState(10);
   const [page, setPage] = useState(1);
@@ -73,7 +79,49 @@ export default function DataTable<T>({ columns, data, rowKey, emptyText = "ไ�
   const [colOrder, setColOrder] = useState<number[]>(() => columns.map((_, i) => i));
   const dragFrom = useRef<number | null>(null);
 
-  const orderedColumns = colOrder.map((i) => columns[i]).filter(Boolean);
+  // Column visibility
+  const defaultVisibility = useMemo(() => {
+    const v: Record<string, boolean> = {};
+    columns.forEach((c) => { v[c.key] = c.defaultVisible !== false; });
+    return v;
+  }, [columns]);
+
+  const [colVisibility, setColVisibility] = useState<Record<string, boolean>>(() => {
+    if (columnConfigKey && typeof window !== "undefined") {
+      try {
+        const saved = localStorage.getItem(`dt-cols-${columnConfigKey}`);
+        if (saved) return JSON.parse(saved);
+      } catch {}
+    }
+    return defaultVisibility;
+  });
+  const [showColConfig, setShowColConfig] = useState(false);
+  const colConfigRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    if (columnConfigKey) {
+      localStorage.setItem(`dt-cols-${columnConfigKey}`, JSON.stringify(colVisibility));
+    }
+  }, [colVisibility, columnConfigKey]);
+
+  // Close dropdown on outside click
+  useEffect(() => {
+    if (!showColConfig) return;
+    const handler = (e: MouseEvent) => {
+      if (colConfigRef.current && !colConfigRef.current.contains(e.target as Node)) setShowColConfig(false);
+    };
+    document.addEventListener("mousedown", handler);
+    return () => document.removeEventListener("mousedown", handler);
+  }, [showColConfig]);
+
+  const toggleCol = (key: string) => {
+    setColVisibility((prev) => ({ ...prev, [key]: !prev[key] }));
+  };
+
+  const resetCols = () => setColVisibility(defaultVisibility);
+
+  const visibleColumns = colOrder.map((i) => columns[i]).filter((c) => c && colVisibility[c.key] !== false);
+  const orderedColumns = visibleColumns;
 
   const onDragStart = (idx: number) => { dragFrom.current = idx; };
   const onDragOver = (e: React.DragEvent) => { e.preventDefault(); };
@@ -133,9 +181,52 @@ export default function DataTable<T>({ columns, data, rowKey, emptyText = "ไ�
     setExpandedRow((prev) => (prev === key ? null : key));
   };
 
+  const configurableColumns = columns.filter((c) => c.configurable !== false && c.label);
+  const visibleCount = configurableColumns.filter((c) => colVisibility[c.key] !== false).length;
+
+  const columnConfigButton = columnConfigKey ? (
+    <div className="relative" ref={colConfigRef}>
+      <button
+        onClick={() => setShowColConfig(!showColConfig)}
+        className={`flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-medium transition-all ${showColConfig ? "bg-[#FA3633] text-white shadow-sm shadow-[#FA3633]/25" : isDark ? "bg-white/5 text-white/50 hover:bg-white/10" : "bg-gray-100 text-gray-500 hover:bg-gray-200"}`}
+      >
+        <Settings2 size={13} />
+        <span>คอลัมน์ ({visibleCount}/{configurableColumns.length})</span>
+      </button>
+      {showColConfig && (
+        <div className={`absolute top-full right-0 mt-2 w-56 rounded-xl border shadow-xl z-50 ${isDark ? "bg-[#1a1a1a] border-white/10" : "bg-white border-gray-200"}`}>
+          <div className={`px-3 py-2.5 border-b ${border} flex items-center justify-between`}>
+            <span className={`text-xs font-semibold ${isDark ? "text-white/70" : "text-gray-700"}`}>แสดงคอลัมน์</span>
+            <button onClick={resetCols} className={`flex items-center gap-1 px-2 py-1 rounded-lg text-[10px] font-medium transition-colors ${isDark ? "text-white/40 hover:bg-white/5 hover:text-white/60" : "text-gray-400 hover:bg-gray-100 hover:text-gray-600"}`}>
+              <RotateCcw size={10} />
+              รีเซ็ต
+            </button>
+          </div>
+          <div className="p-1.5 max-h-72 overflow-y-auto">
+            {configurableColumns.map((col) => {
+              const isOn = colVisibility[col.key] !== false;
+              return (
+                <button
+                  key={col.key}
+                  onClick={() => toggleCol(col.key)}
+                  className={`w-full flex items-center gap-2.5 px-2.5 py-2 rounded-lg text-left text-xs transition-colors ${isDark ? "hover:bg-white/5" : "hover:bg-gray-50"}`}
+                >
+                  <div className={`w-4 h-4 rounded flex items-center justify-center flex-shrink-0 transition-colors ${isOn ? "bg-[#FA3633] text-white" : isDark ? "bg-white/10 text-transparent" : "bg-gray-200 text-transparent"}`}>
+                    <Check size={10} strokeWidth={3} />
+                  </div>
+                  <span className={isOn ? (isDark ? "text-white" : "text-gray-900") : sub}>{col.label}</span>
+                </button>
+              );
+            })}
+          </div>
+        </div>
+      )}
+    </div>
+  ) : null;
+
   return (
     <div className={`${card} border ${border} rounded-2xl overflow-hidden`}>
-      {/* Date filter */}
+      {/* Date filter + column config */}
       {dateField && (
         <div className={`px-5 py-3 flex items-center gap-3 flex-wrap border-b ${border}`}>
           <Calendar size={16} className={sub} />
@@ -153,6 +244,17 @@ export default function DataTable<T>({ columns, data, rowKey, emptyText = "ไ�
               <DatePicker value={customTo} onChange={(v) => { setCustomTo(v); setPage(1); }} className="w-40" />
             </div>
           )}
+          {/* Column config inside date bar */}
+          {columnConfigKey && <>
+            <div className={`w-px h-5 ml-auto ${isDark ? "bg-white/10" : "bg-gray-200"}`} />
+            {columnConfigButton}
+          </>}
+        </div>
+      )}
+      {/* Column config standalone (no dateField) */}
+      {!dateField && columnConfigKey && (
+        <div className={`px-5 py-3 flex items-center border-b ${border}`}>
+          {columnConfigButton}
         </div>
       )}
 

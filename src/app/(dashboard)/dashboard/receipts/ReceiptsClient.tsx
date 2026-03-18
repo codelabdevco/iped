@@ -30,6 +30,14 @@ interface ReceiptRow {
   imageUrl?: string;
   driveUploaded?: boolean;
   items?: LineItem[];
+  paymentMethod?: string;
+  note?: string;
+  vat?: number;
+  wht?: number;
+  documentNumber?: string;
+  merchantTaxId?: string;
+  ocrConfidence?: number | null;
+  itemCount?: number;
 }
 
 const statusStyle: Record<string, string> = {
@@ -199,6 +207,9 @@ export default function ReceiptsClient({ receipts: initialReceipts }: { receipts
     setEditForm({});
   };
 
+  const paymentLabel: Record<string, string> = {};
+  PAYMENT_METHODS.forEach((p) => { paymentLabel[p.value] = p.label; });
+
   const columns: Column<ReceiptRow>[] = useMemo(() => [
     {
       key: "image",
@@ -219,7 +230,64 @@ export default function ReceiptsClient({ receipts: initialReceipts }: { receipts
     ) },
     { key: "amount", label: "จำนวนเงิน", align: "right", render: (r) => <span className="font-semibold">฿{r.amount.toLocaleString()}</span> },
     { key: "date", label: "วันที่" },
-    { key: "time", label: "เวลา", render: (r) => <span className={muted}>{r.time || "-"}</span> },
+    { key: "time", label: "เวลา", render: (r) => <span className={muted}>{r.time || "-"}</span>, defaultVisible: false },
+    {
+      key: "paymentMethod",
+      label: "วิธีจ่าย",
+      defaultVisible: false,
+      render: (r) => <span>{paymentLabel[r.paymentMethod || ""] || r.paymentMethod || "-"}</span>,
+    },
+    {
+      key: "note",
+      label: "หมายเหตุ",
+      defaultVisible: false,
+      render: (r) => <span className={`truncate max-w-[150px] inline-block ${muted}`}>{r.note || "-"}</span>,
+    },
+    {
+      key: "vat",
+      label: "VAT",
+      align: "right",
+      defaultVisible: false,
+      render: (r) => <span className={r.vat ? "text-blue-400" : muted}>{r.vat ? `฿${r.vat.toLocaleString()}` : "-"}</span>,
+    },
+    {
+      key: "wht",
+      label: "WHT",
+      align: "right",
+      defaultVisible: false,
+      render: (r) => <span className={r.wht ? "text-orange-400" : muted}>{r.wht ? `฿${r.wht.toLocaleString()}` : "-"}</span>,
+    },
+    {
+      key: "documentNumber",
+      label: "เลขที่เอกสาร",
+      defaultVisible: false,
+      render: (r) => <span className={muted}>{r.documentNumber || "-"}</span>,
+    },
+    {
+      key: "merchantTaxId",
+      label: "เลขผู้เสียภาษี",
+      defaultVisible: false,
+      render: (r) => <span className={muted}>{r.merchantTaxId || "-"}</span>,
+    },
+    {
+      key: "ocrConfidence",
+      label: "OCR %",
+      align: "center",
+      defaultVisible: false,
+      render: (r) => {
+        if (r.ocrConfidence == null) return <span className={muted}>-</span>;
+        const pct = Math.round(r.ocrConfidence * 100);
+        const color = pct >= 90 ? "text-green-400" : pct >= 70 ? "text-yellow-400" : "text-red-400";
+        return <span className={`text-xs font-medium ${color}`}>{pct}%</span>;
+      },
+    },
+    {
+      key: "itemCount",
+      label: "จำนวนรายการ",
+      align: "center",
+      defaultVisible: false,
+      render: (r) => <span className={muted}>{r.itemCount || "-"}</span>,
+    },
     {
       key: "drive",
       label: "Drive",
@@ -241,6 +309,7 @@ export default function ReceiptsClient({ receipts: initialReceipts }: { receipts
     {
       key: "actions",
       label: "",
+      configurable: false,
       render: (r, dark) => (
         <div className="flex items-center gap-1" onClick={(e) => e.stopPropagation()}>
           <button onClick={() => handleEdit(r)} className={`p-2 rounded-lg transition-colors ${dark ? "hover:bg-white/5 text-white/40 hover:text-blue-400" : "hover:bg-gray-100 text-gray-400 hover:text-blue-500"}`} title="แก้ไข">
@@ -485,7 +554,7 @@ export default function ReceiptsClient({ receipts: initialReceipts }: { receipts
         </div>
       </div>
 
-      <DataTable dateField="rawDate" columns={columns} data={filtered} rowKey={(r) => r._id} expandRender={expandRender} />
+      <DataTable dateField="rawDate" columns={columns} data={filtered} rowKey={(r) => r._id} expandRender={expandRender} columnConfigKey="receipts" />
     </div>
   );
 }
