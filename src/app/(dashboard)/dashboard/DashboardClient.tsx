@@ -19,6 +19,7 @@ interface DashboardData {
   categoryCount: number;
   monthlyData: { month: string; categories: Record<string, number>; total: number }[];
   categoryData: Record<string, number>;
+  paymentData?: Record<string, number>;
   recentReceipts: {
     _id: string; storeName: string; type: string; category: string;
     amount: number; date: string; status: string; time?: string; description?: string;
@@ -437,6 +438,50 @@ export default function DashboardClient({ data: initialData }: { data: Dashboard
           <GoalsSection categoryData={data.categoryData} />
         </div>
       </div>
+
+      {/* Payment methods */}
+      {data.paymentData && Object.keys(data.paymentData).length > 0 && (() => {
+        const PM_INFO: Record<string, { label: string; icon: string; color: string }> = {
+          cash: { label: "เงินสด", icon: "💵", color: "#34D399" },
+          promptpay: { label: "พร้อมเพย์", icon: "📱", color: "#6366f1" },
+          transfer: { label: "โอนธนาคาร", icon: "🏦", color: "#F472B6" },
+          credit: { label: "บัตรเครดิต", icon: "💳", color: "#818CF8" },
+          debit: { label: "บัตรเดบิต", icon: "💳", color: "#60A5FA" },
+          "bank-scb": { label: "SCB", icon: "🟣", color: "#4C2B91" },
+          "bank-kbank": { label: "KBank", icon: "🟢", color: "#138F2D" },
+          "bank-bbl": { label: "BBL", icon: "🔵", color: "#1E3A8A" },
+          "bank-ktb": { label: "KTB", icon: "🔵", color: "#0EA5E9" },
+          "bank-bay": { label: "BAY", icon: "🟡", color: "#EAB308" },
+          "bank-tmb": { label: "TTB", icon: "🟠", color: "#F97316" },
+          other: { label: "อื่นๆ", icon: "📋", color: "#94A3B8" },
+        };
+        const pmEntries = Object.entries(data.paymentData).sort((a, b) => b[1] - a[1]);
+        const pmMax = Math.max(...pmEntries.map(([, v]) => v), 1);
+        return (
+          <div className={`${card} border border-[var(--color-border)] rounded-2xl p-5`}>
+            <div className="flex items-center justify-between mb-4">
+              <h3 className={`font-semibold ${txt}`}>วิธีจ่าย</h3>
+              <a href="/dashboard/payments" className="text-sm text-[#FA3633] hover:underline">ดูทั้งหมด &rarr;</a>
+            </div>
+            <div className="space-y-2.5">
+              {pmEntries.map(([method, amount]) => {
+                const info = PM_INFO[method] || { label: method, icon: "📋", color: "#94A3B8" };
+                const pct = (amount / pmMax) * 100;
+                return (
+                  <div key={method} className="flex items-center gap-3">
+                    <span className="text-base w-6 text-center">{info.icon}</span>
+                    <span className={`text-xs w-20 truncate ${txtSub}`}>{info.label}</span>
+                    <div className="flex-1 h-1.5 rounded-full" style={{ backgroundColor: isDark ? "rgba(255,255,255,0.06)" : "rgba(0,0,0,0.06)" }}>
+                      <div className="h-full rounded-full" style={{ width: `${pct}%`, backgroundColor: info.color, opacity: 0.7 }} />
+                    </div>
+                    <span className={`text-xs font-semibold w-24 text-right ${txt}`}>฿{amount.toLocaleString("th-TH", { minimumFractionDigits: 2 })}</span>
+                  </div>
+                );
+              })}
+            </div>
+          </div>
+        );
+      })()}
 
       {/* Recent receipts */}
       <div>

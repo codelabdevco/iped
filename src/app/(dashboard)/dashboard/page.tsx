@@ -86,6 +86,13 @@ async function getDashboardData(userId: string) {
       type: r.type || "receipt",
     }));
 
+  // Payment method breakdown
+  const paymentMap: Record<string, number> = {};
+  [...currentMonthReceipts, ...lastMonthReceipts, ...recentReceipts].forEach((r) => {
+    const pm = r.paymentMethod || "other";
+    paymentMap[pm] = (paymentMap[pm] || 0) + (r.amount || 0);
+  });
+
   return {
     totalAmount: totalThisMonth,
     changePercent,
@@ -98,6 +105,7 @@ async function getDashboardData(userId: string) {
     recentReceipts: serialize(recentReceipts),
     categoryData: allCategoryMap,
     monthlyData: monthlyTrend,
+    paymentData: paymentMap,
   };
 }
 
