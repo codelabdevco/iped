@@ -12,6 +12,7 @@ import Select from "@/components/dashboard/Select";
 import DatePicker from "@/components/dashboard/DatePicker";
 import TimePicker from "@/components/dashboard/TimePicker";
 import Baht from "@/components/dashboard/Baht";
+import DeleteConfirmModal from "@/components/dashboard/DeleteConfirmModal";
 
 interface SavingsRow {
   _id: string;
@@ -133,9 +134,13 @@ export default function SavingsClient({ savings: initial }: { savings: SavingsRo
     setIsAdding(true);
   };
 
-  const handleDelete = useCallback((id: string) => {
-    if (confirm("ลบรายการนี้?")) setSavings((prev) => prev.filter((r) => r._id !== id));
-  }, []);
+  const [deleteTarget, setDeleteTarget] = useState<string | null>(null);
+  const handleDelete = useCallback((id: string) => { setDeleteTarget(id); }, []);
+  const confirmDelete = useCallback(async () => {
+    if (!deleteTarget) return;
+    try { await fetch(`/api/receipts/${deleteTarget}`, { method: "DELETE" }); setSavings((prev) => prev.filter((r) => r._id !== deleteTarget)); } catch {}
+    setDeleteTarget(null); router.refresh();
+  }, [deleteTarget, router]);
 
   const handleSave = async () => {
     if (!form.storeName || !form.amount) return;
@@ -245,6 +250,7 @@ export default function SavingsClient({ savings: initial }: { savings: SavingsRo
 
       <GoalCard storageKey="goal-savings" current={thisMonth} label="เป้าออม" color="pink" />
       <DataTable columns={columns} data={savings} rowKey={(r) => r._id} dateField="rawDate" columnConfigKey="savings" />
+      <DeleteConfirmModal open={!!deleteTarget} receiptId={deleteTarget} onConfirm={confirmDelete} onCancel={() => setDeleteTarget(null)} />
       {lightboxUrl && (
         <div className="fixed inset-0 z-[60] bg-black/80 flex items-center justify-center" onClick={() => setLightboxUrl(null)}>
           <button onClick={() => setLightboxUrl(null)} className="absolute top-4 right-4 w-10 h-10 rounded-full bg-black/60 text-white flex items-center justify-center hover:bg-black/80 z-10"><X size={20} /></button>

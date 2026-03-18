@@ -61,6 +61,7 @@ async function ProfileData() {
     lineProfilePic: user.lineProfilePic || "",
     email: user.email || "",
     phone: user.phone || "",
+    age: user.age || 0,
     occupation: user.occupation || "",
     gender: user.gender || "",
     accountType: user.accountType || "personal",
@@ -69,9 +70,11 @@ async function ProfileData() {
     goals: user.goals || [],
     googleEmail: user.googleEmail || "",
     googleConnectedAt: user.googleConnectedAt ? new Date(user.googleConnectedAt).toISOString() : "",
+    lastLogin: user.lastLogin ? new Date(user.lastLogin).toISOString() : "",
     createdAt: user.createdAt ? new Date(user.createdAt).toISOString() : "",
     status: user.status || "active",
     loginCount: user.loginCount || 0,
+    onboardingComplete: user.onboardingComplete || false,
     settings: {
       dailySummary: user.settings?.notifications?.dailySummary ?? true,
       dailySummaryTime: user.settings?.notifications?.dailySummaryTime || "20:00",
@@ -87,6 +90,7 @@ async function ProfileData() {
     monthIncome: monthIncome[0]?.total || 0,
     streak,
     memberSince: user.createdAt ? new Date(user.createdAt).toLocaleDateString("th-TH", { day: "numeric", month: "long", year: "numeric" }) : "",
+    lastLogin: user.lastLogin ? new Date(user.lastLogin).toLocaleDateString("th-TH", { day: "numeric", month: "short", year: "numeric", hour: "2-digit", minute: "2-digit" }) : "",
   };
 
   return <ProfileClient profile={profile} stats={stats} />;

@@ -13,6 +13,7 @@ import Baht from "@/components/dashboard/Baht";
 import PageHeader from "@/components/dashboard/PageHeader";
 import StatsCard from "@/components/dashboard/StatsCard";
 import DataTable, { Column } from "@/components/dashboard/DataTable";
+import DeleteConfirmModal from "@/components/dashboard/DeleteConfirmModal";
 
 interface LineItem {
   name: string;
@@ -197,6 +198,7 @@ export default function ReceiptsClient({ receipts: initialReceipts }: { receipts
   const [selected, setSelected] = useState<string[]>([]);
   const [isAdding, setIsAdding] = useState(false);
   const [saving, setSaving] = useState(false);
+  const [deleteTarget, setDeleteTarget] = useState<{ id: string | null; ids?: string[] } | null>(null);
 
   const filtered = useMemo(() => {
     return receipts.filter((r) => {
@@ -222,24 +224,26 @@ export default function ReceiptsClient({ receipts: initialReceipts }: { receipts
     ? "bg-[rgba(255,255,255,0.03)] border-[rgba(255,255,255,0.06)] text-white placeholder-white/30"
     : "bg-gray-50 border-gray-200 text-gray-900 placeholder-gray-400";
 
-  const handleDelete = useCallback(async (id: string) => {
-    if (!confirm("ต้องการลบใบเสร็จนี้?")) return;
-    try {
-      await fetch(`/api/receipts/${id}`, { method: "DELETE" });
-      setReceipts((prev) => prev.filter((r) => r._id !== id));
-      setSelected((prev) => prev.filter((s) => s !== id));
-    } catch {}
+  const handleDelete = useCallback((id: string) => {
+    setDeleteTarget({ id });
   }, []);
 
-  const handleBulkDelete = useCallback(async () => {
+  const handleBulkDelete = useCallback(() => {
     if (selected.length === 0) return;
-    if (!confirm(`ต้องการลบ ${selected.length} รายการ?`)) return;
-    try {
-      await Promise.all(selected.map((id) => fetch(`/api/receipts/${id}`, { method: "DELETE" })));
-      setReceipts((prev) => prev.filter((r) => !selected.includes(r._id)));
-      setSelected([]);
-    } catch {}
+    setDeleteTarget({ id: null, ids: selected });
   }, [selected]);
+
+  const confirmDelete = useCallback(async () => {
+    const ids = deleteTarget?.ids || (deleteTarget?.id ? [deleteTarget.id] : []);
+    if (ids.length === 0) return;
+    try {
+      await Promise.all(ids.map((id) => fetch(`/api/receipts/${id}`, { method: "DELETE" })));
+      setReceipts((prev) => prev.filter((r) => !ids.includes(r._id)));
+      setSelected((prev) => prev.filter((s) => !ids.includes(s)));
+    } catch {}
+    setDeleteTarget(null);
+    router.refresh();
+  }, [deleteTarget, router]);
 
   const handleEdit = (r: ReceiptRow) => {
     setEditingId(r._id);
@@ -978,6 +982,14 @@ export default function ReceiptsClient({ receipts: initialReceipts }: { receipts
       )}
 
       <DataTable dateField="rawDate" columns={columns} data={filtered} rowKey={(r) => r._id} expandRender={expandRender} columnConfigKey="receipts" />
+
+      <DeleteConfirmModal
+        open={!!deleteTarget}
+        receiptId={deleteTarget?.id || null}
+        receiptIds={deleteTarget?.ids}
+        onConfirm={confirmDelete}
+        onCancel={() => setDeleteTarget(null)}
+      />
     </div>
   );
 }

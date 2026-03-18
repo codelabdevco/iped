@@ -13,6 +13,7 @@ interface ProfileProps {
     lineProfilePic: string;
     email: string;
     phone: string;
+    age: number;
     occupation: string;
     gender: string;
     accountType: string;
@@ -21,9 +22,11 @@ interface ProfileProps {
     goals: string[];
     googleEmail: string;
     googleConnectedAt: string;
+    lastLogin: string;
     createdAt: string;
     status: string;
     loginCount: number;
+    onboardingComplete: boolean;
     settings: {
       dailySummary: boolean;
       dailySummaryTime: string;
@@ -38,6 +41,7 @@ interface ProfileProps {
     monthIncome: number;
     streak: number;
     memberSince: string;
+    lastLogin: string;
   };
 }
 
@@ -86,20 +90,22 @@ export default function ProfileClient({ profile, stats }: ProfileProps) {
           <div className="flex-1 min-w-0">
             <h1 className={`text-lg font-bold ${txt} truncate`}>{profile.lineDisplayName || profile.name}</h1>
             <p className={`text-sm ${sub}`}>
-              {profile.accountType === "business" ? `🏢 ${profile.businessName || "ธุรกิจ"}` : "👤 บัญชีส่วนตัว"}
+              {profile.occupation || (profile.accountType === "business" ? profile.businessName || "ธุรกิจ" : "บัญชีส่วนตัว")}
             </p>
-            <p className={`text-xs ${muted} mt-1`}>สมาชิกตั้งแต่ {stats.memberSince}</p>
+            {profile.gender && profile.age > 0 && (
+              <p className={`text-xs ${muted} mt-0.5`}>{profile.gender} · {profile.age} ปี</p>
+            )}
 
             {/* Connection badges */}
             <div className="flex items-center gap-2 mt-2">
               <div className="flex items-center gap-1 px-2 py-0.5 rounded-full bg-green-500/10">
                 <BrandIcon brand="line" size={12} />
-                <span className="text-[10px] text-green-500 font-medium">เชื่อมต่อ</span>
+                <span className="text-[10px] text-green-500 font-medium">LINE</span>
               </div>
               {profile.googleEmail && (
                 <div className="flex items-center gap-1 px-2 py-0.5 rounded-full bg-blue-500/10">
                   <BrandIcon brand="gmail" size={12} />
-                  <span className="text-[10px] text-blue-500 font-medium">เชื่อมต่อ</span>
+                  <span className="text-[10px] text-blue-500 font-medium">{profile.googleEmail}</span>
                 </div>
               )}
             </div>

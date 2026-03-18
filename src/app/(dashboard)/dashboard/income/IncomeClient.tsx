@@ -12,6 +12,7 @@ import Select from "@/components/dashboard/Select";
 import DatePicker from "@/components/dashboard/DatePicker";
 import TimePicker from "@/components/dashboard/TimePicker";
 import Baht from "@/components/dashboard/Baht";
+import DeleteConfirmModal from "@/components/dashboard/DeleteConfirmModal";
 
 interface IncomeRow {
   _id: string; storeName: string; amount: number; category: string;
@@ -87,7 +88,13 @@ export default function IncomeClient({ incomes: initial }: { incomes: IncomeRow[
 
   const handleAdd = () => { setEditingId(null); setForm({ storeName: "", amount: "", category: "เงินเดือน", date: new Date().toISOString().slice(0, 10), time: new Date().toLocaleTimeString("th-TH", { hour: "2-digit", minute: "2-digit", hour12: false }), paymentMethod: "transfer", note: "" }); setIsAdding(true); };
   const handleEdit = (r: IncomeRow) => { setEditingId(r._id); setForm({ storeName: r.storeName, amount: String(r.amount), category: r.category, date: r.rawDate || "", time: r.time || "", paymentMethod: r.paymentMethod || "transfer", note: r.note || "" }); setIsAdding(true); };
-  const handleDelete = useCallback((id: string) => { if (confirm("ลบรายการนี้?")) setIncomes((prev) => prev.filter((r) => r._id !== id)); }, []);
+  const [deleteTarget, setDeleteTarget] = useState<string | null>(null);
+  const handleDelete = useCallback((id: string) => { setDeleteTarget(id); }, []);
+  const confirmDelete = useCallback(async () => {
+    if (!deleteTarget) return;
+    try { await fetch(`/api/receipts/${deleteTarget}`, { method: "DELETE" }); setIncomes((prev) => prev.filter((r) => r._id !== deleteTarget)); } catch {}
+    setDeleteTarget(null); router.refresh();
+  }, [deleteTarget, router]);
 
   const handleSave = async () => {
     if (!form.storeName || !form.amount) return;
@@ -170,6 +177,7 @@ export default function IncomeClient({ incomes: initial }: { incomes: IncomeRow[
       </div>
       <GoalCard storageKey="goal-income" current={thisMonth} label="เป้ารายรับ" color="green" />
       <DataTable columns={columns} data={incomes} rowKey={(r) => r._id} dateField="rawDate" columnConfigKey="income" />
+      <DeleteConfirmModal open={!!deleteTarget} receiptId={deleteTarget} onConfirm={confirmDelete} onCancel={() => setDeleteTarget(null)} />
       {lightboxUrl && (
         <div className="fixed inset-0 z-[60] bg-black/80 flex items-center justify-center" onClick={() => setLightboxUrl(null)}>
           <button onClick={() => setLightboxUrl(null)} className="absolute top-4 right-4 w-10 h-10 rounded-full bg-black/60 text-white flex items-center justify-center hover:bg-black/80 z-10"><X size={20} /></button>

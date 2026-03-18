@@ -7,6 +7,7 @@ import { Copy, Trash2, CheckCircle, AlertTriangle, Shield, ImageIcon, MessageCir
 import PageHeader from "@/components/dashboard/PageHeader";
 import StatsCard from "@/components/dashboard/StatsCard";
 import BrandIcon from "@/components/dashboard/BrandIcon";
+import DeleteConfirmModal from "@/components/dashboard/DeleteConfirmModal";
 
 interface DupDoc {
   _id: string; merchant: string; amount: number; date: string;
@@ -23,6 +24,7 @@ export default function DuplicatesClient({ groups: initial }: { groups: DupGroup
   const [groups, setGroups] = useState(initial);
   const [resolved, setResolved] = useState<Set<string>>(new Set());
   const [acting, setActing] = useState<string | null>(null);
+  const [deleteTarget, setDeleteTarget] = useState<{ group: DupGroup; mode: "first" | "all" } | null>(null);
 
   const card = isDark ? "bg-[rgba(255,255,255,0.04)]" : "bg-white";
   const border = isDark ? "border-[rgba(255,255,255,0.06)]" : "border-gray-200";
@@ -34,24 +36,12 @@ export default function DuplicatesClient({ groups: initial }: { groups: DupGroup
   const resolvedCount = resolved.size;
   const totalDupDocs = groups.reduce((s, g) => s + g.docs.length, 0);
 
-  // Keep one, delete others
-  const handleKeepFirst = async (group: DupGroup) => {
-    setActing(group.id);
-    const toDelete = group.docs.slice(1);
-    for (const doc of toDelete) {
-      try {
-        await fetch(`/api/receipts/${doc._id}`, {
-          method: "PUT",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ status: "cancelled" }),
-        });
-      } catch {}
-    }
-    setResolved((prev) => new Set([...prev, group.id]));
-    setActing(null);
+  // Keep one, delete others — show confirm first
+  const handleKeepFirst = (group: DupGroup) => {
+    setDeleteTarget({ group, mode: "first" });
   };
 
-  // Keep all — mark as not duplicate
+  // Keep all — mark as not duplicate (no confirm needed)
   const handleKeepAll = async (group: DupGroup) => {
     setActing(group.id);
     for (const doc of group.docs) {
@@ -67,23 +57,28 @@ export default function DuplicatesClient({ groups: initial }: { groups: DupGroup
     }
     setResolved((prev) => new Set([...prev, group.id]));
     setActing(null);
+    router.refresh();
   };
 
-  // Delete all duplicates
-  const handleDeleteAll = async (group: DupGroup) => {
-    if (!confirm(`ลบ ${group.docs.length} รายการทั้งหมดในกลุ่มนี้?`)) return;
+  // Delete all duplicates — show confirm first
+  const handleDeleteAll = (group: DupGroup) => {
+    setDeleteTarget({ group, mode: "all" });
+  };
+
+  const confirmDupDelete = async () => {
+    if (!deleteTarget) return;
+    const { group, mode } = deleteTarget;
     setActing(group.id);
-    for (const doc of group.docs) {
+    const toDelete = mode === "first" ? group.docs.slice(1) : group.docs;
+    for (const doc of toDelete) {
       try {
-        await fetch(`/api/receipts/${doc._id}`, {
-          method: "PUT",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ status: "cancelled" }),
-        });
+        await fetch(`/api/receipts/${doc._id}`, { method: "DELETE" });
       } catch {}
     }
     setResolved((prev) => new Set([...prev, group.id]));
     setActing(null);
+    setDeleteTarget(null);
+    router.refresh();
   };
 
   return (
@@ -179,6 +174,14 @@ export default function DuplicatesClient({ groups: initial }: { groups: DupGroup
           })}
         </div>
       )}
+
+      <DeleteConfirmModal
+        open={!!deleteTarget}
+        receiptId={deleteTarget?.group.docs.length === 1 ? deleteTarget.group.docs[0]._id : null}
+        receiptIds={deleteTarget ? (deleteTarget.mode === "first" ? deleteTarget.group.docs.slice(1).map((d) => d._id) : deleteTarget.group.docs.map((d) => d._id)) : undefined}
+        onConfirm={confirmDupDelete}
+        onCancel={() => setDeleteTarget(null)}
+      />
     </div>
   );
 }
