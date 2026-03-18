@@ -37,7 +37,7 @@ const personalNav: NavGroup[] = [
   {
     label: "เอกสาร",
     items: [
-      { label: "สแกน AI OCR", href: "/dashboard/scan", icon: ScanLine },
+      { label: "Cloud Drive", href: "/dashboard/drive", icon: Cloud },
       { label: "ใบเสร็จ / เอกสาร", href: "/dashboard/receipts", icon: Receipt },
       { label: "จับคู่เอกสาร", href: "/dashboard/matching", icon: FileCheck },
       { label: "ตรวจเอกสารซ้ำ", href: "/dashboard/duplicates", icon: Copy },
@@ -86,7 +86,7 @@ const businessNav: NavGroup[] = [
   {
     label: "เอกสาร",
     items: [
-      { label: "สแกน AI OCR", href: "/dashboard/scan", icon: ScanLine },
+      { label: "Cloud Drive", href: "/dashboard/drive", icon: Cloud },
       { label: "ใบเสร็จ / เอกสาร", href: "/dashboard/receipts", icon: Receipt },
       { label: "จับคู่เอกสาร", href: "/dashboard/matching", icon: FileCheck },
       { label: "ตรวจเอกสารซ้ำ", href: "/dashboard/duplicates", icon: Copy },
