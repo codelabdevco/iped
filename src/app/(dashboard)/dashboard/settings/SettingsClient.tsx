@@ -369,7 +369,7 @@ function ConnectionsTab({ isDark, isBiz, txt, sub, muted, itemCls, sectionTitle 
           {svc.connected ? (
             <span className={`px-3 py-1.5 rounded-xl text-xs font-medium ${isDark ? "bg-green-500/10 text-green-400" : "bg-green-50 text-green-600"}`}>เชื่อมต่อแล้ว</span>
           ) : svc.action ? (
-            <a href={svc.action} className="px-3 py-1.5 rounded-xl text-xs font-medium bg-[#FA3633] text-white hover:bg-[#e0302d] transition-colors">เชื่อมต่อ</a>
+            <button onClick={() => { window.location.href = svc.action!; }} className="px-3 py-1.5 rounded-xl text-xs font-medium bg-[#FA3633] text-white hover:bg-[#e0302d] transition-colors">เชื่อมต่อ</button>
           ) : (
             <span className={`px-3 py-1.5 rounded-xl text-xs font-medium ${isDark ? "bg-white/5 text-white/30" : "bg-gray-100 text-gray-400"}`}>เร็วๆ นี้</span>
           )}
