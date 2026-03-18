@@ -446,15 +446,6 @@ export default function ReceiptsClient({ receipts: initialReceipts }: { receipts
       },
     },
     {
-      key: "submittedBy",
-      label: "ผู้แนบ",
-      defaultVisible: false,
-      render: (r) => {
-        if (!r.submittedBy) return <span className={muted}>-</span>;
-        return <span className="text-xs">{r.submittedBy}</span>;
-      },
-    },
-    {
       key: "updatedAt",
       label: "อัปเดตล่าสุด",
       defaultVisible: false,
