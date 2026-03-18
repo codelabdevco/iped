@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useMemo, useRef } from "react";
+import { useState, useMemo, useRef, Fragment } from "react";
 import { useTheme } from "@/contexts/ThemeContext";
 import { ChevronLeft, ChevronRight, ChevronsLeft, ChevronsRight, Calendar, ChevronDown } from "lucide-react";
 import DatePicker from "@/components/dashboard/DatePicker";
@@ -175,9 +175,8 @@ export default function DataTable<T>({ columns, data, rowKey, emptyText = "à¹„à¸
                 const key = rowKey(row);
                 const isExpanded = expandedRow === key;
                 return (
-                  <>
+                  <Fragment key={key}>
                     <tr
-                      key={key}
                       className={`border-t ${border} ${rowHover} transition-colors ${expandRender ? "cursor-pointer" : ""} ${isExpanded ? expandBg : ""}`}
                       onClick={expandRender ? () => toggleExpand(key) : undefined}
                     >
@@ -193,13 +192,13 @@ export default function DataTable<T>({ columns, data, rowKey, emptyText = "à¹„à¸
                       ))}
                     </tr>
                     {expandRender && isExpanded && (
-                      <tr key={`${key}-expand`}>
+                      <tr>
                         <td colSpan={orderedColumns.length + 1} className={`px-5 py-4 ${expandBg} border-t ${border}`}>
                           {expandRender(row, isDark)}
                         </td>
                       </tr>
                     )}
-                  </>
+                  </Fragment>
                 );
               })
             )}

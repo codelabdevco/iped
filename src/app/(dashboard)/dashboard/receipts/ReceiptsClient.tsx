@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useMemo } from "react";
+import { useState, useMemo, useCallback, memo } from "react";
 import { Search, Filter, Receipt, FileText, CheckCircle, Clock, Pencil, Trash2, ImageIcon, Cloud, CloudOff, HardDrive } from "lucide-react";
 import Select from "@/components/dashboard/Select";
 import DatePicker from "@/components/dashboard/DatePicker";
@@ -138,11 +138,11 @@ export default function ReceiptsClient({ receipts: initialReceipts }: { receipts
     ? "bg-[rgba(255,255,255,0.03)] border-[rgba(255,255,255,0.06)] text-white placeholder-white/30"
     : "bg-gray-50 border-gray-200 text-gray-900 placeholder-gray-400";
 
-  const handleDelete = (id: string) => {
+  const handleDelete = useCallback((id: string) => {
     if (confirm("ต้องการลบใบเสร็จนี้?")) {
       setReceipts((prev) => prev.filter((r) => r._id !== id));
     }
-  };
+  }, []);
 
   const handleEdit = (r: ReceiptRow) => {
     setEditingId(r._id);
@@ -170,7 +170,7 @@ export default function ReceiptsClient({ receipts: initialReceipts }: { receipts
     setEditForm({});
   };
 
-  const columns: Column<ReceiptRow>[] = [
+  const columns: Column<ReceiptRow>[] = useMemo(() => [
     {
       key: "image",
       label: "รูป",
@@ -223,7 +223,7 @@ export default function ReceiptsClient({ receipts: initialReceipts }: { receipts
         </div>
       ),
     },
-  ];
+  ], [handleDelete]);
 
   const expandRender = (r: ReceiptRow, dark: boolean) => {
     const items = r.items && r.items.length > 0 ? r.items : [{ name: r.storeName, qty: 1, price: r.amount }];
@@ -259,9 +259,10 @@ export default function ReceiptsClient({ receipts: initialReceipts }: { receipts
   return (
     <div className="space-y-6">
       {/* Slide-in edit panel from right */}
-      {editingId && <div className="fixed inset-0 z-40 bg-black/60 backdrop-blur-sm transition-opacity" onClick={handleCancelEdit} />}
-      <div className={`fixed inset-y-0 right-0 z-50 w-[540px] max-w-[95vw] bg-[#0a0a0a] border-l border-white/10 shadow-2xl overflow-y-auto transition-transform duration-300 ease-out ${editingId ? "translate-x-0" : "translate-x-full"}`}>
-        {editingReceipt && (() => {
+      {editingId && <div className="fixed inset-0 z-40 bg-black/60 transition-opacity" onClick={handleCancelEdit} />}
+      {editingId && editingReceipt && (
+      <div className="fixed inset-y-0 right-0 z-50 w-[540px] max-w-[95vw] bg-[#0a0a0a] border-l border-white/10 shadow-2xl overflow-y-auto animate-slide-in-right">
+        {(() => {
           const itemsTotal = editItems.reduce((s, it) => s + it.qty * it.price, 0);
           const vatAmount = vatEnabled ? Math.round(itemsTotal * 0.07) : 0;
           const whtAmount = whtEnabled ? Math.round(itemsTotal * 0.03) : 0;
@@ -415,6 +416,7 @@ export default function ReceiptsClient({ receipts: initialReceipts }: { receipts
           );
         })()}
       </div>
+      )}
 
       <PageHeader title="ใบเสร็จทั้งหมด" description={`${filtered.length} รายการ — รวม ฿${totalAmount.toLocaleString()}`} />
 
