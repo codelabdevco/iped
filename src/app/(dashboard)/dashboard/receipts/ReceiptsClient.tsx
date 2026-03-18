@@ -445,32 +445,6 @@ export default function ReceiptsClient({ receipts: initialReceipts }: { receipts
         );
       },
     },
-    { key: "type", label: "ประเภท", defaultVisible: false, render: (r) => <span>{typeLabel[r.type] || r.type}</span> },
-    {
-      key: "category",
-      label: "หมวดหมู่",
-      defaultVisible: false,
-      render: (r) => (
-        <span className="flex items-center gap-1.5">
-          <span className="w-2.5 h-2.5 rounded-full flex-shrink-0" style={{ backgroundColor: getCatColor(r.category) }} />
-          {r.category}
-        </span>
-      ),
-    },
-    {
-      key: "source",
-      label: "ที่มา",
-      defaultVisible: false,
-      render: (r) => {
-        const isLine = r.source === "line";
-        return (
-          <span className={`inline-flex items-center gap-1.5 px-2 py-1 rounded-md text-xs font-medium ${isLine ? "bg-green-500/10 text-green-500" : "bg-blue-500/10 text-blue-400"}`}>
-            {isLine ? <MessageCircle size={12} /> : <Globe size={12} />}
-            {isLine ? "LINE" : "เว็บ"}
-          </span>
-        );
-      },
-    },
     {
       key: "submittedBy",
       label: "ผู้แนบ",
@@ -483,6 +457,7 @@ export default function ReceiptsClient({ receipts: initialReceipts }: { receipts
     {
       key: "updatedAt",
       label: "อัปเดตล่าสุด",
+      defaultVisible: false,
       render: (r) => {
         if (!r.updatedAt) return <span className={muted}>-</span>;
         const d = new Date(r.updatedAt);
@@ -490,10 +465,7 @@ export default function ReceiptsClient({ receipts: initialReceipts }: { receipts
         const time = d.toLocaleTimeString("th-TH", { hour: "2-digit", minute: "2-digit" });
         return <span className={`text-xs ${muted}`}>{date} {time}</span>;
       },
-      defaultVisible: false,
     },
-    { key: "date", label: "วันที่เอกสาร", defaultVisible: false },
-    { key: "time", label: "เวลา", render: (r) => <span className={muted}>{r.time || "-"}</span>, defaultVisible: false },
     {
       key: "paymentMethod",
       label: "วิธีจ่าย",
