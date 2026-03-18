@@ -178,8 +178,12 @@ export default function ReceiptsClient({ receipts: initialReceipts }: { receipts
     latestId: initialReceipts[0]?._id || null,
   });
 
-  // Sync when server re-renders with new data
+  // Sync when server re-renders with new data — only if actually changed
+  const prevIdsRef = useRef("");
   useEffect(() => {
+    const newIds = initialReceipts.map((r) => r._id + r.status + r.amount).join(",");
+    if (newIds === prevIdsRef.current) return; // no change, skip re-render
+    prevIdsRef.current = newIds;
     setReceipts(initialReceipts);
     pollRef.current = {
       count: initialReceipts.length,
