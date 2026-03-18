@@ -384,8 +384,35 @@ function CategoriesTab({ isDark, categoryStats, txt, sub, muted }: any) {
   useEffect(() => { try { const s = localStorage.getItem("iped-custom-cats"); if (s) setCustomCats(JSON.parse(s).map((c: any) => ({ ...c, dir: c.direction || c.dir }))); } catch {} setLoaded(true); }, []);
   useEffect(() => { if (loaded) localStorage.setItem("iped-custom-cats", JSON.stringify(customCats)); }, [customCats, loaded]);
 
-  const allCats = [...DEFAULT_CATS, ...customCats];
-  const getStat = (name: string, dir: string) => (categoryStats as CatStat[]).find((c) => c.name === name && c.direction === dir);
+  // Build categories: real data first, then defaults, then custom
+  const stats = categoryStats as CatStat[];
+  const getStat = (name: string, dir: string) => stats.find((c) => c.name === name && c.direction === dir);
+
+  // Start with categories that have real data
+  const seen = new Set<string>();
+  const allCats: { name: string; emoji: string; color: string; dir: string }[] = [];
+
+  // 1. Categories from actual data (most important)
+  stats.forEach((s) => {
+    const key = s.name + "|" + s.direction;
+    if (seen.has(key)) return;
+    seen.add(key);
+    const def = DEFAULT_CATS.find((d) => d.name === s.name && d.dir === s.direction);
+    const cust = customCats.find((c) => c.name === s.name && c.dir === s.direction);
+    allCats.push(cust || def || { name: s.name, emoji: "📋", color: "#9CA3AF", dir: s.direction });
+  });
+
+  // 2. Custom categories (even without data)
+  customCats.forEach((c) => {
+    const key = c.name + "|" + c.dir;
+    if (!seen.has(key)) { seen.add(key); allCats.push(c); }
+  });
+
+  // 3. Defaults (only ones not already shown)
+  DEFAULT_CATS.forEach((d) => {
+    const key = d.name + "|" + d.dir;
+    if (!seen.has(key)) { seen.add(key); allCats.push(d); }
+  });
 
   const openAdd = (dir: string) => { setEditing({ name: "", dir, isNew: true }); setForm({ name: "", emoji: "📋", color: CAT_COLORS[Math.floor(Math.random() * CAT_COLORS.length)] }); };
   const openEdit = (cat: any) => { setEditing({ name: cat.name, dir: cat.dir }); setForm({ name: cat.name, emoji: cat.emoji, color: cat.color }); };
@@ -469,9 +496,9 @@ function CategoriesTab({ isDark, categoryStats, txt, sub, muted }: any) {
                 const stat = getStat(cat.name, dir);
                 const isCustom = customCats.some((c) => c.name === cat.name && c.dir === dir);
                 return (
-                  <span key={cat.name} className={`inline-flex items-center gap-1.5 pl-1 pr-2 py-1 rounded-full text-xs group ${isDark ? "bg-white/[0.05] hover:bg-white/[0.08]" : "bg-gray-100 hover:bg-gray-150"} ${txt} transition-colors`}>
-                    <span className="w-4 h-4 rounded-full shrink-0" style={{ backgroundColor: cat.color }} />
-                    <span>{cat.name}</span>
+                  <span key={cat.name} className={`inline-flex items-center gap-1.5 pl-1 pr-2 py-1 rounded-full text-xs group transition-colors ${stat && stat.count > 0 ? (isDark ? "bg-white/[0.07]" : "bg-gray-100") : (isDark ? "bg-white/[0.02] opacity-50" : "bg-gray-50 opacity-60")} ${txt}`}>
+                    <span className="w-3.5 h-3.5 rounded-full shrink-0" style={{ backgroundColor: cat.color }} />
+                    <span className={stat && stat.count > 0 ? "font-medium" : ""}>{cat.name}</span>
                     {stat && stat.count > 0 && <span className="text-[9px] font-bold px-1 py-0.5 rounded-full leading-none" style={{ backgroundColor: cat.color + "20", color: cat.color }}>{stat.count}</span>}
                     {isCustom && (
                       <span className="flex gap-0.5 opacity-0 group-hover:opacity-100 transition-opacity">
