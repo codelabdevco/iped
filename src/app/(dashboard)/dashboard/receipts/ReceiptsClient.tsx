@@ -478,18 +478,17 @@ export default function ReceiptsClient({ receipts: initialReceipts }: { receipts
       key: "checkbox" as any,
       label: "",
       configurable: false,
-      render: (r) => (
-        <input
-          type="checkbox"
-          checked={selected.includes(r._id)}
-          onChange={(e) => {
-            e.stopPropagation();
-            setSelected((prev) => prev.includes(r._id) ? prev.filter((id) => id !== r._id) : [...prev, r._id]);
-          }}
-          onClick={(e) => e.stopPropagation()}
-          className="w-4 h-4 rounded border-gray-400 accent-[#FA3633] cursor-pointer"
-        />
-      ),
+      render: (r, dark) => {
+        const isChecked = selected.includes(r._id);
+        return (
+          <button
+            onClick={(e) => { e.stopPropagation(); setSelected((prev) => prev.includes(r._id) ? prev.filter((id) => id !== r._id) : [...prev, r._id]); }}
+            className={`w-5 h-5 rounded flex items-center justify-center border-2 transition-all cursor-pointer ${isChecked ? "bg-[#FA3633] border-[#FA3633] text-white" : dark ? "border-white/30 hover:border-white/50 bg-transparent" : "border-gray-300 hover:border-gray-400 bg-transparent"}`}
+          >
+            {isChecked && <svg width="12" height="12" viewBox="0 0 12 12" fill="none"><path d="M2.5 6L5 8.5L9.5 3.5" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/></svg>}
+          </button>
+        );
+      },
     },
     {
       key: "image",
@@ -964,12 +963,12 @@ export default function ReceiptsClient({ receipts: initialReceipts }: { receipts
       {/* Bulk actions bar */}
       {selected.length > 0 && (
         <div className={`flex items-center gap-3 px-4 py-2.5 rounded-xl border ${isDark ? "bg-red-500/5 border-red-500/20" : "bg-red-50 border-red-200"}`}>
-          <input
-            type="checkbox"
-            checked={selected.length === filtered.length}
-            onChange={() => setSelected(selected.length === filtered.length ? [] : filtered.map((r) => r._id))}
-            className="w-4 h-4 rounded accent-[#FA3633]"
-          />
+          <button
+            onClick={() => setSelected(selected.length === filtered.length ? [] : filtered.map((r) => r._id))}
+            className={`w-5 h-5 rounded flex items-center justify-center border-2 transition-all cursor-pointer ${selected.length === filtered.length ? "bg-[#FA3633] border-[#FA3633] text-white" : isDark ? "border-white/30 hover:border-white/50 bg-transparent" : "border-gray-300 hover:border-gray-400 bg-transparent"}`}
+          >
+            {selected.length === filtered.length && <svg width="12" height="12" viewBox="0 0 12 12" fill="none"><path d="M2.5 6L5 8.5L9.5 3.5" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/></svg>}
+          </button>
           <span className={`text-sm font-medium ${txt}`}>เลือก {selected.length} รายการ</span>
           <button onClick={handleBulkDelete} className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium bg-red-500 text-white hover:bg-red-600 transition-colors">
             <Trash2 size={12} /> ลบที่เลือก

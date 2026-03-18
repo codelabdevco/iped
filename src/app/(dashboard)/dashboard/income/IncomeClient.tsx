@@ -3,7 +3,7 @@
 import { useState, useMemo, useCallback, useRef, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { useTheme } from "@/contexts/ThemeContext";
-import { Wallet, TrendingUp, BarChart3, Hash, Plus, Pencil, Trash2, Loader2, MessageCircle, Globe } from "lucide-react";
+import { Wallet, TrendingUp, BarChart3, Hash, Plus, Pencil, Trash2, Loader2, MessageCircle, Globe, ImageIcon, X } from "lucide-react";
 import GoalCard from "@/components/dashboard/GoalCard";
 import PageHeader from "@/components/dashboard/PageHeader";
 import StatsCard from "@/components/dashboard/StatsCard";
@@ -46,6 +46,19 @@ const statusMap: Record<string, { label: string; cls: string }> = {
   cancelled: { label: "ยกเลิก", cls: "bg-gray-500/10 text-gray-400" },
 };
 
+function LazyImage({ id, hasImage, onClickFull, isDark }: { id: string; hasImage?: boolean; onClickFull: (url: string) => void; isDark: boolean }) {
+  const imgUrl = hasImage ? `/api/receipts/image?id=${id}` : null;
+  const muted = isDark ? "text-white/30" : "text-gray-400";
+  return (
+    <div
+      className={`w-10 h-10 rounded-lg flex items-center justify-center overflow-hidden ${imgUrl ? "cursor-pointer hover:ring-2 hover:ring-green-500/50 transition-all" : ""} ${isDark ? "bg-white/5" : "bg-gray-100"}`}
+      onClick={imgUrl ? (e) => { e.stopPropagation(); onClickFull(imgUrl); } : undefined}
+    >
+      {imgUrl ? <img src={imgUrl} alt="" className="w-full h-full object-cover" loading="lazy" /> : <ImageIcon size={16} className={muted} />}
+    </div>
+  );
+}
+
 export default function IncomeClient({ incomes: initial }: { incomes: IncomeRow[] }) {
   const { isDark } = useTheme();
   const router = useRouter();
@@ -53,6 +66,7 @@ export default function IncomeClient({ incomes: initial }: { incomes: IncomeRow[
   const [isAdding, setIsAdding] = useState(false);
   const [editingId, setEditingId] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
+  const [lightboxUrl, setLightboxUrl] = useState<string | null>(null);
   const [form, setForm] = useState({ storeName: "", amount: "", category: "เงินเดือน", date: new Date().toISOString().slice(0, 10), time: "", paymentMethod: "transfer", note: "" });
 
   const prevRef = useRef("");
@@ -91,10 +105,12 @@ export default function IncomeClient({ incomes: initial }: { incomes: IncomeRow[
   };
 
   const columns: Column<IncomeRow>[] = useMemo(() => [
+    { key: "image", label: "รูป", configurable: false, render: (r, dark) => <LazyImage id={r._id} hasImage={r.hasImage} onClickFull={setLightboxUrl} isDark={dark} /> },
     { key: "storeName", label: "รายละเอียด", render: (r) => (<div className="leading-tight min-w-0"><div className="font-medium truncate">{r.storeName}</div><div className={`flex items-center gap-2 mt-0.5 text-[11px] ${muted}`}><span className="flex items-center gap-1"><span className="w-2 h-2 rounded-full flex-shrink-0" style={{ backgroundColor: getCatColor(r.category) }} />{r.category}</span></div></div>) },
     { key: "amount", label: "จำนวนเงิน", align: "right", render: (r) => <Baht value={r.amount} direction="income" className="font-semibold text-green-500" /> },
     { key: "paidAt", label: "วันที่รับ", render: (r) => { const iso = r.rawDate; if (!iso) return <span className={muted}>-</span>; const d = new Date(iso); const day = d.getDate(); const mon = ["ม.ค.","ก.พ.","มี.ค.","เม.ย.","พ.ค.","มิ.ย.","ก.ค.","ส.ค.","ก.ย.","ต.ค.","พ.ย.","ธ.ค."][d.getMonth()]; const yr = d.getFullYear() + 543; const time = r.time || ""; const isLine = r.source === "line"; return (<div className="leading-tight"><div className="text-sm whitespace-nowrap">{day} {mon} {yr}{time ? <span className={`text-[11px] ml-1 ${muted}`}>{time}</span> : ""}</div><div className={`flex items-center gap-1 mt-0.5 text-[11px] ${isLine ? "text-green-500" : "text-green-400"}`}>{isLine ? <MessageCircle size={10} /> : <Globe size={10} />}{isLine ? "LINE" : "เว็บ"}</div></div>); } },
     { key: "paymentMethod", label: "วิธีรับ", render: (r) => <span className="text-xs">{PAYMENT_METHODS.find((m) => m.value === r.paymentMethod)?.label || r.paymentMethod || "-"}</span> },
+    { key: "note", label: "หมายเหตุ", defaultVisible: false, render: (r) => <span className={`truncate max-w-[150px] inline-block ${muted}`}>{r.note || "-"}</span> },
     { key: "status", label: "สถานะ", render: (r) => { const st = statusMap[r.status] || statusMap.confirmed; return <span className={`px-2 py-1 rounded-lg text-xs font-medium ${st.cls}`}>{st.label}</span>; } },
     { key: "actions", label: "", configurable: false, render: (r, dark) => (<div className="flex items-center gap-1" onClick={(e) => e.stopPropagation()}><button onClick={() => handleEdit(r)} className={`p-2 rounded-lg transition-colors ${dark ? "hover:bg-white/5 text-white/40 hover:text-green-400" : "hover:bg-gray-100 text-gray-400 hover:text-green-500"}`}><Pencil size={14} /></button><button onClick={() => handleDelete(r._id)} className={`p-2 rounded-lg transition-colors ${dark ? "hover:bg-white/5 text-white/40 hover:text-red-400" : "hover:bg-gray-100 text-gray-400 hover:text-red-500"}`}><Trash2 size={14} /></button></div>) },
   ], [muted, handleDelete]);
@@ -154,6 +170,12 @@ export default function IncomeClient({ incomes: initial }: { incomes: IncomeRow[
       </div>
       <GoalCard storageKey="goal-income" current={thisMonth} label="เป้ารายรับ" color="green" />
       <DataTable columns={columns} data={incomes} rowKey={(r) => r._id} dateField="rawDate" columnConfigKey="income" />
+      {lightboxUrl && (
+        <div className="fixed inset-0 z-[60] bg-black/80 flex items-center justify-center" onClick={() => setLightboxUrl(null)}>
+          <button onClick={() => setLightboxUrl(null)} className="absolute top-4 right-4 w-10 h-10 rounded-full bg-black/60 text-white flex items-center justify-center hover:bg-black/80 z-10"><X size={20} /></button>
+          <img src={lightboxUrl} alt="" className="max-w-[90vw] max-h-[90vh] rounded-xl shadow-2xl" onClick={(e) => e.stopPropagation()} />
+        </div>
+      )}
     </div>
   );
 }
