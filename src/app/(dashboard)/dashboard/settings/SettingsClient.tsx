@@ -34,6 +34,7 @@ type Mode = "personal" | "business";
 interface CatStat { name: string; direction: string; count: number; total: number; }
 
 import { ALL_CATEGORIES } from "@/lib/categories";
+import BrandIcon from "@/components/dashboard/BrandIcon";
 const DEFAULT_CATS = ALL_CATEGORIES.map((c) => ({ name: c.name, emoji: c.icon, color: c.color, dir: c.direction }));
 const CAT_COLORS = ["#FB923C","#60A5FA","#818CF8","#F472B6","#34D399","#FBBF24","#F87171","#A78BFA","#22c55e","#ec4899","#F59E0B","#78716c"];
 const DIR_LABEL: Record<string, string> = { expense: "รายจ่าย", income: "รายรับ", savings: "เงินออม" };
@@ -201,37 +202,7 @@ export default function SettingsClient({ profile, categoryStats = [] }: { profil
         )}
 
         {/* ── การเชื่อมต่อ ── */}
-        {activeTab === "connections" && (
-          <div className="space-y-6">
-            <div className="space-y-4">
-              <h3 className={sectionTitle}>บริการที่เชื่อมต่อ</h3>
-              {[
-                { name: "LINE", desc: "Login + แจ้งเตือน + LINE Bot", icon: MessageCircle, color: "#06C755", connected: true },
-                { name: "Google Drive", desc: "สำรองเอกสาร", icon: HardDrive, color: "#4285F4", connected: true },
-                { name: "Gmail", desc: "สแกนเอกสารจากอีเมล", icon: Mail, color: "#EA4335", connected: false },
-                { name: "Google Sheets", desc: "ซิงค์ข้อมูลรายจ่าย", icon: Sheet, color: "#0F9D58", connected: false },
-                { name: "Notion", desc: "ซิงค์ข้อมูลไป Notion", icon: BookOpen, color: "#000000", connected: false },
-                ...(isBiz ? [
-                  { name: "PEAK", desc: "เชื่อมโปรแกรมบัญชี PEAK", icon: FileSpreadsheet, color: "#4F46E5", connected: false },
-                  { name: "FlowAccount", desc: "เชื่อมโปรแกรมบัญชี FlowAccount", icon: FileSpreadsheet, color: "#FF6B00", connected: false },
-                ] : []),
-              ].map((svc) => {
-                const Icon = svc.icon;
-                return (
-                  <div key={svc.name} className={itemCls}>
-                    <div className="flex items-center gap-3">
-                      <div className="w-10 h-10 rounded-xl flex items-center justify-center" style={{ backgroundColor: svc.color + "15" }}><Icon size={20} style={{ color: svc.color }} /></div>
-                      <div><p className={`text-sm font-medium ${txt}`}>{svc.name}</p><p className={`text-xs ${muted} mt-0.5`}>{svc.desc}</p></div>
-                    </div>
-                    <button className={`px-4 py-2 rounded-xl text-xs font-medium transition-colors ${svc.connected ? isDark ? "bg-green-500/10 text-green-400" : "bg-green-50 text-green-600" : isDark ? "bg-white/5 text-white/60 hover:bg-white/10" : "bg-gray-100 text-gray-600 hover:bg-gray-200"}`}>
-                      {svc.connected ? "เชื่อมต่อแล้ว" : "เชื่อมต่อ"}
-                    </button>
-                  </div>
-                );
-              })}
-            </div>
-          </div>
-        )}
+        {activeTab === "connections" && <ConnectionsTab isDark={isDark} isBiz={isBiz} txt={txt} sub={sub} muted={muted} itemCls={itemCls} sectionTitle={sectionTitle} />}
 
         {/* ── ตั้งค่าทั่วไป ── */}
         {activeTab === "preferences" && (
@@ -349,6 +320,61 @@ export default function SettingsClient({ profile, categoryStats = [] }: { profil
         {activeTab === "categories" && <CategoriesTab isDark={isDark} categoryStats={categoryStats} card={card} border={border} txt={txt} sub={sub} muted={muted} inputCls={inputCls} labelCls={labelCls} />}
 
       </div>
+    </div>
+  );
+}
+
+/* ═══════════════ Connections Tab ═══════════════ */
+function ConnectionsTab({ isDark, isBiz, txt, sub, muted, itemCls, sectionTitle }: any) {
+  const [googleStatus, setGoogleStatus] = useState<"checking" | "connected" | "not_connected">("checking");
+  const [googleEmail, setGoogleEmail] = useState("");
+
+  useEffect(() => {
+    fetch("/api/auth/google/status").then((r) => r.json()).then((d) => {
+      if (d.connected) { setGoogleStatus("connected"); setGoogleEmail(d.email || ""); }
+      else setGoogleStatus("not_connected");
+    }).catch(() => setGoogleStatus("not_connected"));
+  }, []);
+
+  const services = [
+    { name: "LINE", brand: "line", desc: "Login + ส่งสลิป + OCR อัตโนมัติ", connected: true, action: null, detail: "เชื่อมต่อผ่าน LINE Login" },
+    { name: "Gmail", brand: "gmail", desc: "สแกนใบเสร็จจากอีเมลอัตโนมัติ", connected: googleStatus === "connected", action: "/api/auth/google", detail: googleEmail || "ค้นหาใบเสร็จ/ใบแจ้งหนี้ในอีเมล" },
+    { name: "Google Drive", brand: "google-drive", desc: "สำรองเอกสารอัตโนมัติ", connected: googleStatus === "connected", action: "/api/auth/google", detail: "ใช้ Google account เดียวกับ Gmail" },
+    { name: "Google Sheet", brand: "google-sheets", desc: "ซิงค์ข้อมูลรายจ่ายเป็น Spreadsheet", connected: false, action: "/api/auth/google", detail: "ส่งออกข้อมูลเป็น Google Sheets" },
+    { name: "Notion", brand: "notion", desc: "ซิงค์ข้อมูลไป Notion Database", connected: false, action: null, detail: "เร็วๆ นี้" },
+    ...(isBiz ? [
+      { name: "PEAK", brand: "other" as string, desc: "เชื่อมโปรแกรมบัญชี PEAK", connected: false, action: null, detail: "เร็วๆ นี้" },
+      { name: "FlowAccount", brand: "other" as string, desc: "เชื่อมโปรแกรมบัญชี FlowAccount", connected: false, action: null, detail: "เร็วๆ นี้" },
+    ] : []),
+  ];
+
+  return (
+    <div className="space-y-4">
+      <div>
+        <h3 className={sectionTitle}>บริการที่เชื่อมต่อ</h3>
+        <p className={`text-xs ${muted} mt-1`}>จัดการการเชื่อมต่อกับบริการภายนอก</p>
+      </div>
+      {services.map((svc) => (
+        <div key={svc.name} className={itemCls}>
+          <div className="flex items-center gap-3">
+            <BrandIcon brand={svc.brand} size={36} className="rounded-xl" />
+            <div>
+              <div className="flex items-center gap-2">
+                <p className={`text-sm font-medium ${txt}`}>{svc.name}</p>
+                <span className={`w-2 h-2 rounded-full ${svc.connected ? "bg-green-500" : isDark ? "bg-white/15" : "bg-gray-300"}`} />
+              </div>
+              <p className={`text-xs ${muted} mt-0.5`}>{svc.connected ? svc.detail : svc.desc}</p>
+            </div>
+          </div>
+          {svc.connected ? (
+            <span className={`px-3 py-1.5 rounded-xl text-xs font-medium ${isDark ? "bg-green-500/10 text-green-400" : "bg-green-50 text-green-600"}`}>เชื่อมต่อแล้ว</span>
+          ) : svc.action ? (
+            <a href={svc.action} className="px-3 py-1.5 rounded-xl text-xs font-medium bg-[#FA3633] text-white hover:bg-[#e0302d] transition-colors">เชื่อมต่อ</a>
+          ) : (
+            <span className={`px-3 py-1.5 rounded-xl text-xs font-medium ${isDark ? "bg-white/5 text-white/30" : "bg-gray-100 text-gray-400"}`}>เร็วๆ นี้</span>
+          )}
+        </div>
+      ))}
     </div>
   );
 }
