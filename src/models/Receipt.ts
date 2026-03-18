@@ -15,7 +15,7 @@ export interface IReceipt extends Document {
   category: string;
   categoryIcon: string;
   subCategory?: string;
-  paymentMethod?: "cash" | "transfer" | "credit" | "debit" | "other";
+  paymentMethod?: string;
   status: "pending" | "confirmed" | "edited" | "paid" | "overdue" | "matched" | "cancelled" | "duplicate";
   matchedWith?: string[];
   imageUrl?: string;
@@ -47,7 +47,7 @@ const ReceiptSchema = new Schema<IReceipt>(
     category: { type: String, required: true },
     categoryIcon: { type: String, default: "📋" },
     subCategory: String,
-    paymentMethod: { type: String, enum: ["cash", "transfer", "credit", "debit", "other"] },
+    paymentMethod: String,
     status: { type: String, enum: ["pending", "confirmed", "edited", "paid", "overdue", "matched", "cancelled", "duplicate"], default: "pending" },
     matchedWith: [String],
     imageUrl: String,
