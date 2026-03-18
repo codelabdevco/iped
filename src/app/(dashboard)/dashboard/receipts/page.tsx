@@ -19,7 +19,7 @@ async function ReceiptsData() {
   await connectDB();
 
   const [receipts, currentUser] = await Promise.all([
-    Receipt.find({ userId: decoded.userId })
+    Receipt.find({ userId: decoded.userId, source: { $in: ["line", "web"] } })
       .select("-imageUrl -ocrRawText")
       .sort({ createdAt: -1 })
       .limit(100)
