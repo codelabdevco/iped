@@ -3,6 +3,7 @@ import { cookies } from "next/headers";
 import { redirect } from "next/navigation";
 import { connectDB } from "@/lib/mongodb";
 import Receipt from "@/models/Receipt";
+import User from "@/models/User";
 import DashboardClient from "./DashboardClient";
 
 interface JwtPayload {
@@ -93,6 +94,28 @@ async function getDashboardData(userId: string) {
     paymentMap[pm] = (paymentMap[pm] || 0) + (r.amount || 0);
   });
 
+  // Connection status
+  const user = await User.findById(userId)
+    .select("lineUserId googleAccessToken googleEmail")
+    .lean() as any;
+  const connections = {
+    line: !!user?.lineUserId,
+    gmail: !!user?.googleAccessToken,
+    drive: !!user?.googleAccessToken,
+    sheets: false,
+    notion: false,
+  };
+
+  // Savings by category (real data)
+  const savingsReceipts = await Receipt.find({ userId, direction: "savings", status: { $ne: "cancelled" } })
+    .select("amount category")
+    .lean();
+  const savingsByCategory: Record<string, number> = {};
+  (savingsReceipts as any[]).forEach((r: any) => {
+    const cat = r.category || "เงินออม";
+    savingsByCategory[cat] = (savingsByCategory[cat] || 0) + (r.amount || 0);
+  });
+
   return {
     totalAmount: totalThisMonth,
     changePercent,
@@ -106,6 +129,8 @@ async function getDashboardData(userId: string) {
     categoryData: allCategoryMap,
     monthlyData: monthlyTrend,
     paymentData: paymentMap,
+    connections,
+    savingsByCategory,
   };
 }
 

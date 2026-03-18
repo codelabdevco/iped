@@ -1,54 +1,92 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useTheme } from "@/contexts/ThemeContext";
 
-const BUDGET_DATA = [
-  { name: "ช็อปปิ้ง", budget: 20000, color: "#818CF8" },
-  { name: "อาหาร", budget: 15000, color: "#F9923C" },
-  { name: "เดินทาง", budget: 12000, color: "#60A5FA" },
-  { name: "สาธารณูปโภค", budget: 10000, color: "#F472B6" },
-  { name: "ของใช้ในบ้าน", budget: 8000, color: "#A78BFA" },
-];
+const SAVING_COLORS: Record<string, string> = {
+  "ท่องเที่ยว": "#818CF8",
+  "ซื้อของ": "#FB923C",
+  "กองทุนฉุกเฉิน": "#34D399",
+  "ลงทุน": "#8b5cf6",
+  "การศึกษา": "#FBBF24",
+  "บ้าน/รถ": "#60A5FA",
+  "เกษียณ": "#F472B6",
+  "เงินออม": "#ec4899",
+  "อื่นๆ": "#78716c",
+};
 
-const SAVINGS_DATA = [
-  { name: "ซื้อ iPhone 17", target: 45000, saved: 28500, color: "#818CF8" },
-  { name: "ท่องเที่ยวญี่ปุ่น", target: 80000, saved: 32000, color: "#F9923C" },
-  { name: "กองทุนฉุกเฉิน", target: 100000, saved: 67000, color: "#60A5FA" },
-];
+const BUDGET_COLORS: Record<string, string> = {
+  "ช็อปปิ้ง": "#818CF8", "อาหาร": "#FB923C", "เดินทาง": "#60A5FA",
+  "สาธารณูปโภค": "#F472B6", "ของใช้ในบ้าน": "#C084FC", "สุขภาพ": "#34D399",
+  "การศึกษา": "#FBBF24", "บันเทิง": "#F87171", "ที่พัก": "#A78BFA",
+  "ธุรกิจ": "#F59E0B", "อื่นๆ": "#78716C",
+};
+const FALLBACK_COLORS = ["#818CF8","#FB923C","#60A5FA","#F472B6","#C084FC","#34D399","#FBBF24","#F87171"];
 
 interface Props {
   categoryData: Record<string, number>;
+  savingsByCategory: Record<string, number>;
 }
 
-export default function GoalsSection({ categoryData }: Props) {
+interface BudgetItem { category: string; budget: number }
+
+export default function GoalsSection({ categoryData, savingsByCategory }: Props) {
   const [tab, setTab] = useState<"budget" | "savings">("budget");
   const [hoveredSeg, setHoveredSeg] = useState<number | null>(null);
+  const [budgets, setBudgets] = useState<BudgetItem[]>([]);
+  const [savingsGoals, setSavingsGoals] = useState<Record<string, number>>({});
   const { isDark } = useTheme();
 
-  const totalBudget = BUDGET_DATA.reduce((s, b) => s + b.budget, 0);
-  const yearTotal = Object.values(categoryData || {}).reduce((s, v) => s + v, 0);
-  const monthlySpent = Math.round(yearTotal / 12);
-  const budgetPct = Math.min((monthlySpent / totalBudget) * 100, 100);
-
-  const totalTarget = SAVINGS_DATA.reduce((s, g) => s + g.target, 0);
-  const totalSaved = SAVINGS_DATA.reduce((s, g) => s + g.saved, 0);
-  const savingsPct = (totalSaved / totalTarget) * 100;
+  useEffect(() => {
+    // Load budgets from localStorage
+    try {
+      const s = localStorage.getItem("iped-budgets");
+      if (s) setBudgets(JSON.parse(s));
+    } catch {}
+    // Load savings goals from localStorage
+    try {
+      const s = localStorage.getItem("iped-savings-goals");
+      if (s) setSavingsGoals(JSON.parse(s));
+    } catch {}
+  }, []);
 
   const subtext = isDark ? "text-white/50" : "text-gray-400";
   const txt = isDark ? "text-white" : "text-gray-900";
 
-  const budgetSegs = BUDGET_DATA.map((b) => {
-    const spent = Math.round((categoryData?.[b.name] || 0) / 12);
-    return { ...b, spent };
-  });
+  // Budget data — use real budgets from settings, match with real spending
+  const budgetSegs = budgets.length > 0
+    ? budgets.map((b) => ({
+        name: b.category,
+        budget: b.budget,
+        spent: Math.round((categoryData?.[b.category] || 0) / 12),
+        color: BUDGET_COLORS[b.category] || FALLBACK_COLORS[budgets.indexOf(b) % FALLBACK_COLORS.length],
+      }))
+    : Object.entries(categoryData || {}).sort((a, b) => b[1] - a[1]).slice(0, 5).map(([cat, total], i) => ({
+        name: cat,
+        budget: 0,
+        spent: Math.round(total / 12),
+        color: BUDGET_COLORS[cat] || FALLBACK_COLORS[i % FALLBACK_COLORS.length],
+      }));
 
-  /* ─── Donut with hover tooltip ─── */
+  const totalBudget = budgetSegs.reduce((s, b) => s + (b.budget || b.spent * 1.5), 0);
+  const monthlySpent = budgetSegs.reduce((s, b) => s + b.spent, 0);
+  const budgetPct = totalBudget > 0 ? Math.min((monthlySpent / totalBudget) * 100, 100) : 0;
+
+  // Savings data — use real savings by category
+  const savingsEntries = Object.entries(savingsByCategory || {}).filter(([, v]) => v > 0);
+  const savingsSegs = savingsEntries.map(([cat, saved], i) => ({
+    name: cat,
+    saved,
+    target: savingsGoals[cat] || 0,
+    color: SAVING_COLORS[cat] || FALLBACK_COLORS[i % FALLBACK_COLORS.length],
+  }));
+  const totalSaved = savingsSegs.reduce((s, g) => s + g.saved, 0);
+  const totalTarget = savingsSegs.reduce((s, g) => s + (g.target || g.saved), 0);
+  const savingsPct = totalTarget > 0 ? (totalSaved / totalTarget) * 100 : 0;
+
+  /* ─── Donut ─── */
   const renderDonut = ({
-    segments,
-    centerVal,
-    centerSub,
-    tooltipData,
+    segments, centerVal, centerSub, tooltipData,
   }: {
     segments: { pct: number; color: string }[];
     centerVal: string;
@@ -61,16 +99,14 @@ export default function GoalsSection({ categoryData }: Props) {
     const circ = 2 * Math.PI * r;
     let off = 0;
 
-    // Pre-calculate offsets for tooltip positioning
-    const segOffsets: { startAngle: number; endAngle: number; midAngle: number }[] = [];
+    const segOffsets: { midAngle: number }[] = [];
     let accumOff = 0;
     segments.forEach((seg) => {
       const startAngle = (accumOff / circ) * 360 - 90;
       const dash = (seg.pct / 100) * circ;
       accumOff += dash;
       const endAngle = (accumOff / circ) * 360 - 90;
-      const midAngle = (startAngle + endAngle) / 2;
-      segOffsets.push({ startAngle, endAngle, midAngle });
+      segOffsets.push({ midAngle: (startAngle + endAngle) / 2 });
     });
 
     return (
@@ -109,7 +145,6 @@ export default function GoalsSection({ categoryData }: Props) {
           </text>
         </svg>
 
-        {/* Tooltip */}
         {hoveredSeg !== null && tooltipData[hoveredSeg] && (() => {
           const midAngle = segOffsets[hoveredSeg]?.midAngle ?? 0;
           const rad = (midAngle * Math.PI) / 180;
@@ -117,26 +152,20 @@ export default function GoalsSection({ categoryData }: Props) {
           const tx = size / 2 + Math.cos(rad) * tooltipR;
           const ty = size / 2 + Math.sin(rad) * tooltipR;
           const seg = segments[hoveredSeg];
-          const data = tooltipData[hoveredSeg];
-
+          const d = tooltipData[hoveredSeg];
           return (
             <div className="absolute z-50 pointer-events-none"
-              style={{
-                left: tx,
-                top: ty,
-                transform: "translate(-50%, -50%)",
-              }}>
+              style={{ left: tx, top: ty, transform: "translate(-50%, -50%)" }}>
               <div className={`px-3 py-2.5 rounded-xl text-xs whitespace-nowrap backdrop-blur-sm ${isDark
                 ? "bg-[#2a2a2a]/95 text-white border border-white/10 shadow-xl shadow-black/40"
                 : "bg-white/95 text-gray-900 border border-gray-200 shadow-xl shadow-black/10"
               }`}>
                 <div className="flex items-center gap-1.5 mb-1">
-                  <div className="w-2 h-2 rounded-full flex-shrink-0"
-                    style={{ backgroundColor: seg.color }} />
-                  <span className="font-semibold">{data.name}</span>
+                  <div className="w-2 h-2 rounded-full flex-shrink-0" style={{ backgroundColor: seg.color }} />
+                  <span className="font-semibold">{d.name}</span>
                 </div>
-                <div className="font-bold text-sm">{data.value}</div>
-                <div className={`text-[10px] mt-0.5 ${subtext}`}>{data.detail}</div>
+                <div className="font-bold text-sm">{d.value}</div>
+                <div className={`text-[10px] mt-0.5 ${subtext}`}>{d.detail}</div>
               </div>
             </div>
           );
@@ -146,6 +175,7 @@ export default function GoalsSection({ categoryData }: Props) {
   };
 
   const remaining = totalBudget - monthlySpent;
+  const hasBudgets = budgets.length > 0;
 
   return (
     <>
@@ -164,125 +194,143 @@ export default function GoalsSection({ categoryData }: Props) {
 
       {tab === "budget" ? (
         <>
-          {renderDonut({
-            segments: budgetSegs.map((b) => ({
-              pct: (b.budget / totalBudget) * budgetPct,
-              color: b.color,
-            })),
-            centerVal: `${Math.round(budgetPct)}%`,
-            centerSub: `฿${monthlySpent.toLocaleString()} / ฿${totalBudget.toLocaleString()}`,
-            tooltipData: budgetSegs.map((b) => ({
-              name: b.name,
-              value: `฿${b.spent.toLocaleString()} / ฿${b.budget.toLocaleString()}`,
-              detail: `${Math.min(Math.round((b.spent / b.budget) * 100), 999)}% ของงบ`,
-            })),
-          })}
+          {budgetSegs.length === 0 ? (
+            <div className="flex flex-col items-center justify-center py-8">
+              <p className={`text-sm ${subtext}`}>ยังไม่มีข้อมูลค่าใช้จ่าย</p>
+            </div>
+          ) : (
+            <>
+              {renderDonut({
+                segments: budgetSegs.map((b) => ({
+                  pct: totalBudget > 0 ? ((b.budget || b.spent * 1.5) / totalBudget) * budgetPct : (100 / budgetSegs.length),
+                  color: b.color,
+                })),
+                centerVal: hasBudgets ? `${Math.round(budgetPct)}%` : `฿${(monthlySpent / 1000).toFixed(0)}k`,
+                centerSub: hasBudgets ? `฿${monthlySpent.toLocaleString()} / ฿${totalBudget.toLocaleString()}` : `เฉลี่ย/เดือน`,
+                tooltipData: budgetSegs.map((b) => ({
+                  name: b.name,
+                  value: b.budget ? `฿${b.spent.toLocaleString()} / ฿${b.budget.toLocaleString()}` : `฿${b.spent.toLocaleString()}/เดือน`,
+                  detail: b.budget ? `${Math.min(Math.round((b.spent / b.budget) * 100), 999)}% ของงบ` : "ยังไม่ได้ตั้งงบ",
+                })),
+              })}
 
-          <div className="space-y-2.5 mt-1">
-            {budgetSegs.map((b, i) => {
-              const usagePct = Math.min((b.spent / b.budget) * 100, 100);
-              const isHovered = hoveredSeg === i;
-              return (
-                <div key={b.name}
-                  className={`transition-all duration-200 rounded-lg px-1 -mx-1 ${isHovered ? (isDark ? "bg-white/5" : "bg-gray-50") : ""}`}
-                  onMouseEnter={() => setHoveredSeg(i)}
-                  onMouseLeave={() => setHoveredSeg(null)}>
-                  <div className="flex items-center justify-between mb-1">
-                    <div className="flex items-center gap-1.5">
-                      <span className="w-2 h-2 rounded-full shrink-0" style={{ backgroundColor: b.color }} />
-                      <span className={`text-xs ${subtext}`}>{b.name}</span>
+              <div className="space-y-2.5 mt-1">
+                {budgetSegs.map((b, i) => {
+                  const usagePct = b.budget ? Math.min((b.spent / b.budget) * 100, 100) : 50;
+                  const isHovered = hoveredSeg === i;
+                  return (
+                    <div key={b.name}
+                      className={`transition-all duration-200 rounded-lg px-1 -mx-1 ${isHovered ? (isDark ? "bg-white/5" : "bg-gray-50") : ""}`}
+                      onMouseEnter={() => setHoveredSeg(i)}
+                      onMouseLeave={() => setHoveredSeg(null)}>
+                      <div className="flex items-center justify-between mb-1">
+                        <div className="flex items-center gap-1.5">
+                          <span className="w-2 h-2 rounded-full shrink-0" style={{ backgroundColor: b.color }} />
+                          <span className={`text-xs ${subtext}`}>{b.name}</span>
+                        </div>
+                        <span className={`text-xs font-medium ${
+                          b.budget && b.spent > b.budget ? "text-red-400"
+                            : b.budget && b.spent > b.budget * 0.8 ? "text-yellow-400"
+                            : isDark ? "text-white/70" : "text-gray-600"
+                        }`}>
+                          ฿{b.spent.toLocaleString()}{b.budget ? ` / ฿${b.budget.toLocaleString()}` : "/เดือน"}
+                        </span>
+                      </div>
+                      <div className={`h-1.5 rounded-full overflow-hidden ${isDark ? "bg-white/6" : "bg-gray-100"}`}>
+                        <div className="h-full rounded-full transition-all duration-700"
+                          style={{
+                            width: `${usagePct}%`,
+                            backgroundColor: b.budget && b.spent > b.budget ? "#f87171" : b.budget && b.spent > b.budget * 0.8 ? "#F9DF24" : b.color,
+                            opacity: b.budget ? 1 : 0.5,
+                          }} />
+                      </div>
                     </div>
-                    <span className={`text-xs font-medium ${
-                      b.spent > b.budget ? "text-red-400"
-                        : b.spent > b.budget * 0.8 ? "text-yellow-400"
-                        : isDark ? "text-white/70" : "text-gray-600"
-                    }`}>
-                      ฿{b.spent.toLocaleString()} / ฿{b.budget.toLocaleString()}
+                  );
+                })}
+              </div>
+
+              {hasBudgets && (
+                <div className={`mt-3 pt-3 border-t ${isDark ? "border-white/10" : "border-gray-100"}`}>
+                  <div className="flex justify-between mb-2">
+                    <span className={`text-xs ${subtext}`}>งบรวม/เดือน</span>
+                    <span className={`text-xs font-semibold ${txt}`}>฿{totalBudget.toLocaleString()}</span>
+                  </div>
+                  <div className="flex justify-between">
+                    <span className={`text-xs ${subtext}`}>คงเหลือ</span>
+                    <span className={`text-xs font-semibold ${remaining >= 0 ? "text-green-400" : "text-red-400"}`}>
+                      ฿{Math.abs(remaining).toLocaleString()}
                     </span>
                   </div>
-                  <div className={`h-1.5 rounded-full overflow-hidden ${isDark ? "bg-white/6" : "bg-gray-100"}`}>
-                    <div className="h-full rounded-full transition-all duration-700"
-                      style={{
-                        width: `${usagePct}%`,
-                        backgroundColor: b.spent > b.budget ? "#f87171" : b.spent > b.budget * 0.8 ? "#F9DF24" : b.color,
-                      }} />
-                  </div>
                 </div>
-              );
-            })}
-          </div>
-
-          <div className={`mt-3 pt-3 border-t ${isDark ? "border-white/10" : "border-gray-100"}`}>
-            <div className="flex justify-between mb-2">
-              <span className={`text-xs ${subtext}`}>งบรวม/เดือน</span>
-              <span className={`text-xs font-semibold ${txt}`}>฿{totalBudget.toLocaleString()}</span>
-            </div>
-            <div className="flex justify-between">
-              <span className={`text-xs ${subtext}`}>คงเหลือ</span>
-              <span className={`text-xs font-semibold ${remaining >= 0 ? "text-green-400" : "text-red-400"}`}>
-                ฿{Math.abs(remaining).toLocaleString()}
-              </span>
-            </div>
-          </div>
+              )}
+              {!hasBudgets && (
+                <div className={`mt-3 pt-3 border-t ${isDark ? "border-white/10" : "border-gray-100"} text-center`}>
+                  <a href="/dashboard/budget" className="text-xs text-[#FA3633] hover:underline">ตั้งงบประมาณ &rarr;</a>
+                </div>
+              )}
+            </>
+          )}
         </>
       ) : (
         <>
-          {renderDonut({
-            segments: SAVINGS_DATA.map((s) => ({
-              pct: (s.saved / totalTarget) * 100,
-              color: s.color,
-            })),
-            centerVal: `${Math.round(savingsPct)}%`,
-            centerSub: `฿${totalSaved.toLocaleString()} / ฿${totalTarget.toLocaleString()}`,
-            tooltipData: SAVINGS_DATA.map((s) => ({
-              name: s.name,
-              value: `฿${s.saved.toLocaleString()} / ฿${s.target.toLocaleString()}`,
-              detail: `${Math.round((s.saved / s.target) * 100)}% สำเร็จ`,
-            })),
-          })}
+          {savingsSegs.length === 0 ? (
+            <div className="flex flex-col items-center justify-center py-8">
+              <p className={`text-sm ${subtext}`}>ยังไม่มีข้อมูลเงินออม</p>
+              <a href="/dashboard/savings" className="text-xs text-[#FA3633] hover:underline mt-2">เพิ่มเงินออม &rarr;</a>
+            </div>
+          ) : (
+            <>
+              {renderDonut({
+                segments: savingsSegs.map((s) => ({
+                  pct: totalSaved > 0 ? (s.saved / totalSaved) * 100 : (100 / savingsSegs.length),
+                  color: s.color,
+                })),
+                centerVal: `฿${(totalSaved / 1000).toFixed(0)}k`,
+                centerSub: `ออมแล้วทั้งหมด`,
+                tooltipData: savingsSegs.map((s) => ({
+                  name: s.name,
+                  value: `฿${s.saved.toLocaleString()}`,
+                  detail: s.target ? `เป้า ฿${s.target.toLocaleString()} (${Math.round((s.saved / s.target) * 100)}%)` : "ไม่ได้ตั้งเป้า",
+                })),
+              })}
 
-          <div className="space-y-3">
-            {SAVINGS_DATA.map((g, i) => {
-              const pct = (g.saved / g.target) * 100;
-              const isHovered = hoveredSeg === i;
-              return (
-                <div key={g.name}
-                  className={`transition-all duration-200 rounded-lg px-1 -mx-1 ${isHovered ? (isDark ? "bg-white/5" : "bg-gray-50") : ""}`}
-                  onMouseEnter={() => setHoveredSeg(i)}
-                  onMouseLeave={() => setHoveredSeg(null)}>
-                  <div className="flex justify-between mb-1">
-                    <span className={`text-xs ${subtext}`}>{g.name}</span>
-                    <span className={`text-xs font-medium ${txt}`}>{Math.round(pct)}%</span>
-                  </div>
-                  <div className={`h-1.5 rounded-full overflow-hidden ${isDark ? "bg-white/6" : "bg-gray-100"}`}>
-                    <div className="h-full rounded-full transition-all duration-700"
-                      style={{ width: `${pct}%`, backgroundColor: g.color }} />
-                  </div>
-                  <div className="flex justify-between mt-0.5">
-                    <span className={`text-[10px] ${subtext}`}>฿{g.saved.toLocaleString()}</span>
-                    <span className={`text-[10px] ${subtext}`}>฿{g.target.toLocaleString()}</span>
-                  </div>
+              <div className="space-y-3">
+                {savingsSegs.map((g, i) => {
+                  const pct = g.target ? (g.saved / g.target) * 100 : 100;
+                  const isHovered = hoveredSeg === i;
+                  return (
+                    <div key={g.name}
+                      className={`transition-all duration-200 rounded-lg px-1 -mx-1 ${isHovered ? (isDark ? "bg-white/5" : "bg-gray-50") : ""}`}
+                      onMouseEnter={() => setHoveredSeg(i)}
+                      onMouseLeave={() => setHoveredSeg(null)}>
+                      <div className="flex justify-between mb-1">
+                        <div className="flex items-center gap-1.5">
+                          <span className="w-2 h-2 rounded-full shrink-0" style={{ backgroundColor: g.color }} />
+                          <span className={`text-xs ${subtext}`}>{g.name}</span>
+                        </div>
+                        <span className={`text-xs font-medium ${txt}`}>
+                          ฿{g.saved.toLocaleString()}
+                          {g.target ? <span className={subtext}> / ฿{g.target.toLocaleString()}</span> : ""}
+                        </span>
+                      </div>
+                      <div className={`h-1.5 rounded-full overflow-hidden ${isDark ? "bg-white/6" : "bg-gray-100"}`}>
+                        <div className="h-full rounded-full transition-all duration-700"
+                          style={{ width: `${Math.min(pct, 100)}%`, backgroundColor: g.color }} />
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+
+              <div className={`mt-3 pt-3 border-t ${isDark ? "border-white/10" : "border-gray-100"}`}>
+                <div className="flex justify-between mb-1">
+                  <span className={`text-xs ${subtext}`}>ออมแล้ว</span>
+                  <span className="text-xs font-semibold text-green-400">฿{totalSaved.toLocaleString()}</span>
                 </div>
-              );
-            })}
-          </div>
-
-          <div className={`mt-3 pt-3 border-t ${isDark ? "border-white/10" : "border-gray-100"}`}>
-            <div className="flex justify-between mb-2">
-              <span className={`text-xs ${subtext}`}>เป้าหมายรวม</span>
-              <span className={`text-xs font-semibold ${txt}`}>฿{totalTarget.toLocaleString()}</span>
-            </div>
-            <div className="flex justify-between">
-              <span className={`text-xs ${subtext}`}>ออมแล้ว</span>
-              <span className="text-xs font-semibold text-green-400">฿{totalSaved.toLocaleString()}</span>
-            </div>
-            <div className="flex justify-between mt-1">
-              <span className={`text-xs ${subtext}`}>ยังขาด</span>
-              <span className={`text-xs font-semibold ${isDark ? "text-white/70" : "text-gray-600"}`}>
-                ฿{(totalTarget - totalSaved).toLocaleString()}
-              </span>
-            </div>
-          </div>
+                <a href="/dashboard/savings" className="block text-center text-xs text-[#FA3633] hover:underline mt-2">ดูทั้งหมด &rarr;</a>
+              </div>
+            </>
+          )}
         </>
       )}
     </>

@@ -21,6 +21,8 @@ interface DashboardData {
   monthlyData: { month: string; categories: Record<string, number>; total: number }[];
   categoryData: Record<string, number>;
   paymentData?: Record<string, number>;
+  connections?: { line: boolean; gmail: boolean; drive: boolean; sheets: boolean; notion: boolean };
+  savingsByCategory?: Record<string, number>;
   recentReceipts: {
     _id: string; storeName: string; type: string; category: string;
     amount: number; date: string; status: string; time?: string; description?: string;
@@ -34,10 +36,18 @@ const CATEGORY_COLORS: Record<string, string> = {
 };
 const FALLBACK_COLORS = ["#818CF8","#FB923C","#60A5FA","#F472B6","#C084FC","#34D399","#FBBF24","#F87171","#2DD4BF","#A78BFA"];
 
-const BUDGET_LIMITS: Record<string, number> = {
-  "ช็อปปิ้ง": 20000, "อาหาร": 15000, "เดินทาง": 12000,
-  "สาธารณูปโภค": 10000, "ของใช้ในบ้าน": 8000,
-};
+function getBudgetLimits(): Record<string, number> {
+  try {
+    const s = typeof window !== "undefined" ? localStorage.getItem("iped-budgets") : null;
+    if (s) {
+      const parsed = JSON.parse(s);
+      const limits: Record<string, number> = {};
+      parsed.forEach((b: any) => { if (b.category && b.budget) limits[b.category] = b.budget; });
+      if (Object.keys(limits).length > 0) return limits;
+    }
+  } catch {}
+  return {};
+}
 
 function getCatColor(cat: string): string {
   if (CATEGORY_COLORS[cat]) return CATEGORY_COLORS[cat];
@@ -112,8 +122,9 @@ table{width:100%;border-collapse:collapse;margin-top:12px}th{text-align:left;pad
 
 /* ─── Budget Alert logic ─── */
 function getBudgetAlerts(categoryData: Record<string, number>): { cat: string; spent: number; budget: number; pct: number }[] {
+  const limits = getBudgetLimits();
   const alerts: { cat: string; spent: number; budget: number; pct: number }[] = [];
-  Object.entries(BUDGET_LIMITS).forEach(([cat, budget]) => {
+  Object.entries(limits).forEach(([cat, budget]) => {
     const spent = categoryData[cat] || 0;
     const pct = (spent / budget) * 100;
     if (pct >= 80) alerts.push({ cat, spent, budget, pct });
@@ -346,11 +357,11 @@ export default function DashboardClient({ data: initialData }: { data: Dashboard
       {/* Connection status bar */}
       <div className={`flex flex-wrap gap-3 ${card} border border-[var(--color-border)] rounded-xl px-4 py-2.5`}>
         {[
-          { name: "LINE", brand: "line", connected: true },
-          { name: "Google Drive", brand: "google-drive", connected: false },
-          { name: "Google Sheet", brand: "google-sheets", connected: false },
-          { name: "Notion", brand: "notion", connected: false },
-          { name: "Gmail", brand: "gmail", connected: false },
+          { name: "LINE", brand: "line", connected: data.connections?.line ?? false },
+          { name: "Gmail", brand: "gmail", connected: data.connections?.gmail ?? false },
+          { name: "Google Drive", brand: "google-drive", connected: data.connections?.drive ?? false },
+          { name: "Google Sheet", brand: "google-sheets", connected: data.connections?.sheets ?? false },
+          { name: "Notion", brand: "notion", connected: data.connections?.notion ?? false },
         ].map((s) => (
           <div key={s.name} className={`flex items-center gap-1.5 text-xs ${txtSub}`}>
             <BrandIcon brand={s.brand} size={16} />
@@ -453,7 +464,7 @@ export default function DashboardClient({ data: initialData }: { data: Dashboard
         <ChartSection monthlyData={data.monthlyData} categoryData={data.categoryData} />
         <div className={`${card} border border-[var(--color-border)] rounded-2xl p-5`}>
           <h3 className={`font-semibold mb-3 ${txt}`}>เป้าหมาย</h3>
-          <GoalsSection categoryData={data.categoryData} />
+          <GoalsSection categoryData={data.categoryData} savingsByCategory={data.savingsByCategory || {}} />
         </div>
       </div>
 

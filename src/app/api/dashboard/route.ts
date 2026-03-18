@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { verifyToken } from "@/lib/auth";
 import { connectDB } from "@/lib/mongodb";
 import Receipt from "@/models/Receipt";
+import User from "@/models/User";
 
 export async function GET(req: NextRequest) {
   try {
@@ -77,6 +78,31 @@ export async function GET(req: NextRequest) {
         type: r.type || "receipt",
       }));
 
+    // Connection status
+    const user = await User.findById(userId).select("lineUserId googleAccessToken").lean() as any;
+    const connections = {
+      line: !!user?.lineUserId,
+      gmail: !!user?.googleAccessToken,
+      drive: !!user?.googleAccessToken,
+      sheets: false,
+      notion: false,
+    };
+
+    // Payment method breakdown
+    const paymentMap: Record<string, number> = {};
+    currentReceipts.forEach((r: any) => {
+      const pm = r.paymentMethod || "other";
+      paymentMap[pm] = (paymentMap[pm] || 0) + (r.amount || 0);
+    });
+
+    // Savings by category
+    const savingsReceipts = await Receipt.find({ userId, direction: "savings", status: { $ne: "cancelled" } }).select("amount category").lean();
+    const savingsByCategory: Record<string, number> = {};
+    (savingsReceipts as any[]).forEach((r: any) => {
+      const cat = r.category || "เงินออม";
+      savingsByCategory[cat] = (savingsByCategory[cat] || 0) + (r.amount || 0);
+    });
+
     return NextResponse.json({
       totalAmount: totalCurrent,
       changePercent,
@@ -86,6 +112,9 @@ export async function GET(req: NextRequest) {
       recentReceipts: serialize(recentReceipts),
       categoryData: allCategoryMap,
       monthlyData: monthlyTrend,
+      paymentData: paymentMap,
+      connections,
+      savingsByCategory,
     });
   } catch (err) {
     console.error("Dashboard API error:", err);
