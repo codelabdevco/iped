@@ -500,7 +500,7 @@ export default function ReceiptsClient({ receipts: initialReceipts }: { receipts
       render: (r) => {
         const dir = r.direction || "expense";
         const dirLabel = dir === "income" ? "รายรับ" : dir === "savings" ? "เงินออม" : "รายจ่าย";
-        const dirCls = dir === "income" ? "bg-green-500/10 text-green-500" : dir === "savings" ? "bg-blue-500/10 text-blue-400" : "bg-red-500/10 text-red-400";
+        const dirCls = dir === "income" ? "bg-green-500/10 text-green-500" : dir === "savings" ? "bg-pink-500/10 text-pink-400" : "bg-red-500/10 text-red-400";
         return (
           <div className="leading-tight min-w-0">
             <div className="flex items-center gap-2">
@@ -525,7 +525,7 @@ export default function ReceiptsClient({ receipts: initialReceipts }: { receipts
       align: "right",
       render: (r) => {
         const dir = r.direction || "expense";
-        const cls = dir === "income" ? "font-semibold text-green-500" : dir === "savings" ? "font-semibold text-blue-400" : "font-semibold";
+        const cls = dir === "income" ? "font-semibold text-green-500" : dir === "savings" ? "font-semibold text-pink-400" : "font-semibold";
         return <Baht value={r.amount} className={cls} />;
       },
     },
@@ -748,7 +748,7 @@ export default function ReceiptsClient({ receipts: initialReceipts }: { receipts
             <div className="flex p-1 rounded-xl bg-white/5">
               <button onClick={() => setTxType("income")} className={`flex-1 py-2.5 rounded-lg text-sm font-semibold transition-all ${txType === "income" ? "bg-green-500 text-white shadow-sm" : "text-white/50 hover:text-white/70"}`}>รายรับ</button>
               <button onClick={() => setTxType("expense")} className={`flex-1 py-2.5 rounded-lg text-sm font-semibold transition-all ${txType === "expense" ? "bg-red-500 text-white shadow-sm" : "text-white/50 hover:text-white/70"}`}>รายจ่าย</button>
-              <button onClick={() => setTxType("savings" as any)} className={`flex-1 py-2.5 rounded-lg text-sm font-semibold transition-all ${(txType as string) === "savings" ? "bg-blue-500 text-white shadow-sm" : "text-white/50 hover:text-white/70"}`}>เงินออม</button>
+              <button onClick={() => setTxType("savings" as any)} className={`flex-1 py-2.5 rounded-lg text-sm font-semibold transition-all ${(txType as string) === "savings" ? "bg-pink-500 text-white shadow-sm" : "text-white/50 hover:text-white/70"}`}>เงินออม</button>
             </div>
 
             {/* ═══ EXPENSE TAB ═══ */}
@@ -842,7 +842,7 @@ export default function ReceiptsClient({ receipts: initialReceipts }: { receipts
             {/* ═══ SAVINGS TAB ═══ */}
             {(txType as string) === "savings" && (
             <div className="rounded-xl bg-white/[0.03] border border-white/10 p-4 space-y-3">
-              <p className="text-xs font-semibold text-blue-400/70">บันทึกเงินออม</p>
+              <p className="text-xs font-semibold text-pink-400/70">บันทึกเงินออม</p>
               <div><label className={lbl}>เป้าหมาย</label><input value={editForm.savingsGoal || ""} onChange={(e) => setEditForm({ ...editForm, savingsGoal: e.target.value })} placeholder="เช่น ท่องเที่ยวญี่ปุ่น, MacBook Pro" className={inp} /></div>
               <div><label className={lbl}>จำนวนที่ออม (฿)</label><input type="number" value={editForm.savingsAmount || ""} onChange={(e) => setEditForm({ ...editForm, savingsAmount: e.target.value })} placeholder="0.00" className={inp} /></div>
               <div className="grid grid-cols-2 gap-3">
@@ -881,12 +881,12 @@ export default function ReceiptsClient({ receipts: initialReceipts }: { receipts
 
             {/* Savings total */}
             {(txType as string) === "savings" && editForm.savingsAmount && (
-            <div className="rounded-xl p-4 bg-blue-500/10 border border-blue-500/20">
+            <div className="rounded-xl p-4 bg-pink-500/10 border border-pink-500/20">
               <div className="flex items-center justify-between">
                 <span className="text-sm font-semibold text-white/70">ออมครั้งนี้</span>
                 <span className="text-2xl font-bold text-white">฿{Number(editForm.savingsAmount || 0).toLocaleString("th-TH", { minimumFractionDigits: 2 })}</span>
               </div>
-              {editForm.savingsGoal && <p className="text-[11px] text-blue-400/60 mt-1">เป้าหมาย: {editForm.savingsGoal}</p>}
+              {editForm.savingsGoal && <p className="text-[11px] text-pink-400/60 mt-1">เป้าหมาย: {editForm.savingsGoal}</p>}
             </div>
             )}
 
