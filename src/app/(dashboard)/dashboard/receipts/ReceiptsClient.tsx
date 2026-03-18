@@ -509,7 +509,7 @@ export default function ReceiptsClient({ receipts: initialReceipts }: { receipts
     { key: "amount", label: "จำนวนเงิน", align: "right", render: (r) => <Baht value={r.amount} className="font-semibold" /> },
     {
       key: "paidAt",
-      label: "วันที่จ่าย",
+      label: "เวลาในสลิป",
       render: (r) => {
         const iso = r.rawDate;
         if (!iso) return <span className={muted}>-</span>;
@@ -521,10 +521,8 @@ export default function ReceiptsClient({ receipts: initialReceipts }: { receipts
         const isLine = r.source === "line";
         return (
           <div className="leading-tight">
-            <div className="text-sm whitespace-nowrap">{day} {mon} {yr}</div>
+            <div className="text-sm whitespace-nowrap">{day} {mon} {yr}{time ? ` ${time}` : ""}</div>
             <div className={`flex items-center gap-1 mt-0.5 text-[11px]`}>
-              {time && <span className={muted}>{time}</span>}
-              {time && <span className={muted}>·</span>}
               <span className={isLine ? "text-green-500" : "text-blue-400"}>
                 {isLine ? "LINE" : "เว็บ"}
               </span>
