@@ -238,10 +238,10 @@ export default function ReceiptsClient({ receipts: initialReceipts }: { receipts
     });
   }, [receipts, search, statusFilter, typeFilter, driveFilter]);
 
-  const totalAmount = filtered.reduce((s, r) => s + r.amount, 0);
-  const confirmed = filtered.filter((r) => r.status === "confirmed").length;
+  const confirmedReceipts = filtered.filter((r) => r.status === "confirmed");
+  const totalAmount = confirmedReceipts.reduce((s, r) => s + r.amount, 0);
+  const confirmed = confirmedReceipts.length;
   const pending = filtered.filter((r) => r.status === "pending").length;
-  const hasImages = filtered.filter((r) => r.hasImage || r.imageUrl).length;
 
   const card = isDark ? "bg-[rgba(255,255,255,0.04)]" : "bg-white";
   const border = isDark ? "border-[rgba(255,255,255,0.06)]" : "border-gray-200";
@@ -719,10 +719,11 @@ export default function ReceiptsClient({ receipts: initialReceipts }: { receipts
               </div>
             )}
 
-            {/* Income / Expense toggle */}
+            {/* Income / Expense / Savings toggle */}
             <div className="flex p-1 rounded-xl bg-white/5">
               <button onClick={() => setTxType("income")} className={`flex-1 py-2.5 rounded-lg text-sm font-semibold transition-all ${txType === "income" ? "bg-green-500 text-white shadow-sm" : "text-white/50 hover:text-white/70"}`}>รายรับ</button>
               <button onClick={() => setTxType("expense")} className={`flex-1 py-2.5 rounded-lg text-sm font-semibold transition-all ${txType === "expense" ? "bg-red-500 text-white shadow-sm" : "text-white/50 hover:text-white/70"}`}>รายจ่าย</button>
+              <button onClick={() => setTxType("savings" as any)} className={`flex-1 py-2.5 rounded-lg text-sm font-semibold transition-all ${(txType as string) === "savings" ? "bg-blue-500 text-white shadow-sm" : "text-white/50 hover:text-white/70"}`}>เงินออม</button>
             </div>
 
             {/* Edit form */}
