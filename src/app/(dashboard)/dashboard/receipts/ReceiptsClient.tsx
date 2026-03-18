@@ -2,7 +2,7 @@
 
 import { useState, useMemo, useCallback, useRef, useEffect } from "react";
 import { useRouter } from "next/navigation";
-import { Search, Filter, Receipt, FileText, CheckCircle, Clock, Pencil, Trash2, ImageIcon, Cloud, CloudOff, HardDrive, Upload, X, MessageCircle, Globe, User } from "lucide-react";
+import { Search, Filter, Receipt, FileText, CheckCircle, Clock, Pencil, Trash2, ImageIcon, Cloud, CloudOff, HardDrive, Upload, X, MessageCircle, Globe, User, Plus, Loader2 } from "lucide-react";
 import Select from "@/components/dashboard/Select";
 import DatePicker from "@/components/dashboard/DatePicker";
 import FileAttachments, { Attachment } from "@/components/dashboard/FileAttachments";
@@ -179,6 +179,8 @@ export default function ReceiptsClient({ receipts: initialReceipts }: { receipts
   const [slipDragging, setSlipDragging] = useState(false);
   const slipInputRef = useRef<HTMLInputElement>(null);
   const [lightboxUrl, setLightboxUrl] = useState<string | null>(null);
+  const [isAdding, setIsAdding] = useState(false);
+  const [saving, setSaving] = useState(false);
 
   const filtered = useMemo(() => {
     return receipts.filter((r) => {
@@ -280,7 +282,71 @@ export default function ReceiptsClient({ receipts: initialReceipts }: { receipts
 
   const handleCancelEdit = () => {
     setEditingId(null);
+    setIsAdding(false);
     setEditForm({});
+  };
+
+  const handleAdd = () => {
+    setEditingId(null);
+    setIsAdding(true);
+    setEditForm({
+      storeName: "",
+      category: "ไม่ระบุ",
+      status: "pending",
+      type: "receipt",
+      paymentMethod: "cash",
+      date: new Date().toISOString().slice(0, 10),
+      note: "",
+      documentNumber: "",
+      merchantTaxId: "",
+    });
+    setEditItems([{ name: "", qty: 1, price: 0 }]);
+    setVatEnabled(false);
+    setWhtEnabled(false);
+    setTxType("expense");
+    setAttachments([]);
+    setSlipPreview(null);
+  };
+
+  const handleSaveAdd = async () => {
+    if (!editForm.storeName) return;
+    setSaving(true);
+    const itemsTotal = editItems.reduce((s, it) => s + it.qty * it.price, 0);
+    const vat = vatEnabled ? Math.round(itemsTotal * 0.07) : 0;
+    const wht = whtEnabled ? Math.round(itemsTotal * 0.03) : 0;
+    const total = itemsTotal + vat - wht;
+    try {
+      const res = await fetch("/api/receipts", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          merchant: editForm.storeName,
+          date: editForm.date || new Date().toISOString().slice(0, 10),
+          amount: total,
+          vat: vat || undefined,
+          wht: wht || undefined,
+          category: editForm.category || "ไม่ระบุ",
+          categoryIcon: "📋",
+          type: editForm.type || "receipt",
+          paymentMethod: editForm.paymentMethod || "cash",
+          status: "pending",
+          note: editForm.note || undefined,
+          documentNumber: editForm.documentNumber || undefined,
+          merchantTaxId: editForm.merchantTaxId || undefined,
+          imageUrl: slipPreview || undefined,
+          source: "web",
+        }),
+      });
+      if (res.ok) {
+        setIsAdding(false);
+        setEditForm({});
+        setEditItems([]);
+        setSlipPreview(null);
+        router.refresh();
+      }
+    } catch {} finally {
+      setSaving(false);
+    }
   };
 
   const paymentLabel: Record<string, string> = {};
@@ -484,9 +550,9 @@ export default function ReceiptsClient({ receipts: initialReceipts }: { receipts
         </div>
       )}
 
-      {/* Slide-in edit panel from right */}
-      {editingId && <div className="fixed inset-0 z-40 bg-black/60 transition-opacity" onClick={handleCancelEdit} />}
-      {editingId && editingReceipt && (
+      {/* Slide-in panel from right (edit + add) */}
+      {(editingId || isAdding) && <div className="fixed inset-0 z-40 bg-black/60 transition-opacity" onClick={handleCancelEdit} />}
+      {(editingId || isAdding) && (editingReceipt || isAdding) && (
       <div className="fixed inset-y-0 right-0 z-50 w-[540px] max-w-[95vw] bg-[#0a0a0a] border-l border-white/10 shadow-2xl overflow-y-auto animate-slide-in-right">
         {(() => {
           const itemsTotal = editItems.reduce((s, it) => s + it.qty * it.price, 0);
@@ -499,7 +565,7 @@ export default function ReceiptsClient({ receipts: initialReceipts }: { receipts
           return (
           <div className="p-6 space-y-5">
             <div className="flex items-center justify-between">
-              <h2 className="text-lg font-bold text-white">แก้ไขใบเสร็จ</h2>
+              <h2 className="text-lg font-bold text-white">{isAdding ? "เพิ่มใบเสร็จ" : "แก้ไขใบเสร็จ"}</h2>
               <button onClick={handleCancelEdit} className="w-8 h-8 rounded-lg hover:bg-white/5 text-white/40 hover:text-white flex items-center justify-center text-xl transition-colors">&times;</button>
             </div>
 
@@ -615,32 +681,27 @@ export default function ReceiptsClient({ receipts: initialReceipts }: { receipts
             </div>
 
             {/* Grand total */}
-            {(() => {
-              const ocrAmount = editingReceipt.amount;
-              const mismatch = grandTotal !== ocrAmount && grandTotal > 0;
-              return (
-                <div className={`rounded-xl p-4 ${mismatch ? "bg-amber-500/10 border border-amber-500/20" : "bg-[#FA3633]/10 border border-[#FA3633]/20"}`}>
-                  <div className="flex items-center justify-between">
-                    <span className="text-sm font-semibold text-white/70">ยอดสุทธิ</span>
-                    <span className="text-2xl font-bold text-white">฿{grandTotal.toLocaleString("th-TH", { minimumFractionDigits: 2 })}</span>
+            <div className="rounded-xl p-4 bg-[#FA3633]/10 border border-[#FA3633]/20">
+              <div className="flex items-center justify-between">
+                <span className="text-sm font-semibold text-white/70">ยอดสุทธิ</span>
+                <span className="text-2xl font-bold text-white">฿{grandTotal.toLocaleString("th-TH", { minimumFractionDigits: 2 })}</span>
+              </div>
+              {(vatEnabled || whtEnabled) && (
+                <p className="text-[11px] text-white/30 mt-1">สินค้า ฿{itemsTotal.toLocaleString("th-TH", { minimumFractionDigits: 2 })}{vatEnabled ? ` + VAT ฿${vatAmount.toLocaleString("th-TH", { minimumFractionDigits: 2 })}` : ""}{whtEnabled ? ` - WHT ฿${whtAmount.toLocaleString("th-TH", { minimumFractionDigits: 2 })}` : ""}</p>
+              )}
+              {!isAdding && editingReceipt && grandTotal !== editingReceipt.amount && grandTotal > 0 && (
+                <div className="mt-3 flex items-start gap-2 p-2.5 rounded-lg bg-amber-500/10">
+                  <span className="text-amber-400 text-sm mt-0.5">⚠</span>
+                  <div>
+                    <p className="text-xs font-medium text-amber-400">ยอดไม่ตรงกับ OCR</p>
+                    <p className="text-[11px] text-amber-400/60 mt-0.5">ยอดจาก OCR: ฿{editingReceipt.amount.toLocaleString("th-TH", { minimumFractionDigits: 2 })} — ยอดที่แก้ไข: ฿{grandTotal.toLocaleString("th-TH", { minimumFractionDigits: 2 })}</p>
                   </div>
-                  {(vatEnabled || whtEnabled) && (
-                    <p className="text-[11px] text-white/30 mt-1">สินค้า ฿{itemsTotal.toLocaleString("th-TH", { minimumFractionDigits: 2 })}{vatEnabled ? ` + VAT ฿${vatAmount.toLocaleString("th-TH", { minimumFractionDigits: 2 })}` : ""}{whtEnabled ? ` - WHT ฿${whtAmount.toLocaleString("th-TH", { minimumFractionDigits: 2 })}` : ""}</p>
-                  )}
-                  {mismatch && (
-                    <div className="mt-3 flex items-start gap-2 p-2.5 rounded-lg bg-amber-500/10">
-                      <span className="text-amber-400 text-sm mt-0.5">⚠</span>
-                      <div>
-                        <p className="text-xs font-medium text-amber-400">ยอดไม่ตรงกับ OCR</p>
-                        <p className="text-[11px] text-amber-400/60 mt-0.5">ยอดจาก OCR: ฿{ocrAmount.toLocaleString("th-TH", { minimumFractionDigits: 2 })} — ยอดที่แก้ไข: ฿{grandTotal.toLocaleString("th-TH", { minimumFractionDigits: 2 })} (ต่างกัน ฿{Math.abs(grandTotal - ocrAmount).toLocaleString("th-TH", { minimumFractionDigits: 2 })})</p>
-                      </div>
-                    </div>
-                  )}
                 </div>
-              );
-            })()}
+              )}
+            </div>
 
-            {/* Financial info */}
+            {/* Financial info — edit mode only */}
+            {!isAdding && editingReceipt && (
             <div className="rounded-xl bg-white/[0.03] border border-white/10 p-4 space-y-2">
               <p className="text-xs font-semibold text-white/50">ข้อมูลเพิ่มเติม</p>
               {editingReceipt.documentNumber && <div className="flex justify-between text-sm"><span className="text-white/40">เลขที่เอกสาร</span><span className="text-white font-mono text-xs">{editingReceipt.documentNumber}</span></div>}
@@ -648,6 +709,7 @@ export default function ReceiptsClient({ receipts: initialReceipts }: { receipts
               <div className="flex justify-between text-sm"><span className="text-white/40">วิธีจ่าย</span><span className="text-white">{paymentLabel[editingReceipt.paymentMethod || ""] || editingReceipt.paymentMethod || "-"}</span></div>
               <div className="flex justify-between text-sm"><span className="text-white/40">Drive</span><span className="flex items-center gap-1.5">{editingReceipt.driveUploaded ? <><Cloud size={14} className="text-green-500" /><span className="text-green-400 text-xs">อัปโหลดแล้ว</span></> : <><CloudOff size={14} className="text-white/20" /><span className="text-white/30 text-xs">ยังไม่อัปโหลด</span></>}</span></div>
             </div>
+            )}
 
             {/* File attachments */}
             <div className="rounded-xl bg-white/[0.03] border border-white/10 p-4">
@@ -656,7 +718,14 @@ export default function ReceiptsClient({ receipts: initialReceipts }: { receipts
 
             {/* Actions */}
             <div className="flex gap-2 pt-2 sticky bottom-0 pb-6 bg-[#0a0a0a]">
-              <button onClick={handleSaveEdit} className="flex-1 py-2.5 rounded-xl text-sm font-medium bg-[#FA3633] text-white hover:bg-[#e0302d] transition-colors">บันทึก</button>
+              <button
+                onClick={isAdding ? handleSaveAdd : handleSaveEdit}
+                disabled={saving || (isAdding && !editForm.storeName)}
+                className="flex-1 py-2.5 rounded-xl text-sm font-medium bg-[#FA3633] text-white hover:bg-[#e0302d] transition-colors disabled:opacity-40 disabled:cursor-not-allowed flex items-center justify-center gap-2"
+              >
+                {saving && <Loader2 size={14} className="animate-spin" />}
+                {isAdding ? "เพิ่มใบเสร็จ" : "บันทึก"}
+              </button>
               <button onClick={handleCancelEdit} className="flex-1 py-2.5 rounded-xl text-sm font-medium bg-white/5 text-white/60 hover:bg-white/10 transition-colors">ยกเลิก</button>
             </div>
           </div>
@@ -665,7 +734,16 @@ export default function ReceiptsClient({ receipts: initialReceipts }: { receipts
       </div>
       )}
 
-      <PageHeader title="ใบเสร็จทั้งหมด" description={`${filtered.length} รายการ — รวม ฿${totalAmount.toLocaleString("th-TH", { minimumFractionDigits: 2 })}`} />
+      <div className="flex items-center justify-between">
+        <PageHeader title="ใบเสร็จทั้งหมด" description={`${filtered.length} รายการ — รวม ฿${totalAmount.toLocaleString("th-TH", { minimumFractionDigits: 2 })}`} />
+        <button
+          onClick={handleAdd}
+          className="flex items-center gap-2 px-4 py-2.5 rounded-xl text-sm font-medium bg-[#FA3633] text-white hover:bg-[#e0302d] transition-colors shadow-sm shadow-[#FA3633]/25"
+        >
+          <Plus size={16} />
+          เพิ่มสลิป
+        </button>
+      </div>
 
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
         <StatsCard label="ใบเสร็จทั้งหมด" value={`${filtered.length} รายการ`} icon={<Receipt size={20} />} color="text-blue-500" />
