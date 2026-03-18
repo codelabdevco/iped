@@ -374,7 +374,7 @@ export default function MatchingClient({
     },
   ], [txt, muted, matches, receipts]);
 
-  // Match columns
+  // Match columns — with receipt thumbnails
   const matchColumns: Column<MatchRow>[] = useMemo(() => [
     {
       key: "docA",
@@ -382,13 +382,25 @@ export default function MatchingClient({
       render: (m) => {
         const isEmailA = receipts.find((r) => r._id === m.receiptA._id)?.source === "email";
         const emailDoc = isEmailA ? m.receiptA : m.receiptB;
+        const emailReceipt = receipts.find((r) => r._id === emailDoc._id);
+        const fileId = emailReceipt?.fileIds?.[0];
         return (
-          <div className="leading-tight">
-            <div className="flex items-center gap-1.5">
-              <BrandIcon brand="gmail" size={12} />
-              <span className={`text-sm font-medium ${txt}`}>{emailDoc?.storeName || "?"}</span>
+          <div className="flex items-center gap-2.5">
+            {fileId ? (
+              <a href={`/api/files/download?id=${fileId}`} target="_blank" rel="noopener" onClick={(e) => e.stopPropagation()} className="flex-shrink-0">
+                <div className={`w-10 h-10 rounded-lg border overflow-hidden flex items-center justify-center ${isDark ? "border-white/10 bg-white/5" : "border-gray-200 bg-gray-50"}`}>
+                  <Paperclip size={14} className="text-blue-400" />
+                </div>
+              </a>
+            ) : (
+              <div className={`w-10 h-10 rounded-lg flex items-center justify-center flex-shrink-0 ${isDark ? "bg-white/5" : "bg-gray-50"}`}>
+                <BrandIcon brand="gmail" size={16} />
+              </div>
+            )}
+            <div className="leading-tight min-w-0">
+              <span className={`text-sm font-medium truncate block ${txt}`}>{emailDoc?.storeName || "?"}</span>
+              <div className={`text-[11px] ${muted}`}><Baht value={emailDoc?.amount || 0} className="" /></div>
             </div>
-            <div className={`text-[11px] ${muted}`}><Baht value={emailDoc?.amount || 0} className="" /></div>
           </div>
         );
       },
@@ -400,14 +412,27 @@ export default function MatchingClient({
       render: (m) => {
         const isEmailA = receipts.find((r) => r._id === m.receiptA._id)?.source === "email";
         const sysDoc = isEmailA ? m.receiptB : m.receiptA;
-        const src = receipts.find((r) => r._id === sysDoc._id)?.source;
+        const sysReceipt = receipts.find((r) => r._id === sysDoc._id);
+        const src = sysReceipt?.source;
+        const hasImg = sysReceipt?.hasImage;
         return (
-          <div className="leading-tight">
-            <div className="flex items-center gap-1.5">
-              <BrandIcon brand={src === "line" ? "line" : "web"} size={12} />
-              <span className={`text-sm font-medium ${txt}`}>{sysDoc?.storeName || "?"}</span>
+          <div className="flex items-center gap-2.5">
+            {hasImg ? (
+              <img
+                src={`/api/receipts/image?id=${sysDoc._id}`}
+                alt=""
+                className={`w-10 h-10 rounded-lg object-cover flex-shrink-0 border ${isDark ? "border-white/10" : "border-gray-200"}`}
+                loading="lazy"
+              />
+            ) : (
+              <div className={`w-10 h-10 rounded-lg flex items-center justify-center flex-shrink-0 ${isDark ? "bg-white/5" : "bg-gray-50"}`}>
+                <BrandIcon brand={src === "line" ? "line" : "web"} size={16} />
+              </div>
+            )}
+            <div className="leading-tight min-w-0">
+              <span className={`text-sm font-medium truncate block ${txt}`}>{sysDoc?.storeName || "?"}</span>
+              <div className={`text-[11px] ${muted}`}><Baht value={sysDoc?.amount || 0} className="" /></div>
             </div>
-            <div className={`text-[11px] ${muted}`}><Baht value={sysDoc?.amount || 0} className="" /></div>
           </div>
         );
       },

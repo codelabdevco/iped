@@ -1,21 +1,16 @@
 /**
- * iped — LINE Flex Message Templates (v3)
+ * iped — LINE Flex Message Templates (v3.1)
  * Design: Brand-aligned, amount-as-hero, clear visual hierarchy
- * Theme: iPED red (#FA3633) accent, yellow (#FFDE00) primary
+ * Theme: iPED red (#FA3633) accent
  */
 
 // ─── Brand & Status Colors ───
 const C = {
-  // iPED brand
   brand: "#FA3633",
   brandBg: "#FFF0F0",
-  gold: "#FFDE00",
-  goldBg: "#FFFAE6",
 
-  // Status
   green: "#06C755",
   greenBg: "#E8F8EE",
-  greenLight: "#D4EDDA",
   amber: "#E09100",
   amberBg: "#FFF8E1",
   red: "#E53E3E",
@@ -23,14 +18,12 @@ const C = {
   blue: "#3B82F6",
   blueBg: "#EBF2FF",
 
-  // Neutral
   text: "#111111",
   textSec: "#555555",
   sub: "#999999",
   muted: "#BBBBBB",
   border: "#EEEEEE",
   bg: "#F7F7F7",
-  bgCard: "#FAFAFA",
   white: "#FFFFFF",
 };
 
@@ -47,8 +40,9 @@ function fmtDate(d: string | Date): string {
 
 function fmtTime(t?: string | null): string {
   if (t) return t.includes("น.") ? t : `${t} น.`;
-  const now = new Date();
-  return `${String(now.getHours()).padStart(2, "0")}:${String(now.getMinutes()).padStart(2, "0")} น.`;
+  // Fallback: Bangkok time (UTC+7)
+  const now = new Date(Date.now() + 7 * 60 * 60 * 1000);
+  return `${String(now.getUTCHours()).padStart(2, "0")}:${String(now.getUTCMinutes()).padStart(2, "0")} น.`;
 }
 
 function fmtAmt(n: number): string {
@@ -60,7 +54,7 @@ function fmtAmt(n: number): string {
 
 // ─── Shared Components ───
 
-/** Brand header: iPED logo + status pill */
+/** Brand header: iPED logo + status text */
 function headerBar(
   statusText: string,
   statusColor: string,
@@ -72,7 +66,6 @@ function headerBar(
     paddingAll: "14px",
     backgroundColor: bandColor,
     contents: [
-      // iPED logo circle
       {
         type: "box",
         layout: "horizontal",
@@ -104,7 +97,6 @@ function headerBar(
         margin: "sm",
       },
       { type: "filler" },
-      // Status text
       {
         type: "text",
         text: statusText,
@@ -128,7 +120,6 @@ function amountHero(
   return {
     type: "box",
     layout: "vertical",
-    alignItems: "center",
     margin: "lg",
     contents: [
       {
@@ -154,6 +145,7 @@ function merchantInfo(
     type: "box",
     layout: "horizontal",
     spacing: "md",
+    margin: "md",
     contents: [
       {
         type: "box",
@@ -167,7 +159,7 @@ function merchantInfo(
           {
             type: "text",
             text: icon,
-            size: "md",
+            size: "sm",
             align: "center",
             gravity: "center",
           },
@@ -177,7 +169,6 @@ function merchantInfo(
         type: "box",
         layout: "vertical",
         flex: 1,
-        justifyContent: "center",
         contents: [
           {
             type: "text",
@@ -186,7 +177,6 @@ function merchantInfo(
             weight: "bold",
             color: C.text,
             wrap: true,
-            maxLines: 2,
           },
           {
             type: "text",
@@ -221,12 +211,35 @@ function detailItem(label: string, value: string): any {
   };
 }
 
-/** Direction badge (รายจ่าย / รายรับ / เงินออม) */
+/** Direction badge (รายจ่าย / รายรับ) */
 function directionBadge(isExpense: boolean): any {
-  const emoji = isExpense ? "📤" : "📥";
-  const text = isExpense ? `${emoji} รายจ่าย` : `${emoji} รายรับ`;
+  const text = isExpense ? "📤 รายจ่าย" : "📥 รายรับ";
   const color = isExpense ? C.red : C.green;
   const bg = isExpense ? C.redBg : C.greenBg;
+  return {
+    type: "box",
+    layout: "horizontal",
+    flex: 0,
+    cornerRadius: "12px",
+    backgroundColor: bg,
+    paddingStart: "10px",
+    paddingEnd: "10px",
+    paddingTop: "5px",
+    paddingBottom: "5px",
+    contents: [
+      {
+        type: "text",
+        text,
+        size: "xs",
+        color,
+        weight: "bold",
+      },
+    ],
+  };
+}
+
+/** Small tag pill */
+function tagPill(text: string, color: string, bg: string): any {
   return {
     type: "box",
     layout: "horizontal",
@@ -260,7 +273,6 @@ function confidenceBar(pct: number, color: string): any {
     cornerRadius: "8px",
     backgroundColor: C.bg,
     margin: "lg",
-    alignItems: "center",
     contents: [
       {
         type: "text",
@@ -384,9 +396,32 @@ function actionBtn(
   };
 }
 
-/** Thin separator */
+/** Separator with controlled margin */
 function sep(): any {
-  return { type: "separator", color: C.border, margin: "lg" };
+  return { type: "separator", color: C.border, margin: "md" };
+}
+
+/** Centered icon in colored circle */
+function iconCircle(emoji: string, bg: string, sizePx: string): any {
+  return {
+    type: "box",
+    layout: "vertical",
+    width: sizePx,
+    height: sizePx,
+    cornerRadius: `${parseInt(sizePx) / 2}px`,
+    backgroundColor: bg,
+    margin: "md",
+    offsetStart: "0px",
+    contents: [
+      {
+        type: "text",
+        text: emoji,
+        size: "sm",
+        align: "center",
+        gravity: "center",
+      },
+    ],
+  };
 }
 
 const APP_URL =
@@ -419,7 +454,6 @@ export function receiptConfirmFlex(data: ReceiptFlexData) {
   const isWarn = data.confidence < 70;
   const isLow = data.confidence < 40;
 
-  // Colors based on confidence + direction
   const statusText = isLow
     ? "❌ ตรวจสอบ"
     : isWarn
@@ -457,27 +491,7 @@ export function receiptConfirmFlex(data: ReceiptFlexData) {
             contents: [
               directionBadge(isExpense),
               ...(data.documentType
-                ? [
-                    {
-                      type: "box" as const,
-                      layout: "horizontal" as const,
-                      flex: 0,
-                      cornerRadius: "10px",
-                      backgroundColor: C.bg,
-                      paddingStart: "8px",
-                      paddingEnd: "8px",
-                      paddingTop: "3px",
-                      paddingBottom: "3px",
-                      contents: [
-                        {
-                          type: "text" as const,
-                          text: data.documentType,
-                          size: "xxs" as const,
-                          color: C.sub,
-                        },
-                      ],
-                    },
-                  ]
+                ? [tagPill(data.documentType, C.sub, C.bg)]
                 : []),
               { type: "filler" as const },
             ],
@@ -501,24 +515,13 @@ export function receiptConfirmFlex(data: ReceiptFlexData) {
             type: "box",
             layout: "vertical",
             spacing: "sm",
-            margin: "lg",
+            margin: "md",
             contents: [
-              detailItem(
-                "📅 วันที่",
-                fmtDate(data.date),
-              ),
-              detailItem("🕐 เวลา", fmtTime(data.time)),
-              detailItem(
-                "💳 ชำระ",
-                data.paymentMethod || "—",
-              ),
+              detailItem("วันที่", fmtDate(data.date)),
+              detailItem("เวลา", fmtTime(data.time)),
+              detailItem("ชำระ", data.paymentMethod || "—"),
               ...(data.vat
-                ? [
-                    detailItem(
-                      "🧾 VAT",
-                      `฿${fmtAmt(data.vat)}`,
-                    ),
-                  ]
+                ? [detailItem("VAT", `฿${fmtAmt(data.vat)}`)]
                 : []),
             ],
           },
@@ -531,18 +534,17 @@ export function receiptConfirmFlex(data: ReceiptFlexData) {
                   type: "box" as const,
                   layout: "vertical" as const,
                   spacing: "xs" as const,
-                  margin: "lg" as const,
+                  margin: "md" as const,
                   contents: [
                     {
                       type: "text" as const,
-                      text: "📋 รายการ",
-                      size: "xxs" as const,
+                      text: "รายการ",
+                      size: "xs" as const,
                       color: C.sub,
-                      margin: "sm" as const,
                     },
                     ...showItems.map((item) => ({
                       type: "text" as const,
-                      text: item,
+                      text: `• ${item}`,
                       size: "xs" as const,
                       color: C.textSec,
                       wrap: true,
@@ -568,11 +570,11 @@ export function receiptConfirmFlex(data: ReceiptFlexData) {
         ],
       },
       footer: footerBox([
-        actionBtn("✏️ แก้ไข", "secondary", C.sub, {
+        actionBtn("แก้ไข", "secondary", C.sub, {
           url: `${APP_URL}/receipt/${data.receiptId}/edit`,
         }),
         actionBtn(
-          "✅ ยืนยัน",
+          "ยืนยัน",
           "primary",
           statusColor,
           { data: `action=confirm&id=${data.receiptId}` },
@@ -602,11 +604,11 @@ export function duplicateWarningFlex(data: {
 
   return {
     type: "flex" as const,
-    altText: `🔄 พบรายการซ้ำ ${data.merchant} ฿${fmtAmt(data.amount)}`,
+    altText: `พบรายการซ้ำ ${data.merchant} ฿${fmtAmt(data.amount)}`,
     contents: {
       type: "bubble",
       size: "mega",
-      header: headerBar("🔄 ซ้ำ", C.blue, C.blueBg),
+      header: headerBar("🔄 พบรายการซ้ำ", C.blue, C.blueBg),
       body: {
         type: "box",
         layout: "vertical",
@@ -633,11 +635,11 @@ export function duplicateWarningFlex(data: {
             cornerRadius: "10px",
             backgroundColor: C.blueBg,
             paddingAll: "14px",
-            margin: "lg",
+            margin: "md",
             contents: [
               {
                 type: "text",
-                text: "⚠️ พบรายการที่คล้ายกัน",
+                text: "พบรายการที่คล้ายกัน",
                 size: "xs",
                 color: C.blue,
                 weight: "bold",
@@ -729,10 +731,10 @@ export function duplicateWarningFlex(data: {
         ],
       },
       footer: footerBox([
-        actionBtn("❌ ยกเลิก", "secondary", C.sub, {
+        actionBtn("ยกเลิก", "secondary", C.sub, {
           data: `action=cancel&id=${data.receiptId}`,
         }),
-        actionBtn("💾 บันทึกซ้ำ", "primary", C.blue, {
+        actionBtn("บันทึกซ้ำ", "primary", C.blue, {
           data: `action=force_save&id=${data.receiptId}`,
         }),
       ]),
@@ -748,7 +750,7 @@ export function errorFlex(confidence?: number) {
   const conf = confidence || 0;
   return {
     type: "flex" as const,
-    altText: "❌ ไม่สามารถอ่านใบเสร็จได้",
+    altText: "ไม่สามารถอ่านใบเสร็จได้",
     contents: {
       type: "bubble",
       size: "mega",
@@ -759,12 +761,33 @@ export function errorFlex(confidence?: number) {
         paddingAll: "20px",
         spacing: "md",
         contents: [
+          // Icon in circle
           {
-            type: "text",
-            text: "📸",
-            size: "xxl",
-            align: "center",
+            type: "box",
+            layout: "horizontal",
             margin: "md",
+            contents: [
+              { type: "filler" },
+              {
+                type: "box",
+                layout: "vertical",
+                flex: 0,
+                width: "56px",
+                height: "56px",
+                cornerRadius: "28px",
+                backgroundColor: C.redBg,
+                contents: [
+                  {
+                    type: "text",
+                    text: "📸",
+                    size: "sm",
+                    align: "center",
+                    gravity: "center",
+                  },
+                ],
+              },
+              { type: "filler" },
+            ],
           },
           {
             type: "text",
@@ -773,11 +796,11 @@ export function errorFlex(confidence?: number) {
             weight: "bold",
             color: C.text,
             align: "center",
-            margin: "lg",
+            margin: "md",
           },
           {
             type: "text",
-            text: "ภาพอาจไม่ชัดหรือเบลอ\nกรุณาถ่ายรูปใหม่ให้ชัดเจน",
+            text: "ภาพอาจไม่ชัดหรือเบลอ กรุณาถ่ายรูปใหม่ให้ชัดเจน",
             size: "xs",
             color: C.sub,
             align: "center",
@@ -792,12 +815,12 @@ export function errorFlex(confidence?: number) {
             cornerRadius: "10px",
             backgroundColor: C.bg,
             paddingAll: "14px",
-            margin: "xl",
+            margin: "lg",
             contents: [
               {
                 type: "text",
-                text: "💡 เคล็ดลับถ่ายรูปใบเสร็จ",
-                size: "xxs",
+                text: "เคล็ดลับถ่ายรูปใบเสร็จ",
+                size: "xs",
                 color: C.textSec,
                 weight: "bold",
               },
@@ -808,7 +831,6 @@ export function errorFlex(confidence?: number) {
                 color: C.sub,
                 wrap: true,
                 margin: "sm",
-                lineSpacing: "4px",
               },
             ],
           },
@@ -817,7 +839,7 @@ export function errorFlex(confidence?: number) {
         ],
       },
       footer: footerBox([
-        actionBtn("📸 ส่งรูปใหม่", "primary", C.brand),
+        actionBtn("ส่งรูปใหม่", "primary", C.brand),
       ]),
     },
   };
@@ -830,23 +852,44 @@ export function errorFlex(confidence?: number) {
 export function notReceiptFlex() {
   return {
     type: "flex" as const,
-    altText: "📄 ภาพนี้ไม่ใช่ใบเสร็จ",
+    altText: "ภาพนี้ไม่ใช่ใบเสร็จ",
     contents: {
       type: "bubble",
       size: "mega",
-      header: headerBar("📄 ไม่ใช่ใบเสร็จ", C.amber, C.amberBg),
+      header: headerBar("ไม่ใช่ใบเสร็จ", C.amber, C.amberBg),
       body: {
         type: "box",
         layout: "vertical",
         paddingAll: "20px",
         spacing: "md",
         contents: [
+          // Icon in circle
           {
-            type: "text",
-            text: "🖼️",
-            size: "xxl",
-            align: "center",
+            type: "box",
+            layout: "horizontal",
             margin: "md",
+            contents: [
+              { type: "filler" },
+              {
+                type: "box",
+                layout: "vertical",
+                flex: 0,
+                width: "56px",
+                height: "56px",
+                cornerRadius: "28px",
+                backgroundColor: C.amberBg,
+                contents: [
+                  {
+                    type: "text",
+                    text: "🖼️",
+                    size: "sm",
+                    align: "center",
+                    gravity: "center",
+                  },
+                ],
+              },
+              { type: "filler" },
+            ],
           },
           {
             type: "text",
@@ -855,11 +898,11 @@ export function notReceiptFlex() {
             weight: "bold",
             color: C.text,
             align: "center",
-            margin: "lg",
+            margin: "md",
           },
           {
             type: "text",
-            text: "ระบบตรวจพบว่าภาพที่ส่งมา\nไม่ใช่เอกสารทางการเงิน",
+            text: "ระบบตรวจพบว่าภาพที่ส่งมาไม่ใช่เอกสารทางการเงิน",
             size: "xs",
             color: C.sub,
             align: "center",
@@ -874,86 +917,29 @@ export function notReceiptFlex() {
             cornerRadius: "10px",
             backgroundColor: C.bg,
             paddingAll: "14px",
-            margin: "xl",
+            margin: "lg",
             contents: [
               {
                 type: "text",
-                text: "📎 เอกสารที่รองรับ",
-                size: "xxs",
+                text: "เอกสารที่รองรับ",
+                size: "xs",
                 color: C.textSec,
                 weight: "bold",
               },
               {
-                type: "box",
-                layout: "vertical",
-                spacing: "sm",
-                margin: "md",
-                contents: [
-                  {
-                    type: "box",
-                    layout: "horizontal",
-                    spacing: "lg",
-                    contents: [
-                      {
-                        type: "text",
-                        text: "🧾 ใบเสร็จ",
-                        size: "xxs",
-                        color: C.textSec,
-                        flex: 1,
-                      },
-                      {
-                        type: "text",
-                        text: "📄 ใบกำกับภาษี",
-                        size: "xxs",
-                        color: C.textSec,
-                        flex: 1,
-                      },
-                    ],
-                  },
-                  {
-                    type: "box",
-                    layout: "horizontal",
-                    spacing: "lg",
-                    contents: [
-                      {
-                        type: "text",
-                        text: "🏦 สลิปโอนเงิน",
-                        size: "xxs",
-                        color: C.textSec,
-                        flex: 1,
-                      },
-                      {
-                        type: "text",
-                        text: "💳 ใบแจ้งหนี้",
-                        size: "xxs",
-                        color: C.textSec,
-                        flex: 1,
-                      },
-                    ],
-                  },
-                  {
-                    type: "box",
-                    layout: "horizontal",
-                    spacing: "lg",
-                    contents: [
-                      {
-                        type: "text",
-                        text: "📝 บิลค่าน้ำ/ไฟ",
-                        size: "xxs",
-                        color: C.textSec,
-                        flex: 1,
-                      },
-                      { type: "filler" },
-                    ],
-                  },
-                ],
+                type: "text",
+                text: "• ใบเสร็จรับเงิน\n• ใบกำกับภาษี\n• สลิปโอนเงิน\n• ใบแจ้งหนี้บัตรเครดิต\n• บิลค่าน้ำ/ค่าไฟ",
+                size: "xs",
+                color: C.sub,
+                wrap: true,
+                margin: "sm",
               },
             ],
           },
         ],
       },
       footer: footerBox([
-        actionBtn("📸 ส่งรูปใบเสร็จ", "primary", C.brand),
+        actionBtn("ส่งรูปใบเสร็จ", "primary", C.brand),
       ]),
     },
   };
@@ -977,7 +963,7 @@ export function dailySummaryFlex(data: {
 
   return {
     type: "flex" as const,
-    altText: `📊 สรุปวันนี้ ฿${fmtAmt(data.totalExpense)}`,
+    altText: `สรุปวันนี้ ฿${fmtAmt(data.totalExpense)}`,
     contents: {
       type: "bubble",
       size: "mega",
@@ -1001,9 +987,8 @@ export function dailySummaryFlex(data: {
             type: "box",
             layout: "horizontal",
             spacing: "sm",
-            margin: "lg",
+            margin: "md",
             contents: [
-              // Expense card
               {
                 type: "box",
                 layout: "vertical",
@@ -1014,21 +999,20 @@ export function dailySummaryFlex(data: {
                 contents: [
                   {
                     type: "text",
-                    text: "📤 รายจ่าย",
-                    size: "xxs",
+                    text: "รายจ่าย",
+                    size: "xs",
                     color: C.red,
                   },
                   {
                     type: "text",
                     text: `฿${fmtAmt(data.totalExpense)}`,
-                    size: "lg",
+                    size: "md",
                     weight: "bold",
                     color: C.red,
                     margin: "sm",
                   },
                 ],
               },
-              // Income card
               {
                 type: "box",
                 layout: "vertical",
@@ -1039,14 +1023,14 @@ export function dailySummaryFlex(data: {
                 contents: [
                   {
                     type: "text",
-                    text: "📥 รายรับ",
-                    size: "xxs",
+                    text: "รายรับ",
+                    size: "xs",
                     color: C.green,
                   },
                   {
                     type: "text",
                     text: `฿${fmtAmt(data.totalIncome)}`,
-                    size: "lg",
+                    size: "md",
                     weight: "bold",
                     color: C.green,
                     margin: "sm",
@@ -1099,10 +1083,10 @@ export function dailySummaryFlex(data: {
           // Top categories with mini bars
           {
             type: "text",
-            text: "🏷️ หมวดหมู่",
-            size: "xxs",
+            text: "หมวดหมู่",
+            size: "xs",
             color: C.sub,
-            margin: "lg",
+            margin: "md",
           },
           ...data.categories.slice(0, 5).map((c) => ({
             type: "box" as const,
@@ -1161,7 +1145,7 @@ export function dailySummaryFlex(data: {
         paddingAll: "14px",
         spacing: "sm",
         contents: [
-          actionBtn("📊 ดูรายงานเพิ่มเติม", "primary", C.brand, {
+          actionBtn("ดูรายงานเพิ่มเติม", "primary", C.brand, {
             url: `${APP_URL}/dashboard/reports`,
           }),
           {
@@ -1193,7 +1177,7 @@ export function chatResponseFlex(data: {
     contents: {
       type: "bubble",
       size: "mega",
-      header: headerBar("🤖 ผู้ช่วย AI", C.brand, C.brandBg),
+      header: headerBar("ผู้ช่วย AI", C.brand, C.brandBg),
       body: {
         type: "box",
         layout: "vertical",
@@ -1210,7 +1194,7 @@ export function chatResponseFlex(data: {
             contents: [
               {
                 type: "text",
-                text: `💬 "${data.question}"`,
+                text: `"${data.question}"`,
                 size: "xs",
                 color: C.sub,
                 wrap: true,
@@ -1220,38 +1204,12 @@ export function chatResponseFlex(data: {
 
           // Answer
           {
-            type: "box",
-            layout: "horizontal",
-            spacing: "md",
-            margin: "lg",
-            contents: [
-              {
-                type: "box",
-                layout: "vertical",
-                flex: 0,
-                width: "32px",
-                height: "32px",
-                cornerRadius: "16px",
-                backgroundColor: C.brandBg,
-                contents: [
-                  {
-                    type: "text",
-                    text: "🤖",
-                    size: "sm",
-                    align: "center",
-                    gravity: "center",
-                  },
-                ],
-              },
-              {
-                type: "text",
-                text: data.answer,
-                size: "sm",
-                color: C.text,
-                wrap: true,
-                flex: 5,
-              },
-            ],
+            type: "text",
+            text: data.answer,
+            size: "sm",
+            color: C.text,
+            wrap: true,
+            margin: "md",
           },
 
           // Details table (if any)
@@ -1261,7 +1219,7 @@ export function chatResponseFlex(data: {
                 {
                   type: "box" as const,
                   layout: "vertical" as const,
-                  margin: "lg" as const,
+                  margin: "md" as const,
                   spacing: "sm" as const,
                   cornerRadius: "10px",
                   backgroundColor: C.bg,
