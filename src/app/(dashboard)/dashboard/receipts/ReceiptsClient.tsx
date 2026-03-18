@@ -738,12 +738,7 @@ export default function ReceiptsClient({ receipts: initialReceipts }: { receipts
 
             {/* Slip image — upload / preview */}
             <input ref={slipInputRef} type="file" accept="image/*" onChange={handleSlipInputChange} className="hidden" />
-            {slipPreview === "loading" ? (
-              <div className="w-full h-44 rounded-xl bg-white/5 border border-white/10 flex flex-col items-center justify-center gap-2">
-                <Loader2 size={24} className="text-white/30 animate-spin" />
-                <p className="text-xs text-white/30">กำลังโหลดรูปสลิป...</p>
-              </div>
-            ) : slipPreview ? (
+            {slipPreview ? (
               <div className="relative w-full rounded-xl overflow-hidden bg-white/5 border border-white/10 group">
                 <img src={slipPreview} alt="สลิป" className="w-full max-h-72 object-contain" />
                 <div className="absolute inset-0 bg-black/0 group-hover:bg-black/40 transition-colors flex items-center justify-center gap-2 opacity-0 group-hover:opacity-100">
