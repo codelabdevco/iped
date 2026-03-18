@@ -199,10 +199,11 @@ export default function Sidebar({ onNavigate, badges = {} }: { onNavigate?: () =
       {/* Logo */}
       <div className={`h-16 flex items-center px-4 border-b ${borderCls} overflow-hidden`}>
         <div className="flex items-center gap-2.5 whitespace-nowrap">
-          <img src="/logo-cropped.png" alt="iPED" className="w-10 h-10 rounded-xl shrink-0 object-cover" />
-          <span className="text-lg font-semibold tracking-tight" style={fadeStyle()}>
-            iPED
-          </span>
+          <img src="/logo-cropped.png" alt="อาซิ่ม" className="w-10 h-10 rounded-xl shrink-0 object-cover" />
+          <div style={fadeStyle()}>
+            <span className="text-lg font-semibold tracking-tight block leading-tight">อาซิ่ม</span>
+            <span className={`text-[9px] leading-none ${isDark ? "text-white/20" : "text-gray-300"}`}>Powered by codelabs tech</span>
+          </div>
         </div>
       </div>
 

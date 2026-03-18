@@ -10,7 +10,10 @@ export async function GET(request: NextRequest) {
     const { searchParams } = new URL(req.url);
     const { page, limit, skip } = getPagination(req);
 
-    const filter: Record<string, unknown> = { userId: session.userId };
+    const filter: Record<string, unknown> = {
+      userId: session.userId,
+      accountType: session.accountType || "personal",
+    };
 
     const category = searchParams.get("category");
     if (category) filter.category = category;
@@ -28,13 +31,14 @@ export async function GET(request: NextRequest) {
     const todayStart = new Date(now.getFullYear(), now.getMonth(), now.getDate());
     const monthStart = new Date(now.getFullYear(), now.getMonth(), 1);
 
+    const modeFilter = { userId: session.userId, accountType: session.accountType || "personal" };
     const [todayStats, monthStats] = await Promise.all([
       Receipt.aggregate([
-        { $match: { userId: session.userId, date: { $gte: todayStart } } },
+        { $match: { ...modeFilter, date: { $gte: todayStart } } },
         { $group: { _id: null, total: { $sum: "$amount" }, count: { $sum: 1 } } },
       ]),
       Receipt.aggregate([
-        { $match: { userId: session.userId, date: { $gte: monthStart } } },
+        { $match: { ...modeFilter, date: { $gte: monthStart } } },
         { $group: { _id: null, total: { $sum: "$amount" }, count: { $sum: 1 } } },
       ]),
     ]);

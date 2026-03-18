@@ -11,10 +11,8 @@ function MobileInner({ children, displayName, pictureUrl }: { children: React.Re
       {/* Top bar */}
       <header className={`sticky top-0 z-40 flex items-center justify-between px-4 h-14 ${isDark ? "bg-[#0a0a0a]/95" : "bg-gray-50/95"} backdrop-blur-xl`}>
         <div className="flex items-center gap-2">
-          <div className="w-7 h-7 rounded-lg bg-[#FA3633] flex items-center justify-center">
-            <span className="text-white text-xs font-bold">i</span>
-          </div>
-          <span className={`text-sm font-bold ${isDark ? "text-white" : "text-gray-900"}`}>iPED</span>
+          <img src="/logo-cropped.png" alt="อาซิ่ม" className="w-7 h-7 rounded-lg object-cover" />
+          <span className={`text-sm font-bold ${isDark ? "text-white" : "text-gray-900"}`}>อาซิ่ม</span>
         </div>
         <a href="/m/profile">
           {pictureUrl ? (

@@ -23,8 +23,8 @@ export default function Navbar() {
       <div className="max-w-6xl mx-auto px-4">
         <div className="flex items-center justify-between h-14">
           <Link href="/" className="flex items-center gap-2.5">
-            <img src="/logo-cropped.png" alt="iPED" className="w-9 h-9 rounded-lg object-cover" />
-            <span className="font-bold text-lg text-white tracking-tight">iPED</span>
+            <img src="/logo-cropped.png" alt="อาซิ่ม" className="w-9 h-9 rounded-lg object-cover" />
+            <span className="font-bold text-lg text-white tracking-tight">อาซิ่ม</span>
           </Link>
 
           <div className="flex items-center gap-1">

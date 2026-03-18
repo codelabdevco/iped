@@ -1,10 +1,20 @@
-import type { Metadata } from "next";
+import type { Metadata, Viewport } from "next";
 import { AuthProvider } from "@/lib/auth-context";
 import "./globals.css";
 
 export const metadata: Metadata = {
-  title: "iPED — ระบบจัดการใบเสร็จอัจฉริยะ",
-  description: "อัปโหลดใบเสร็จ ระบบ AI อ่านและจัดเก็บให้อัตโนมัติ — iPED",
+  title: "อาซิ่ม — ระบบจัดการใบเสร็จอัจฉริยะ",
+  description: "อัปโหลดใบเสร็จ ระบบ AI อ่านและจัดเก็บให้อัตโนมัติ — อาซิ่ม by codelabs tech",
+  manifest: "/manifest.json",
+  appleWebApp: {
+    capable: true,
+    statusBarStyle: "black-translucent",
+    title: "อาซิ่ม",
+    startupImage: "/icon-512.png",
+  },
+  formatDetection: {
+    telephone: false,
+  },
   icons: {
     icon: [
       { url: "/favicon.ico", sizes: "32x32" },
@@ -14,17 +24,22 @@ export const metadata: Metadata = {
     apple: "/apple-touch-icon.png",
   },
   openGraph: {
-    title: "iPED — ระบบจัดการใบเสร็จอัจฉริยะ",
-    description: "อัปโหลดใบเสร็จ ระบบ AI อ่านและจัดเก็บให้อัตโนมัติ",
+    title: "อาซิ่ม — ระบบจัดการใบเสร็จอัจฉริยะ",
+    description: "อัปโหลดใบเสร็จ ระบบ AI อ่านและจัดเก็บให้อัตโนมัติ — อาซิ่ม by codelabs tech",
     images: [{ url: "/og-image.png", width: 1200, height: 630 }],
   },
 };
 
-export const viewport = {
+export const viewport: Viewport = {
   width: "device-width",
   initialScale: 1,
   maximumScale: 1,
   userScalable: false,
+  viewportFit: "cover",
+  themeColor: [
+    { media: "(prefers-color-scheme: dark)", color: "#0a0a0a" },
+    { media: "(prefers-color-scheme: light)", color: "#f7f7f7" },
+  ],
 };
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
@@ -44,6 +59,14 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
               d.style.cssText = 'background-color:' + (t === 'dark' ? '#0a0a0a' : '#f7f7f7') + ';color:' + (t === 'dark' ? '#fff' : '#111');
             } catch(e){}
           })();
+        `}} />
+        {/* Service Worker Registration */}
+        <script dangerouslySetInnerHTML={{ __html: `
+          if ('serviceWorker' in navigator) {
+            window.addEventListener('load', function() {
+              navigator.serviceWorker.register('/sw.js').catch(function(){});
+            });
+          }
         `}} />
       </head>
       <body className="min-h-screen antialiased" style={{ fontFamily: "'Noto Sans Thai', sans-serif" }}>

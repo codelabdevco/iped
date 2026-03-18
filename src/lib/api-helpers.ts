@@ -11,6 +11,7 @@ export function apiError(message: string, status = 400) {
 }
 
 // Auth middleware for API routes
+// Reads x-account-type header from client to determine personal/business mode
 export async function withAuth(
   request: NextRequest,
   handler: (session: JWTPayload, request: NextRequest) => Promise<NextResponse>
@@ -18,6 +19,11 @@ export async function withAuth(
   const session = await getSession();
   if (!session) {
     return apiError("กรุณาเข้าสู่ระบบ", 401);
+  }
+  // Override accountType from client header if present
+  const headerMode = request.headers.get("x-account-type");
+  if (headerMode === "personal" || headerMode === "business") {
+    session.accountType = headerMode;
   }
   return handler(session, request);
 }

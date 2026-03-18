@@ -87,7 +87,7 @@ function exportCSV(data: DashboardData) {
   const url = URL.createObjectURL(blob);
   const a = document.createElement("a");
   a.href = url;
-  a.download = `iPED-report-${new Date().toISOString().slice(0, 10)}.csv`;
+  a.download = `asim-report-${new Date().toISOString().slice(0, 10)}.csv`;
   a.click();
   URL.revokeObjectURL(url);
 }
@@ -100,21 +100,21 @@ function exportPDF(data: DashboardData) {
   const receipts = data.recentReceipts
     .map((r) => `<tr><td style="padding:6px 10px;border-bottom:1px solid #eee">${r.storeName}</td><td style="padding:6px 10px;border-bottom:1px solid #eee">$<span className="inline-block w-2 h-2 rounded-full mr-1.5" style={{ backgroundColor: getCatColor(r.category) }} />{r.category}</td><td style="padding:6px 10px;border-bottom:1px solid #eee;text-align:right">฿${r.amount.toLocaleString()}</td><td style="padding:6px 10px;border-bottom:1px solid #eee">${r.date}</td></tr>`)
     .join("");
-  const html = `<!DOCTYPE html><html><head><meta charset="utf-8"><title>iPED Report</title>
+  const html = `<!DOCTYPE html><html><head><meta charset="utf-8"><title>อาซิ่ม Report</title>
 <style>body{font-family:'Sarabun',sans-serif;max-width:800px;margin:0 auto;padding:40px;color:#111}
 h1{color:#FA3633;margin-bottom:4px}h2{margin-top:32px;color:#333;border-bottom:2px solid #FA3633;padding-bottom:8px}
 table{width:100%;border-collapse:collapse;margin-top:12px}th{text-align:left;padding:8px 12px;background:#f8f8f8;font-weight:600}
 .stats{display:flex;gap:16px;margin:20px 0}.stat{flex:1;background:#f8f8f8;padding:16px;border-radius:12px;text-align:center}
 .stat-val{font-size:24px;font-weight:700;color:#FA3633}.stat-label{font-size:13px;color:#666;margin-top:4px}
 @media print{body{padding:20px}}</style></head><body>
-<h1>iPED</h1><p style="color:#666;margin-top:0">รายงานสรุปรายจ่าย — ${new Date().toLocaleDateString("th-TH",{day:"numeric",month:"long",year:"numeric"})}</p>
+<h1>อาซิ่ม</h1><p style="color:#666;margin-top:0">รายงานสรุปรายจ่าย — ${new Date().toLocaleDateString("th-TH",{day:"numeric",month:"long",year:"numeric"})}</p>
 <div class="stats"><div class="stat"><div class="stat-val">฿${data.totalAmount.toLocaleString()}</div><div class="stat-label">ยอดรวม</div></div>
 <div class="stat"><div class="stat-val">${data.receiptCount}</div><div class="stat-label">ใบเสร็จ</div></div>
 <div class="stat"><div class="stat-val">฿${data.avgPerReceipt.toLocaleString()}</div><div class="stat-label">เฉลี่ยต่อใบ</div></div>
 <div class="stat"><div class="stat-val">${data.categoryCount}</div><div class="stat-label">หมวดหมู่</div></div></div>
 <h2>สรุปตามหมวดหมู่</h2><table><tr><th>หมวดหมู่</th><th style="text-align:right">ยอดรวม</th></tr>${cats}</table>
 <h2>ใบเสร็จล่าสุด</h2><table><tr><th>ร้านค้า</th><th>หมวดหมู่</th><th style="text-align:right">จำนวนเงิน</th><th>วันที่</th></tr>${receipts}</table>
-<p style="text-align:center;color:#999;margin-top:40px;font-size:12px">สร้างโดย iPED — ระบบจัดการใบเสร็จอัจฉริยะ</p>
+<p style="text-align:center;color:#999;margin-top:40px;font-size:12px">สร้างโดย อาซิ่ม — Powered by codelabs tech</p>
 </body></html>`;
   const w = window.open("", "_blank");
   if (w) { w.document.write(html); w.document.close(); setTimeout(() => w.print(), 500); }
