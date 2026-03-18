@@ -35,6 +35,26 @@ function formatSize(bytes: number) {
 }
 
 export default function DriveClient({ docs: initial, totalStorageBytes = 0 }: { docs: Doc[]; totalStorageBytes?: number }) {
+  const [syncing, setSyncing] = useState(false);
+  const [syncResult, setSyncResult] = useState<string | null>(null);
+  const [driveConnected, setDriveConnected] = useState<boolean | null>(null);
+
+  // Check Google Drive status
+  useEffect(() => {
+    fetch("/api/auth/google/status").then((r) => r.json()).then((d) => setDriveConnected(d.connected)).catch(() => setDriveConnected(false));
+  }, []);
+
+  const handleSync = async () => {
+    setSyncing(true);
+    setSyncResult(null);
+    try {
+      const res = await fetch("/api/drive/sync", { method: "POST" });
+      const data = await res.json();
+      if (data.error) { setSyncResult(data.error); return; }
+      setSyncResult(`อัปโหลด ${data.uploaded} ไฟล์ (เหลือ ${data.remaining} ไฟล์)`);
+    } catch { setSyncResult("เกิดข้อผิดพลาด"); }
+    finally { setSyncing(false); }
+  };
   const { isDark } = useTheme();
   const [docs, setDocs] = useState(initial);
   const [view, setView] = useState<"grid" | "list">("grid");
@@ -182,17 +202,42 @@ export default function DriveClient({ docs: initial, totalStorageBytes = 0 }: { 
 
       <div className="flex items-center justify-between">
         <PageHeader title="Cloud Drive" description={`${docs.length} เอกสาร · ${imageCount} รูป · ${fileCount} ไฟล์`} />
-        <button onClick={() => fileInputRef.current?.click()} disabled={uploading} className="flex items-center gap-2 px-4 py-2.5 rounded-xl text-sm font-medium bg-[#FA3633] text-white hover:bg-[#e0302d] transition-colors shadow-sm shadow-[#FA3633]/25 disabled:opacity-50">
-          <Upload size={16} />{uploading ? "กำลังอัปโหลด..." : "อัปโหลดไฟล์"}
-        </button>
+        <div className="flex gap-2">
+          {driveConnected && (
+            <button onClick={handleSync} disabled={syncing} className={`flex items-center gap-2 px-3 py-2.5 rounded-xl text-sm font-medium transition-colors disabled:opacity-50 ${isDark ? "bg-white/5 text-white/60 hover:bg-white/10" : "bg-gray-100 text-gray-600 hover:bg-gray-200"}`}>
+              <Cloud size={16} className={syncing ? "animate-spin" : ""} />
+              {syncing ? "กำลังซิงค์..." : "ซิงค์ Drive"}
+            </button>
+          )}
+          <button onClick={() => fileInputRef.current?.click()} disabled={uploading} className="flex items-center gap-2 px-4 py-2.5 rounded-xl text-sm font-medium bg-[#FA3633] text-white hover:bg-[#e0302d] transition-colors shadow-sm shadow-[#FA3633]/25 disabled:opacity-50">
+            <Upload size={16} />{uploading ? "กำลังอัปโหลด..." : "อัปโหลดไฟล์"}
+          </button>
+        </div>
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
         <StatsCard label="เอกสารทั้งหมด" value={`${docs.length} รายการ`} icon={<Cloud size={20} />} color="text-blue-500" />
         <StatsCard label="ใบเสร็จ / ไฟล์" value={`${receiptCount} / ${fileCount}`} icon={<FileText size={20} />} color="text-[#FA3633]" />
         <StatsCard label="ใช้พื้นที่" value={formatSize(totalStorageBytes + docs.filter(d=>d.fileType==="receipt"&&d.hasImage).length * 250000)} icon={<Download size={20} />} color="text-purple-500" />
-        <StatsCard label="Google Drive" value="ยังไม่เชื่อมต่อ" icon={<Cloud size={20} />} color="text-orange-500" />
+        <StatsCard label="Google Drive" value={driveConnected === null ? "กำลังเช็ค..." : driveConnected ? "เชื่อมต่อแล้ว" : "ยังไม่เชื่อมต่อ"} icon={<Cloud size={20} />} color={driveConnected ? "text-green-500" : "text-orange-500"} />
       </div>
+
+      {/* Sync result */}
+      {syncResult && (
+        <div className={`flex items-center gap-2 px-4 py-2.5 rounded-xl text-xs ${isDark ? "bg-green-500/10 text-green-400" : "bg-green-50 text-green-600"}`}>
+          <Cloud size={14} /> {syncResult}
+          <button onClick={() => setSyncResult(null)} className="ml-auto opacity-50 hover:opacity-100">✕</button>
+        </div>
+      )}
+
+      {/* Drive not connected notice */}
+      {driveConnected === false && (
+        <div className={`flex items-center gap-3 px-4 py-3 rounded-xl ${isDark ? "bg-amber-500/10 border border-amber-500/20" : "bg-amber-50 border border-amber-200"}`}>
+          <Cloud size={16} className="text-amber-500 shrink-0" />
+          <span className={`text-xs flex-1 ${txt}`}>เชื่อมต่อ Google Drive เพื่อสำรองเอกสารอัตโนมัติ</span>
+          <a href="/api/auth/google" className="px-3 py-1.5 rounded-lg text-xs font-medium bg-[#FA3633] text-white shrink-0">เชื่อมต่อ</a>
+        </div>
+      )}
 
       {/* Toolbar */}
       <div className={`${card} border ${border} rounded-xl px-4 py-3 flex flex-wrap items-center gap-3`}>
