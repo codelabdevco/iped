@@ -246,7 +246,7 @@ export default function DataTable<T>({ columns, data, rowKey, emptyText = "à¹„à¸
   ) : null;
 
   return (
-    <div className={`${card} border ${border} rounded-2xl overflow-hidden`}>
+    <div className={`${card} border ${border} rounded-2xl`}>
       {/* Date filter + column config */}
       {dateField && (
         <div className={`px-5 py-3 flex items-center gap-3 flex-wrap border-b ${border}`}>
