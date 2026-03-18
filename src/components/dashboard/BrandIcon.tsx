@@ -1,18 +1,23 @@
 "use client";
 
-/**
- * Brand icons for banks, payment methods, and services.
- * Uses official brand colors with letter/abbreviation.
- */
-
 interface BrandIconProps {
   brand: string;
   size?: number;
   className?: string;
 }
 
-const BRANDS: Record<string, { bg: string; fg: string; label: string; radius?: string }> = {
-  // Thai banks
+// Brands with simpleicons CDN SVG
+const SVG_BRANDS: Record<string, { slug: string; color?: string; darkColor?: string }> = {
+  line: { slug: "line", color: "06C755" },
+  gmail: { slug: "gmail" },
+  "google-drive": { slug: "googledrive" },
+  "google-sheets": { slug: "googlesheets" },
+  notion: { slug: "notion", color: "000000", darkColor: "ffffff" },
+  email: { slug: "gmail" },
+};
+
+// Brands with colored circle + text (banks, payments)
+const TEXT_BRANDS: Record<string, { bg: string; fg: string; label: string }> = {
   "bank-scb": { bg: "#4E2A84", fg: "#fff", label: "SCB" },
   "bank-kbank": { bg: "#138F2D", fg: "#fff", label: "K" },
   "bank-bbl": { bg: "#1E3A8A", fg: "#fff", label: "BBL" },
@@ -28,59 +33,43 @@ const BRANDS: Record<string, { bg: string; fg: string; label: string; radius?: s
   "bank-cimb": { bg: "#ED1C24", fg: "#fff", label: "C" },
   "bank-uob": { bg: "#0038A8", fg: "#fff", label: "UOB" },
   "bank-icbc": { bg: "#C8102E", fg: "#fff", label: "I" },
-
-  // Payment methods
   cash: { bg: "#22c55e", fg: "#fff", label: "฿" },
   promptpay: { bg: "#1A3365", fg: "#fff", label: "PP" },
   transfer: { bg: "#6366f1", fg: "#fff", label: "โอน" },
   credit: { bg: "#818CF8", fg: "#fff", label: "CC" },
   debit: { bg: "#60A5FA", fg: "#fff", label: "DC" },
   cheque: { bg: "#78716c", fg: "#fff", label: "เช็ค" },
-  other: { bg: "#94A3B8", fg: "#fff", label: "อื่น" },
-
-  // E-wallets
   "ewallet-truemoney": { bg: "#FF6600", fg: "#fff", label: "TM" },
   "ewallet-rabbit": { bg: "#00B900", fg: "#fff", label: "R" },
   "ewallet-shopee": { bg: "#EE4D2D", fg: "#fff", label: "S" },
-
-  // Services
-  line: { bg: "#06C755", fg: "#fff", label: "L", radius: "rounded-lg" },
-  "google-drive": { bg: "#4285F4", fg: "#fff", label: "GD" },
-  "google-sheets": { bg: "#0F9D58", fg: "#fff", label: "GS" },
-  notion: { bg: "#000000", fg: "#fff", label: "N" },
-  email: { bg: "#EA4335", fg: "#fff", label: "@" },
-  gmail: { bg: "#EA4335", fg: "#fff", label: "G" },
   web: { bg: "#3b82f6", fg: "#fff", label: "W" },
+  other: { bg: "#94A3B8", fg: "#fff", label: "?" },
 };
 
 export default function BrandIcon({ brand, size = 20, className = "" }: BrandIconProps) {
-  const info = BRANDS[brand] || BRANDS.other;
+  // SVG icon from CDN
+  const svg = SVG_BRANDS[brand];
+  if (svg) {
+    const src = svg.darkColor
+      ? `https://cdn.simpleicons.org/${svg.slug}/${svg.color || ""}/${svg.darkColor}`
+      : `https://cdn.simpleicons.org/${svg.slug}${svg.color ? "/" + svg.color : ""}`;
+    return <img src={src} alt={brand} width={size} height={size} className={`inline-block shrink-0 ${className}`} />;
+  }
+
+  // Text icon
+  const info = TEXT_BRANDS[brand] || TEXT_BRANDS.other;
   const fontSize = size <= 16 ? 6 : size <= 20 ? 7 : size <= 24 ? 8 : 10;
-  const radius = info.radius || "rounded-full";
 
   return (
     <span
-      className={`inline-flex items-center justify-center shrink-0 font-bold leading-none select-none ${radius} ${className}`}
-      style={{
-        width: size,
-        height: size,
-        backgroundColor: info.bg,
-        color: info.fg,
-        fontSize: `${fontSize}px`,
-        letterSpacing: "-0.03em",
-      }}
+      className={`inline-flex items-center justify-center shrink-0 font-bold leading-none select-none rounded-full ${className}`}
+      style={{ width: size, height: size, backgroundColor: info.bg, color: info.fg, fontSize: `${fontSize}px` }}
     >
       {info.label}
     </span>
   );
 }
 
-// Helper: get brand info
-export function getBrandInfo(brand: string) {
-  return BRANDS[brand] || BRANDS.other;
-}
-
-// Helper: get brand color
 export function getBrandColor(brand: string) {
-  return (BRANDS[brand] || BRANDS.other).bg;
+  return (TEXT_BRANDS[brand] || TEXT_BRANDS.other).bg;
 }
