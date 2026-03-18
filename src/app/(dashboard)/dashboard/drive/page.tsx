@@ -3,6 +3,7 @@ import { getSession } from "@/lib/auth";
 import { redirect } from "next/navigation";
 import { connectDB } from "@/lib/mongodb";
 import Receipt from "@/models/Receipt";
+import FileModel from "@/models/File";
 import DriveClient from "./DriveClient";
 
 async function DriveData() {
@@ -10,29 +11,53 @@ async function DriveData() {
   if (!session) redirect("/login");
 
   await connectDB();
-  const receipts = await Receipt.find({ userId: session.userId })
-    .select("merchant category date time status source direction imageHash paymentMethod amount createdAt")
-    .sort({ createdAt: -1 })
-    .limit(200)
-    .lean();
+  const [receipts, files] = await Promise.all([
+    Receipt.find({ userId: session.userId })
+      .select("merchant category date time status source direction imageHash paymentMethod amount createdAt")
+      .sort({ createdAt: -1 }).limit(200).lean(),
+    FileModel.find({ userId: session.userId })
+      .select("-data")
+      .sort({ createdAt: -1 }).limit(200).lean(),
+  ]);
 
-  const docs = receipts.map((r: any) => ({
+  const receiptDocs = receipts.map((r: any) => ({
     _id: String(r._id),
     name: r.merchant || "ไม่ระบุ",
+    fileType: "receipt" as const,
+    mimeType: "image/jpeg",
     category: r.category || "ไม่ระบุ",
     amount: r.amount || 0,
     date: r.date ? new Date(r.date).toLocaleDateString("th-TH", { day: "2-digit", month: "short", year: "2-digit" }) : "",
-    rawDate: r.date ? new Date(r.date).toISOString().slice(0, 10) : "",
     time: r.time || "",
     status: r.status || "pending",
     source: r.source || "web",
     direction: r.direction || "expense",
     hasImage: !!r.imageHash,
-    paymentMethod: r.paymentMethod || "",
+    size: 0,
     createdAt: r.createdAt ? new Date(r.createdAt).toISOString() : "",
   }));
 
-  return <DriveClient docs={docs} />;
+  const fileDocs = files.map((f: any) => ({
+    _id: String(f._id),
+    name: f.name,
+    fileType: "file" as const,
+    mimeType: f.type || "",
+    category: f.category || "",
+    amount: 0,
+    date: f.createdAt ? new Date(f.createdAt).toLocaleDateString("th-TH", { day: "2-digit", month: "short", year: "2-digit" }) : "",
+    time: "",
+    status: "confirmed",
+    source: "web",
+    direction: "",
+    hasImage: (f.type || "").startsWith("image/"),
+    size: f.size || 0,
+    createdAt: f.createdAt ? new Date(f.createdAt).toISOString() : "",
+  }));
+
+  // Merge and sort by date
+  const all = [...receiptDocs, ...fileDocs].sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
+
+  return <DriveClient docs={all} />;
 }
 
 export default function DrivePage() {

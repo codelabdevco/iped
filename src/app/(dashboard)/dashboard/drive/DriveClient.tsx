@@ -1,36 +1,48 @@
 "use client";
 
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect, useRef, useCallback } from "react";
 import { useTheme } from "@/contexts/ThemeContext";
-import { Cloud, Grid3X3, List, Search, ImageIcon, FileText, Filter, Download, Eye, MessageCircle, Globe } from "lucide-react";
+import { Cloud, Grid3X3, List, Search, ImageIcon, FileText, Upload, Eye, MessageCircle, Globe, Trash2, Download, File, FileSpreadsheet, FileImage, FileVideo, FileArchive } from "lucide-react";
 import PageHeader from "@/components/dashboard/PageHeader";
 import StatsCard from "@/components/dashboard/StatsCard";
 
 interface Doc {
-  _id: string; name: string; category: string; amount: number;
-  date: string; rawDate: string; time: string; status: string;
-  source: string; direction: string; hasImage: boolean;
-  paymentMethod: string; createdAt: string;
+  _id: string; name: string; fileType: "receipt" | "file"; mimeType: string;
+  category: string; amount: number; date: string; time: string;
+  status: string; source: string; direction: string;
+  hasImage: boolean; size: number; createdAt: string;
 }
 
 const DIR_CLR: Record<string, string> = { expense: "#FA3633", income: "#22c55e", savings: "#ec4899" };
 const DIR_LABEL: Record<string, string> = { expense: "รายจ่าย", income: "รายรับ", savings: "เงินออม" };
-const STATUS_CLS: Record<string, string> = {
-  confirmed: "bg-green-500/10 text-green-400", pending: "bg-yellow-500/10 text-yellow-400",
-  duplicate: "bg-orange-500/10 text-orange-400", cancelled: "bg-gray-500/10 text-gray-400",
-  edited: "bg-blue-500/10 text-blue-400",
-};
-const STATUS_LABEL: Record<string, string> = {
-  confirmed: "ยืนยัน", pending: "รอตรวจ", duplicate: "ซ้ำ", cancelled: "ยกเลิก", edited: "แก้ไข",
-};
 
-export default function DriveClient({ docs }: { docs: Doc[] }) {
+function getFileIcon(mime: string) {
+  if (mime.startsWith("image/")) return { icon: ImageIcon, color: "#22c55e", label: "รูปภาพ" };
+  if (mime === "application/pdf") return { icon: FileText, color: "#EF4444", label: "PDF" };
+  if (mime.includes("spreadsheet") || mime.includes("excel") || mime.includes("csv")) return { icon: FileSpreadsheet, color: "#22c55e", label: "Excel" };
+  if (mime.includes("word") || mime.includes("document")) return { icon: FileText, color: "#3b82f6", label: "Word" };
+  if (mime.startsWith("video/")) return { icon: FileVideo, color: "#8b5cf6", label: "วิดีโอ" };
+  if (mime.includes("zip") || mime.includes("rar") || mime.includes("tar")) return { icon: FileArchive, color: "#f59e0b", label: "บีบอัด" };
+  return { icon: File, color: "#94A3B8", label: "ไฟล์" };
+}
+
+function formatSize(bytes: number) {
+  if (bytes === 0) return "";
+  if (bytes < 1024) return `${bytes} B`;
+  if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(0)} KB`;
+  return `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
+}
+
+export default function DriveClient({ docs: initial }: { docs: Doc[] }) {
   const { isDark } = useTheme();
+  const [docs, setDocs] = useState(initial);
   const [view, setView] = useState<"grid" | "list">("grid");
   const [search, setSearch] = useState("");
-  const [filterDir, setFilterDir] = useState("all");
+  const [filterType, setFilterType] = useState("all");
   const [lightbox, setLightbox] = useState<string | null>(null);
   const [images, setImages] = useState<Record<string, string>>({});
+  const [uploading, setUploading] = useState(false);
+  const fileInputRef = useRef<HTMLInputElement>(null);
 
   const card = isDark ? "bg-[rgba(255,255,255,0.04)]" : "bg-white";
   const border = isDark ? "border-[rgba(255,255,255,0.06)]" : "border-gray-200";
@@ -39,49 +51,111 @@ export default function DriveClient({ docs }: { docs: Doc[] }) {
   const muted = isDark ? "text-white/30" : "text-gray-400";
 
   const filtered = docs.filter((d) => {
-    const matchSearch = !search || d.name.toLowerCase().includes(search.toLowerCase()) || d.category.toLowerCase().includes(search.toLowerCase());
-    const matchDir = filterDir === "all" || d.direction === filterDir;
-    return matchSearch && matchDir;
+    const matchSearch = !search || d.name.toLowerCase().includes(search.toLowerCase());
+    if (filterType === "all") return matchSearch;
+    if (filterType === "receipt") return matchSearch && d.fileType === "receipt";
+    if (filterType === "image") return matchSearch && d.mimeType.startsWith("image/");
+    if (filterType === "pdf") return matchSearch && d.mimeType === "application/pdf";
+    if (filterType === "file") return matchSearch && d.fileType === "file";
+    return matchSearch;
   });
 
-  const withImage = docs.filter((d) => d.hasImage).length;
-  const totalAmount = docs.reduce((s, d) => s + d.amount, 0);
+  const receiptCount = docs.filter((d) => d.fileType === "receipt").length;
+  const fileCount = docs.filter((d) => d.fileType === "file").length;
+  const imageCount = docs.filter((d) => d.hasImage || d.mimeType.startsWith("image/")).length;
 
-  // Lazy load image
-  const loadImage = async (id: string) => {
-    if (images[id]) { setLightbox(images[id]); return; }
-    try {
-      const res = await fetch(`/api/receipts/image?id=${id}`);
-      const data = await res.json();
-      if (data.imageUrl) { setImages((prev) => ({ ...prev, [id]: data.imageUrl })); setLightbox(data.imageUrl); }
-    } catch {}
+  // Upload
+  const handleUpload = async (fileList: FileList) => {
+    setUploading(true);
+    for (const file of Array.from(fileList)) {
+      const formData = new FormData();
+      formData.append("file", file);
+      try {
+        const res = await fetch("/api/files", { method: "POST", body: formData });
+        if (res.ok) {
+          const json = await res.json();
+          setDocs((prev) => [{
+            _id: json.file._id, name: file.name, fileType: "file", mimeType: file.type,
+            category: "", amount: 0, date: new Date().toLocaleDateString("th-TH", { day: "2-digit", month: "short", year: "2-digit" }),
+            time: "", status: "confirmed", source: "web", direction: "",
+            hasImage: file.type.startsWith("image/"), size: file.size,
+            createdAt: new Date().toISOString(),
+          }, ...prev]);
+        }
+      } catch {}
+    }
+    setUploading(false);
   };
 
-  // Lazy load thumbnails for grid view
-  const ThumbImage = ({ id, hasImage }: { id: string; hasImage: boolean }) => {
-    const [src, setSrc] = useState<string | null>(images[id] || null);
+  const handleDelete = async (id: string, type: string) => {
+    if (!confirm("ลบไฟล์นี้?")) return;
+    if (type === "file") {
+      await fetch("/api/files", { method: "DELETE", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ id }) });
+    }
+    setDocs((prev) => prev.filter((d) => d._id !== id));
+  };
+
+  const handleView = async (doc: Doc) => {
+    if (doc.fileType === "receipt") {
+      if (images[doc._id]) { setLightbox(images[doc._id]); return; }
+      if (!doc.hasImage) return;
+      try {
+        const res = await fetch(`/api/receipts/image?id=${doc._id}`);
+        const data = await res.json();
+        if (data.imageUrl) { setImages((prev) => ({ ...prev, [doc._id]: data.imageUrl })); setLightbox(data.imageUrl); }
+      } catch {}
+    } else {
+      try {
+        const res = await fetch(`/api/files/download?id=${doc._id}`);
+        const data = await res.json();
+        if (data.data) {
+          if (data.type.startsWith("image/") || data.type === "application/pdf") {
+            setLightbox(data.data);
+          } else {
+            const a = document.createElement("a");
+            a.href = data.data;
+            a.download = data.name;
+            a.click();
+          }
+        }
+      } catch {}
+    }
+  };
+
+  // Thumbnail
+  const Thumb = ({ doc }: { doc: Doc }) => {
+    const [src, setSrc] = useState<string | null>(images[doc._id] || null);
     const ref = useRef<HTMLDivElement>(null);
+    const isImage = doc.mimeType.startsWith("image/");
     useEffect(() => {
-      if (!hasImage || src) return;
+      if (src || !isImage && doc.fileType !== "receipt") return;
+      if (doc.fileType === "receipt" && !doc.hasImage) return;
       const el = ref.current;
       if (!el) return;
       const obs = new IntersectionObserver(([entry]) => {
         if (entry.isIntersecting) {
-          fetch(`/api/receipts/image?id=${id}`).then((r) => r.json()).then((d) => {
-            if (d.imageUrl) { setSrc(d.imageUrl); setImages((prev) => ({ ...prev, [id]: d.imageUrl })); }
+          const url = doc.fileType === "receipt" ? `/api/receipts/image?id=${doc._id}` : `/api/files/download?id=${doc._id}`;
+          fetch(url).then((r) => r.json()).then((d) => {
+            const imgData = d.imageUrl || d.data;
+            if (imgData) { setSrc(imgData); setImages((prev) => ({ ...prev, [doc._id]: imgData })); }
           }).catch(() => {});
           obs.disconnect();
         }
       }, { rootMargin: "200px" });
       obs.observe(el);
       return () => obs.disconnect();
-    }, [id, hasImage, src]);
+    }, [doc, src, isImage]);
+
+    const fi = getFileIcon(doc.mimeType);
+    const Icon = fi.icon;
 
     return (
       <div ref={ref} className={`w-full h-full flex items-center justify-center ${isDark ? "bg-white/[0.03]" : "bg-gray-50"}`}>
         {src ? <img src={src} alt="" className="w-full h-full object-cover" /> : (
-          hasImage ? <div className={`w-6 h-6 border-2 border-t-transparent rounded-full animate-spin ${isDark ? "border-white/10" : "border-gray-200"}`} />
-          : <FileText size={24} className={muted} />
+          <div className="flex flex-col items-center gap-1">
+            <Icon size={24} style={{ color: fi.color }} />
+            <span className={`text-[9px] ${muted}`}>{fi.label}</span>
+          </div>
         )}
       </div>
     );
@@ -93,32 +167,41 @@ export default function DriveClient({ docs }: { docs: Doc[] }) {
       {lightbox && (
         <div className="fixed inset-0 z-[60] flex items-center justify-center bg-black/80 backdrop-blur-sm" onClick={() => setLightbox(null)}>
           <div className="relative max-w-[90vw] max-h-[90vh]" onClick={(e) => e.stopPropagation()}>
-            <img src={lightbox} alt="" className="max-w-full max-h-[90vh] rounded-2xl object-contain shadow-2xl" />
+            {lightbox.startsWith("data:application/pdf") ? (
+              <iframe src={lightbox} className="w-[80vw] h-[85vh] rounded-2xl" />
+            ) : (
+              <img src={lightbox} alt="" className="max-w-full max-h-[90vh] rounded-2xl object-contain shadow-2xl" />
+            )}
             <button onClick={() => setLightbox(null)} className="absolute -top-3 -right-3 w-8 h-8 rounded-full bg-black/70 text-white/80 hover:text-white flex items-center justify-center text-lg border border-white/20">&times;</button>
           </div>
         </div>
       )}
 
+      <input ref={fileInputRef} type="file" multiple onChange={(e) => { if (e.target.files) handleUpload(e.target.files); e.target.value = ""; }} className="hidden" />
+
       <div className="flex items-center justify-between">
-        <PageHeader title="Cloud Drive" description={`${docs.length} เอกสาร · ${withImage} มีรูป`} />
+        <PageHeader title="Cloud Drive" description={`${docs.length} เอกสาร · ${imageCount} รูป · ${fileCount} ไฟล์`} />
+        <button onClick={() => fileInputRef.current?.click()} disabled={uploading} className="flex items-center gap-2 px-4 py-2.5 rounded-xl text-sm font-medium bg-[#FA3633] text-white hover:bg-[#e0302d] transition-colors shadow-sm shadow-[#FA3633]/25 disabled:opacity-50">
+          <Upload size={16} />{uploading ? "กำลังอัปโหลด..." : "อัปโหลดไฟล์"}
+        </button>
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-        <StatsCard label="เอกสารทั้งหมด" value={`${docs.length} รายการ`} icon={<Cloud size={20} />} color="text-blue-500" />
-        <StatsCard label="มีรูปสลิป" value={`${withImage} รายการ`} icon={<ImageIcon size={20} />} color="text-green-500" />
-        <StatsCard label="ยอดรวม" value={`฿${totalAmount.toLocaleString("th-TH", { minimumFractionDigits: 2 })}`} icon={<FileText size={20} />} color="text-[#FA3633]" />
-        <StatsCard label="เดือนนี้" value={`${docs.filter((d) => new Date(d.createdAt) >= new Date(new Date().getFullYear(), new Date().getMonth(), 1)).length} รายการ`} icon={<Download size={20} />} color="text-purple-500" />
+        <StatsCard label="ทั้งหมด" value={`${docs.length} รายการ`} icon={<Cloud size={20} />} color="text-blue-500" />
+        <StatsCard label="ใบเสร็จ" value={`${receiptCount} รายการ`} icon={<FileText size={20} />} color="text-[#FA3633]" />
+        <StatsCard label="ไฟล์อัปโหลด" value={`${fileCount} ไฟล์`} icon={<Upload size={20} />} color="text-purple-500" />
+        <StatsCard label="รูปภาพ" value={`${imageCount} รูป`} icon={<ImageIcon size={20} />} color="text-green-500" />
       </div>
 
       {/* Toolbar */}
       <div className={`${card} border ${border} rounded-xl px-4 py-3 flex flex-wrap items-center gap-3`}>
         <div className="relative flex-1 min-w-[180px]">
           <Search size={14} className={`absolute left-3 top-1/2 -translate-y-1/2 ${sub}`} />
-          <input value={search} onChange={(e) => setSearch(e.target.value)} placeholder="ค้นหาเอกสาร..." className={`w-full h-9 pl-8 pr-3 rounded-lg text-sm border ${isDark ? "bg-white/[0.03] border-white/[0.06] text-white placeholder-white/30" : "bg-gray-50 border-gray-200 text-gray-900 placeholder-gray-400"} focus:outline-none`} />
+          <input value={search} onChange={(e) => setSearch(e.target.value)} placeholder="ค้นหา..." className={`w-full h-9 pl-8 pr-3 rounded-lg text-sm border ${isDark ? "bg-white/[0.03] border-white/[0.06] text-white placeholder-white/30" : "bg-gray-50 border-gray-200 text-gray-900 placeholder-gray-400"} focus:outline-none`} />
         </div>
         <div className="flex gap-1">
-          {[{ v: "all", l: "ทั้งหมด" }, { v: "expense", l: "รายจ่าย" }, { v: "income", l: "รายรับ" }, { v: "savings", l: "เงินออม" }].map((f) => (
-            <button key={f.v} onClick={() => setFilterDir(f.v)} className={`px-3 py-1.5 rounded-full text-xs font-medium transition-all ${filterDir === f.v ? "bg-[#FA3633] text-white" : isDark ? "bg-white/5 text-white/50 hover:bg-white/10" : "bg-gray-100 text-gray-500 hover:bg-gray-200"}`}>{f.l}</button>
+          {[{ v: "all", l: "ทั้งหมด" }, { v: "receipt", l: "ใบเสร็จ" }, { v: "image", l: "รูปภาพ" }, { v: "pdf", l: "PDF" }, { v: "file", l: "ไฟล์อื่น" }].map((f) => (
+            <button key={f.v} onClick={() => setFilterType(f.v)} className={`px-3 py-1.5 rounded-full text-xs font-medium transition-all ${filterType === f.v ? "bg-[#FA3633] text-white" : isDark ? "bg-white/5 text-white/50 hover:bg-white/10" : "bg-gray-100 text-gray-500 hover:bg-gray-200"}`}>{f.l}</button>
           ))}
         </div>
         <div className={`flex rounded-lg overflow-hidden border ${border}`}>
@@ -127,65 +210,80 @@ export default function DriveClient({ docs }: { docs: Doc[] }) {
         </div>
       </div>
 
+      {/* Drop zone when empty */}
       {filtered.length === 0 ? (
-        <div className={`${card} border ${border} rounded-2xl p-12 text-center ${sub}`}>ไม่พบเอกสาร</div>
+        <div onClick={() => fileInputRef.current?.click()} className={`border-2 border-dashed rounded-2xl p-12 text-center cursor-pointer transition-colors ${isDark ? "border-white/10 hover:border-white/20" : "border-gray-300 hover:border-gray-400"}`}>
+          <Upload size={40} className={`mx-auto mb-3 ${muted}`} />
+          <p className={`text-sm ${sub}`}>ลากไฟล์มาวาง หรือคลิกเพื่ออัปโหลด</p>
+          <p className={`text-xs ${muted} mt-1`}>รองรับ รูปภาพ, PDF, Excel, Word และอื่นๆ (สูงสุด 15MB)</p>
+        </div>
       ) : view === "grid" ? (
-        /* Grid view */
         <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-3">
-          {filtered.map((doc) => (
-            <div key={doc._id} className={`${card} border ${border} rounded-xl overflow-hidden group cursor-pointer transition-all hover:shadow-lg ${isDark ? "hover:bg-white/[0.06]" : "hover:bg-gray-50"}`} onClick={() => doc.hasImage ? loadImage(doc._id) : null}>
-              {/* Thumbnail */}
-              <div className="aspect-[4/3] overflow-hidden relative">
-                <ThumbImage id={doc._id} hasImage={doc.hasImage} />
-                {/* Overlay on hover */}
-                {doc.hasImage && (
-                  <div className="absolute inset-0 bg-black/0 group-hover:bg-black/30 transition-colors flex items-center justify-center opacity-0 group-hover:opacity-100">
-                    <Eye size={20} className="text-white" />
+          {filtered.map((doc) => {
+            const fi = getFileIcon(doc.mimeType);
+            return (
+              <div key={doc._id} className={`${card} border ${border} rounded-xl overflow-hidden group cursor-pointer transition-all hover:shadow-lg ${isDark ? "hover:bg-white/[0.06]" : "hover:bg-gray-50"}`} onClick={() => handleView(doc)}>
+                <div className="aspect-[4/3] overflow-hidden relative">
+                  <Thumb doc={doc} />
+                  <div className="absolute inset-0 bg-black/0 group-hover:bg-black/30 transition-colors flex items-center justify-center gap-2 opacity-0 group-hover:opacity-100">
+                    <Eye size={18} className="text-white" />
                   </div>
-                )}
-                {/* Direction badge */}
-                <span className="absolute top-2 left-2 px-1.5 py-0.5 rounded text-[9px] font-bold text-white leading-none" style={{ backgroundColor: DIR_CLR[doc.direction] || "#94A3B8" }}>{DIR_LABEL[doc.direction] || "อื่นๆ"}</span>
-              </div>
-              {/* Info */}
-              <div className="p-3">
-                <p className={`text-xs font-medium ${txt} truncate`}>{doc.name}</p>
-                <div className={`flex items-center justify-between mt-1`}>
-                  <span className={`text-[10px] ${muted}`}>{doc.date}</span>
-                  <span className={`text-[10px] font-semibold ${txt}`}>฿{doc.amount.toLocaleString()}</span>
+                  {/* Badges */}
+                  <div className="absolute top-2 left-2 flex gap-1">
+                    {doc.fileType === "receipt" && doc.direction && <span className="px-1.5 py-0.5 rounded text-[9px] font-bold text-white leading-none" style={{ backgroundColor: DIR_CLR[doc.direction] || "#94A3B8" }}>{DIR_LABEL[doc.direction] || ""}</span>}
+                    {doc.fileType === "file" && <span className="px-1.5 py-0.5 rounded text-[9px] font-bold text-white leading-none" style={{ backgroundColor: fi.color }}>{fi.label}</span>}
+                  </div>
+                  {/* Delete */}
+                  {doc.fileType === "file" && (
+                    <button onClick={(e) => { e.stopPropagation(); handleDelete(doc._id, "file"); }} className="absolute top-2 right-2 p-1 rounded-md bg-black/40 text-white/60 hover:text-red-400 opacity-0 group-hover:opacity-100 transition-opacity"><Trash2 size={12} /></button>
+                  )}
+                </div>
+                <div className="p-3">
+                  <p className={`text-xs font-medium ${txt} truncate`}>{doc.name}</p>
+                  <div className={`flex items-center justify-between mt-1`}>
+                    <span className={`text-[10px] ${muted}`}>{doc.date}</span>
+                    {doc.amount > 0 ? <span className={`text-[10px] font-semibold ${txt}`}>฿{doc.amount.toLocaleString()}</span> : <span className={`text-[10px] ${muted}`}>{formatSize(doc.size)}</span>}
+                  </div>
                 </div>
               </div>
-            </div>
-          ))}
+            );
+          })}
+          {/* Upload card */}
+          <div onClick={() => fileInputRef.current?.click()} className={`border-2 border-dashed rounded-xl flex flex-col items-center justify-center min-h-[160px] cursor-pointer transition-colors ${isDark ? "border-white/10 hover:border-white/20 text-white/30 hover:text-white/50" : "border-gray-300 hover:border-gray-400 text-gray-400 hover:text-gray-500"}`}>
+            <Upload size={24} className="mb-1" />
+            <span className="text-xs font-medium">อัปโหลด</span>
+          </div>
         </div>
       ) : (
-        /* List view */
-        <div className={`${card} border ${border} rounded-2xl overflow-hidden`}>
-          {filtered.map((doc, i) => (
-            <div key={doc._id} className={`flex items-center gap-3 px-4 py-3 ${i > 0 ? `border-t ${border}` : ""} ${isDark ? "hover:bg-white/[0.03]" : "hover:bg-gray-50"} transition-colors cursor-pointer`} onClick={() => doc.hasImage ? loadImage(doc._id) : null}>
-              {/* Mini thumb */}
-              <div className={`w-10 h-10 rounded-lg overflow-hidden shrink-0 ${isDark ? "bg-white/5" : "bg-gray-100"}`}>
-                {doc.hasImage ? <ThumbImage id={doc._id} hasImage={true} /> : <div className="w-full h-full flex items-center justify-center"><FileText size={14} className={muted} /></div>}
-              </div>
-              {/* Info */}
-              <div className="flex-1 min-w-0">
-                <div className="flex items-center gap-2">
-                  <span className={`text-sm font-medium ${txt} truncate`}>{doc.name}</span>
-                  <span className="px-1.5 py-0.5 rounded text-[9px] font-bold text-white leading-none shrink-0" style={{ backgroundColor: DIR_CLR[doc.direction] || "#94A3B8" }}>{DIR_LABEL[doc.direction] || ""}</span>
+        <div className={`${card} border ${border} rounded-2xl`}>
+          {filtered.map((doc, i) => {
+            const fi = getFileIcon(doc.mimeType);
+            const Icon = fi.icon;
+            return (
+              <div key={doc._id} className={`flex items-center gap-3 px-4 py-3 ${i > 0 ? `border-t ${border}` : ""} ${isDark ? "hover:bg-white/[0.03]" : "hover:bg-gray-50"} transition-colors cursor-pointer group`} onClick={() => handleView(doc)}>
+                <div className={`w-10 h-10 rounded-lg overflow-hidden shrink-0 flex items-center justify-center ${isDark ? "bg-white/5" : "bg-gray-100"}`}>
+                  {(doc.hasImage || doc.mimeType.startsWith("image/")) ? <Thumb doc={doc} /> : <Icon size={18} style={{ color: fi.color }} />}
                 </div>
-                <div className={`flex items-center gap-2 mt-0.5 text-[11px] ${muted}`}>
-                  <span>{doc.category}</span>
-                  <span>·</span>
-                  <span>{doc.date}{doc.time ? ` ${doc.time}` : ""}</span>
-                  <span>·</span>
-                  <span className="flex items-center gap-0.5">{doc.source === "line" ? <><MessageCircle size={9} className="text-green-500" /> LINE</> : <><Globe size={9} className="text-blue-400" /> เว็บ</>}</span>
+                <div className="flex-1 min-w-0">
+                  <div className="flex items-center gap-2">
+                    <span className={`text-sm font-medium ${txt} truncate`}>{doc.name}</span>
+                    {doc.fileType === "receipt" && doc.direction && <span className="px-1.5 py-0.5 rounded text-[9px] font-bold text-white leading-none shrink-0" style={{ backgroundColor: DIR_CLR[doc.direction] }}>{DIR_LABEL[doc.direction]}</span>}
+                    {doc.fileType === "file" && <span className="px-1.5 py-0.5 rounded text-[9px] font-bold leading-none shrink-0" style={{ backgroundColor: fi.color + "20", color: fi.color }}>{fi.label}</span>}
+                  </div>
+                  <div className={`flex items-center gap-2 text-[11px] ${muted} mt-0.5`}>
+                    <span>{doc.date}</span>
+                    {doc.size > 0 && <><span>·</span><span>{formatSize(doc.size)}</span></>}
+                    {doc.category && <><span>·</span><span>{doc.category}</span></>}
+                    {doc.fileType === "receipt" && <><span>·</span><span className={`flex items-center gap-0.5 ${doc.source === "line" ? "text-green-500" : "text-blue-400"}`}>{doc.source === "line" ? <><MessageCircle size={9} /> LINE</> : <><Globe size={9} /> เว็บ</>}</span></>}
+                  </div>
+                </div>
+                {doc.amount > 0 && <span className={`text-sm font-semibold ${txt} shrink-0`}>฿{doc.amount.toLocaleString("th-TH", { minimumFractionDigits: 2 })}</span>}
+                <div className="flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity shrink-0">
+                  {doc.fileType === "file" && <button onClick={(e) => { e.stopPropagation(); handleDelete(doc._id, "file"); }} className={`p-1.5 rounded-lg ${isDark ? "hover:bg-white/5 text-white/30 hover:text-red-400" : "hover:bg-gray-100 text-gray-400 hover:text-red-500"}`}><Trash2 size={13} /></button>}
                 </div>
               </div>
-              {/* Amount */}
-              <span className={`text-sm font-semibold ${txt} shrink-0`}>฿{doc.amount.toLocaleString("th-TH", { minimumFractionDigits: 2 })}</span>
-              {/* Status */}
-              <span className={`px-2 py-0.5 rounded-lg text-[10px] font-medium shrink-0 ${STATUS_CLS[doc.status] || STATUS_CLS.pending}`}>{STATUS_LABEL[doc.status] || doc.status}</span>
-            </div>
-          ))}
+            );
+          })}
         </div>
       )}
     </div>
