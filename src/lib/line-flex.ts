@@ -579,42 +579,9 @@ export function receiptConfirmFlex(data: ReceiptFlexData) {
           merchantInfo(
             data.categoryIcon,
             data.merchant,
-            data.category,
+            `${dc.label} · ${data.category}`,
             { subtext: data.merchantTaxId || undefined, paymentMethod: data.paymentMethod || undefined },
           ),
-          // Direction label + category
-          {
-            type: "box",
-            layout: "horizontal",
-            spacing: "sm",
-            margin: "md",
-            contents: [
-              {
-                type: "box",
-                layout: "horizontal",
-                flex: 0,
-                cornerRadius: "12px",
-                backgroundColor: dc.bg,
-                paddingStart: "10px",
-                paddingEnd: "10px",
-                paddingTop: "4px",
-                paddingBottom: "4px",
-                contents: [
-                  { type: "text", text: dc.label, size: "xs", color: dc.color, weight: "bold" },
-                ],
-              },
-              {
-                type: "text",
-                text: `${data.categoryIcon} ${data.category}`,
-                size: "xs",
-                color: C.sub,
-                flex: 0,
-                gravity: "center",
-              },
-              { type: "filler" },
-            ],
-          },
-
           // Amount
           {
             type: "box",
