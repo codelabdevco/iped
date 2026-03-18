@@ -101,6 +101,19 @@ export async function POST(request: NextRequest) {
             // Auto-match
             await findMatches(String(receipt._id), session.userId);
 
+            // Auto-sync to Google Drive
+            try {
+              const { getGoogleToken, uploadToDrive } = await import("@/lib/google-drive");
+              const driveToken = await getGoogleToken(session.userId);
+              if (driveToken) {
+                const fileName = `${ocrResult.merchant}_${ocrResult.date || "unknown"}.jpg`;
+                const driveResult = await uploadToDrive(driveToken, fileName, part.mimeType, base64);
+                if (driveResult) {
+                  await Receipt.findByIdAndUpdate(receipt._id, { driveFileId: driveResult.id, driveLink: driveResult.webViewLink });
+                }
+              }
+            } catch (driveErr) { console.error("Drive sync error:", driveErr); }
+
             results.push({ subject, from, date: dateStr, status: "saved", receiptId: String(receipt._id) });
             processed = true;
             break;
