@@ -26,6 +26,8 @@ interface DataTableProps<T> {
   expandRender?: (row: T, isDark: boolean) => React.ReactNode;
   /** localStorage key for persisting column visibility */
   columnConfigKey?: string;
+  /** Show skeleton loading state */
+  loading?: boolean;
 }
 
 const DATE_PRESETS = [
@@ -68,7 +70,7 @@ function getPresetRange(key: string): { from: Date; to: Date } | null {
   }
 }
 
-export default function DataTable<T>({ columns, data, rowKey, emptyText = "ไม่มีข้อมูล", dateField, expandRender, columnConfigKey }: DataTableProps<T>) {
+export default function DataTable<T>({ columns, data, rowKey, emptyText = "ไม่มีข้อมูล", dateField, expandRender, columnConfigKey, loading }: DataTableProps<T>) {
   const { isDark } = useTheme();
   const [perPage, setPerPage] = useState(10);
   const [page, setPage] = useState(1);
@@ -270,7 +272,19 @@ export default function DataTable<T>({ columns, data, rowKey, emptyText = "ไ�
             </tr>
           </thead>
           <tbody>
-            {sliced.length === 0 ? (
+            {loading ? (
+              Array.from({ length: 5 }).map((_, i) => (
+                <tr key={`sk-${i}`} className={`border-t ${border}`}>
+                  {expandRender && <td className="pl-4 pr-0 py-3" />}
+                  {orderedColumns.map((col, ci) => (
+                    <td key={ci} className="px-4 py-3">
+                      <div className={`rounded-md animate-pulse ${ci === 0 ? "w-10 h-10 rounded-lg" : "h-4"} ${isDark ? "bg-white/[0.06]" : "bg-gray-200/70"}`} style={{ width: ci === 0 ? 40 : `${45 + ((ci * 17) % 40)}%` }} />
+                      {ci === 1 && <div className={`mt-1.5 h-3 rounded-md animate-pulse ${isDark ? "bg-white/[0.04]" : "bg-gray-100"}`} style={{ width: "40%" }} />}
+                    </td>
+                  ))}
+                </tr>
+              ))
+            ) : sliced.length === 0 ? (
               <tr><td colSpan={columns.length + (expandRender ? 1 : 0)} className={`px-5 py-12 text-center text-sm ${sub}`}>{emptyText}</td></tr>
             ) : (
               sliced.map((row) => {
