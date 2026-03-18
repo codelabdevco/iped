@@ -548,12 +548,12 @@ export function receiptConfirmFlex(data: ReceiptFlexData) {
   const isLow = data.confidence < 40;
 
   const statusText = isLow
-    ? "❌ ตรวจสอบ"
+    ? `❌ ${dc.label}`
     : isWarn
-      ? "⚠️ ตรวจสอบ"
-      : "✅ สำเร็จ";
-  const statusColor = isLow ? C.red : isWarn ? C.amber : C.green;
-  const bandColor = isLow ? C.redBg : isWarn ? C.amberBg : C.greenBg;
+      ? `⚠️ ${dc.label}`
+      : `✅ ${dc.label}`;
+  const statusColor = isLow ? C.red : isWarn ? C.amber : dc.color;
+  const bandColor = isLow ? C.redBg : isWarn ? C.amberBg : dc.bg;
   const amtColor = dc.color;
 
   // Items — max 3 lines
