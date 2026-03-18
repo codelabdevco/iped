@@ -72,6 +72,7 @@ If it IS a receipt/invoice/bill, extract and return ONLY this JSON:
   "categoryIcon": "single emoji for the category",
   "items": "brief summary of items in Thai",
   "documentType": "receipt or invoice or tax_invoice or billing",
+  "type": "expense or income — determine from context: if the user PAID/sent money it's expense, if the user RECEIVED money it's income. For bank transfer slips: check sender vs receiver — if the slip shows money coming IN to the user (ได้รับเงิน/เงินเข้า/ผู้โอนคือคนอื่น) it's income; if the user sent money OUT (โอนเงิน/จ่ายเงิน/ชำระเงิน) it's expense. Salary deposits, refunds, and incoming transfers are income. Shopping, bills, and outgoing transfers are expense.",
   "paymentMethod": "detect payment method from slip/receipt. Use these exact values: promptpay (if QR/พร้อมเพย์/PromptPay), bank-scb (SCB/ไทยพาณิชย์), bank-kbank (KBank/กสิกร), bank-bbl (BBL/กรุงเทพ), bank-ktb (KTB/กรุงไทย), bank-bay (BAY/กรุงศรี), bank-tmb (TTB/ทีเอ็มบี), bank-gsb (GSB/ออมสิน), credit (บัตรเครดิต/VISA/MC), debit (บัตรเดบิต), transfer (โอนธนาคารทั่วไป), cash (เงินสด), ewallet-truemoney (TrueMoney), ewallet-rabbit (Rabbit LINE Pay), ewallet-shopee (ShopeePay), other. If it's a bank transfer slip, identify the bank from logo/name.",
   "confidence": 0_to_100_confidence_score
 }` + knowledgeCtx + "\n\nReturn ONLY valid JSON, no markdown fences.";
@@ -145,6 +146,7 @@ async function saveReceipt(ocr: any, lineUserId: string, imgHash: string, imageB
       category: ocr.category,
       categoryIcon: ocr.categoryIcon || "\ud83d\udcdd",
       paymentMethod: ocr.paymentMethod || undefined,
+      direction: ocr.type === "income" ? "income" : "expense",
       status: "pending",
       imageUrl,
       imageHash: imgHash,
@@ -283,6 +285,7 @@ export async function POST(request: NextRequest) {
               category: ocr.category,
               categoryIcon: ocr.categoryIcon || "\ud83d\udcdd",
               paymentMethod: ocr.paymentMethod || undefined,
+              direction: ocr.type === "income" ? "income" : "expense",
               status: "duplicate",
               imageUrl: dupImageUrl,
               imageHash: imgHash,
