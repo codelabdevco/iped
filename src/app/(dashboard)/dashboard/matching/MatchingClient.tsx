@@ -88,9 +88,9 @@ export default function MatchingClient({
 
   // Split receipts by source
   const emailReceipts = useMemo(() => receipts.filter((r) => r.source === "email"), [receipts]);
-  const systemReceipts = useMemo(() => receipts.filter((r) => r.source !== "email"), [receipts]);
+  const lineReceipts = useMemo(() => receipts.filter((r) => r.source === "line"), [receipts]);
 
-  const totalAmount = receipts.filter((r) => r.status === "confirmed").reduce((s, r) => s + r.amount, 0);
+  const lineTotal = lineReceipts.reduce((s, r) => s + r.amount, 0);
   const confirmed = matches.filter((m) => m.status === "matched").length;
   const pending = matches.filter((m) => m.status === "pending").length;
 
@@ -400,7 +400,7 @@ export default function MatchingClient({
       <input ref={fileInputRef} type="file" accept="image/*,application/pdf" multiple onChange={(e) => { if (e.target.files) Array.from(e.target.files).forEach(handleUpload); e.target.value = ""; }} className="hidden" />
 
       <div className="flex items-center justify-between">
-        <PageHeader title="สแกน & จับคู่เอกสาร" description={`${receipts.length} รายการ — รวม ฿${totalAmount.toLocaleString("th-TH", { minimumFractionDigits: 2 })}`} />
+        <PageHeader title="สแกน & จับคู่เอกสาร" description={`${lineReceipts.length} รายการจาก LINE — รวม ฿${lineTotal.toLocaleString("th-TH", { minimumFractionDigits: 2 })}`} />
         <div className="flex gap-2">
           <button onClick={handleGmail} disabled={scanning || !initialGmail.connected} className={`flex items-center gap-2 px-3 py-2.5 rounded-xl text-sm font-medium transition-colors disabled:opacity-50 ${isDark ? "bg-white/5 text-white/60 hover:bg-white/10" : "bg-gray-100 text-gray-600 hover:bg-gray-200"}`}>
             {scanning ? <Loader2 size={14} className="animate-spin" /> : <BrandIcon brand="gmail" size={16} />}
@@ -475,8 +475,8 @@ export default function MatchingClient({
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+        <StatsCard label="จาก LINE" value={`${lineReceipts.length} รายการ`} icon={<ScanLine size={20} />} color="text-green-500" />
         <StatsCard label="จากอีเมล" value={`${emailReceipts.length} รายการ`} icon={<Mail size={20} />} color="text-red-500" />
-        <StatsCard label="เอกสารทั้งหมด" value={`${receipts.length} รายการ`} icon={<ScanLine size={20} />} color="text-blue-500" />
         <StatsCard label="จับคู่แล้ว" value={`${confirmed} คู่`} icon={<CheckCircle2 size={20} />} color="text-green-500" />
         <StatsCard label="รอยืนยัน" value={`${pending} คู่`} icon={<Copy size={20} />} color="text-amber-500" />
       </div>
