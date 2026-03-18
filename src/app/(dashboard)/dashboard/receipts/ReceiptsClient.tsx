@@ -731,49 +731,35 @@ export default function ReceiptsClient({ receipts: initialReceipts }: { receipts
               <button onClick={() => setTxType("savings" as any)} className={`flex-1 py-2.5 rounded-lg text-sm font-semibold transition-all ${(txType as string) === "savings" ? "bg-blue-500 text-white shadow-sm" : "text-white/50 hover:text-white/70"}`}>เงินออม</button>
             </div>
 
-            {/* Edit form */}
+            {/* ═══ EXPENSE TAB ═══ */}
+            {txType === "expense" && (<>
             <div className="rounded-xl bg-white/[0.03] border border-white/10 p-4 space-y-3">
-              <p className="text-xs font-semibold text-white/50">ข้อมูลใบเสร็จ</p>
+              <p className="text-xs font-semibold text-white/50">ข้อมูลรายจ่าย</p>
               <div><label className={lbl}>ร้านค้า</label><input value={editForm.storeName || ""} onChange={(e) => setEditForm({ ...editForm, storeName: e.target.value })} className={inp} /></div>
-              <div><label className={lbl}>หมายเหตุ</label><textarea rows={2} value={editForm.note || ""} onChange={(e) => setEditForm({ ...editForm, note: e.target.value })} placeholder="หมายเหตุ, รายละเอียดเพิ่มเติม..." className={`${inp} h-auto py-2`} /></div>
+              <div><label className={lbl}>หมายเหตุ</label><textarea rows={2} value={editForm.note || ""} onChange={(e) => setEditForm({ ...editForm, note: e.target.value })} placeholder="รายละเอียดเพิ่มเติม..." className={`${inp} h-auto py-2`} /></div>
               <div className="grid grid-cols-3 gap-3">
                 <div><label className={lbl}>วันที่จ่าย</label><DatePicker value={editForm.date || ""} onChange={(v) => setEditForm({ ...editForm, date: v })} /></div>
                 <div><label className={lbl}>เวลา</label><TimePicker value={editForm.time || ""} onChange={(v) => setEditForm({ ...editForm, time: v })} /></div>
-                <div><label className={lbl}>วิธีจ่าย</label>
-                  <Select value={editForm.paymentMethod || "cash"} onChange={(v) => setEditForm({ ...editForm, paymentMethod: v })} options={PAYMENT_METHODS} />
-                </div>
+                <div><label className={lbl}>วิธีจ่าย</label><Select value={editForm.paymentMethod || "cash"} onChange={(v) => setEditForm({ ...editForm, paymentMethod: v })} options={PAYMENT_METHODS} /></div>
               </div>
               <div className="grid grid-cols-2 gap-3">
-                <div><label className={lbl}>หมวดหมู่</label>
-                  <Select value={editForm.category || "ไม่ระบุ"} onChange={(v) => setEditForm({ ...editForm, category: v })} options={categoryOptions} />
-                </div>
-                <div><label className={lbl}>สถานะ</label>
-                  <Select value={editForm.status || "pending"} onChange={(v) => setEditForm({ ...editForm, status: v })} options={STATUS_OPTIONS} />
-                </div>
+                <div><label className={lbl}>หมวดหมู่</label><Select value={editForm.category || "ไม่ระบุ"} onChange={(v) => setEditForm({ ...editForm, category: v })} options={categoryOptions} /></div>
+                <div><label className={lbl}>สถานะ</label><Select value={editForm.status || "pending"} onChange={(v) => setEditForm({ ...editForm, status: v })} options={STATUS_OPTIONS} /></div>
               </div>
-              <div><label className={lbl}>ประเภท</label>
-                <Select value={editForm.type || "receipt"} onChange={(v) => setEditForm({ ...editForm, type: v })} options={Object.entries(typeLabel).map(([k, v]) => ({ value: k, label: v }))} />
-              </div>
+              <div><label className={lbl}>ประเภทเอกสาร</label><Select value={editForm.type || "receipt"} onChange={(v) => setEditForm({ ...editForm, type: v })} options={Object.entries(typeLabel).map(([k, v]) => ({ value: k, label: v }))} /></div>
               <div className="grid grid-cols-2 gap-3">
                 <div><label className={lbl}>เลขที่เอกสาร</label><input value={editForm.documentNumber || ""} onChange={(e) => setEditForm({ ...editForm, documentNumber: e.target.value })} placeholder="RCP-2026-0001" className={inp} /></div>
                 <div><label className={lbl}>เลขผู้เสียภาษี</label><input value={editForm.merchantTaxId || ""} onChange={(e) => setEditForm({ ...editForm, merchantTaxId: e.target.value })} placeholder="0107536000269" className={inp} /></div>
               </div>
             </div>
-
-            {/* Line items — add/remove */}
+            {/* Line items */}
             <div className="rounded-xl bg-white/[0.03] border border-white/10 p-4 space-y-3">
               <div className="flex items-center justify-between">
                 <p className="text-xs font-semibold text-white/50">รายการสินค้า/บริการ</p>
                 <button onClick={() => setEditItems([...editItems, { name: "", qty: 1, price: 0 }])} className="px-2.5 py-1 rounded-lg text-[11px] font-medium bg-green-500/10 text-green-400 hover:bg-green-500/20 transition-colors">+ เพิ่มรายการ</button>
               </div>
-              {/* Column headers */}
               <div className="flex items-center gap-2 text-[10px] text-white/30 font-medium">
-                <span className="w-5 shrink-0">#</span>
-                <span className="flex-1">รายการ</span>
-                <span className="w-12 text-center">จำนวน</span>
-                <span className="w-20 text-right">ราคา/หน่วย</span>
-                <span className="w-20 text-right">รวม</span>
-                <span className="w-7 shrink-0"></span>
+                <span className="w-5 shrink-0">#</span><span className="flex-1">รายการ</span><span className="w-12 text-center">จำนวน</span><span className="w-20 text-right">ราคา</span><span className="w-20 text-right">รวม</span><span className="w-7 shrink-0"></span>
               </div>
               <div className="space-y-2">
                 {editItems.map((item, i) => (
@@ -783,73 +769,104 @@ export default function ReceiptsClient({ receipts: initialReceipts }: { receipts
                     <input type="number" value={item.qty} min={1} onChange={(e) => { const n = [...editItems]; n[i] = { ...n[i], qty: Math.max(1, Number(e.target.value)) }; setEditItems(n); }} className="w-12 h-8 px-2 bg-white/5 border border-white/10 text-white rounded text-xs text-center focus:outline-none" />
                     <input type="number" value={item.price} onChange={(e) => { const n = [...editItems]; n[i] = { ...n[i], price: Number(e.target.value) }; setEditItems(n); }} placeholder="0" className="w-20 h-8 px-2 bg-white/5 border border-white/10 text-white rounded text-xs text-right focus:outline-none" />
                     <span className="w-20 text-right text-xs font-medium text-white/60">฿{(item.qty * item.price).toLocaleString("th-TH", { minimumFractionDigits: 2 })}</span>
-                    {editItems.length > 1 ? (
-                      <button onClick={() => setEditItems(editItems.filter((_, j) => j !== i))} className="w-7 h-7 rounded hover:bg-red-500/10 text-white/20 hover:text-red-400 flex items-center justify-center transition-colors shrink-0"><Trash2 size={12} /></button>
-                    ) : <span className="w-7 shrink-0" />}
+                    {editItems.length > 1 ? <button onClick={() => setEditItems(editItems.filter((_, j) => j !== i))} className="w-7 h-7 rounded hover:bg-red-500/10 text-white/20 hover:text-red-400 flex items-center justify-center transition-colors shrink-0"><Trash2 size={12} /></button> : <span className="w-7 shrink-0" />}
                   </div>
                 ))}
               </div>
-              <div className="border-t border-white/10 pt-3 space-y-2">
-                <div className="flex justify-between text-sm"><span className="text-white/40">รวมสินค้า ({editItems.length} รายการ)</span><span className="text-white font-medium">฿{itemsTotal.toLocaleString("th-TH", { minimumFractionDigits: 2 })}</span></div>
-              </div>
+              <div className="border-t border-white/10 pt-3"><div className="flex justify-between text-sm"><span className="text-white/40">รวม ({editItems.length} รายการ)</span><span className="text-white font-medium">฿{itemsTotal.toLocaleString("th-TH", { minimumFractionDigits: 2 })}</span></div></div>
             </div>
-
-            {/* VAT / WHT */}
+            {/* VAT/WHT */}
             <div className="rounded-xl bg-white/[0.03] border border-white/10 p-4 space-y-3">
               <p className="text-xs font-semibold text-white/50">ภาษี</p>
               <label className="flex items-center justify-between cursor-pointer py-1">
-                <div><p className="text-sm text-white">ภาษีมูลค่าเพิ่ม (VAT 7%)</p><p className="text-xs text-white/30">คำนวณ VAT จากยอดรวมสินค้า</p></div>
+                <div><p className="text-sm text-white">VAT 7%</p><p className="text-xs text-white/30">ภาษีมูลค่าเพิ่ม</p></div>
                 <button onClick={() => setVatEnabled(!vatEnabled)} className={`w-11 h-6 rounded-full transition-colors relative ${vatEnabled ? "bg-[#FA3633]" : "bg-white/10"}`}><div className={`w-5 h-5 rounded-full bg-white absolute top-0.5 transition-transform ${vatEnabled ? "translate-x-[22px]" : "translate-x-0.5"}`} /></button>
               </label>
-              {vatEnabled && (
-                <div className="flex justify-between text-sm pl-1"><span className="text-white/40">VAT 7%</span><span className="text-blue-400 font-medium">+฿{vatAmount.toLocaleString("th-TH", { minimumFractionDigits: 2 })}</span></div>
-              )}
+              {vatEnabled && <div className="flex justify-between text-sm pl-1"><span className="text-white/40">VAT 7%</span><span className="text-blue-400 font-medium">+฿{vatAmount.toLocaleString("th-TH", { minimumFractionDigits: 2 })}</span></div>}
               <label className="flex items-center justify-between cursor-pointer py-1">
-                <div><p className="text-sm text-white">ภาษีหัก ณ ที่จ่าย (WHT 3%)</p><p className="text-xs text-white/30">หักภาษี ณ ที่จ่ายจากยอดรวม</p></div>
+                <div><p className="text-sm text-white">WHT 3%</p><p className="text-xs text-white/30">ภาษีหัก ณ ที่จ่าย</p></div>
                 <button onClick={() => setWhtEnabled(!whtEnabled)} className={`w-11 h-6 rounded-full transition-colors relative ${whtEnabled ? "bg-[#FA3633]" : "bg-white/10"}`}><div className={`w-5 h-5 rounded-full bg-white absolute top-0.5 transition-transform ${whtEnabled ? "translate-x-[22px]" : "translate-x-0.5"}`} /></button>
               </label>
-              {whtEnabled && (
-                <div className="flex justify-between text-sm pl-1"><span className="text-white/40">WHT 3%</span><span className="text-orange-400 font-medium">-฿{whtAmount.toLocaleString("th-TH", { minimumFractionDigits: 2 })}</span></div>
-              )}
+              {whtEnabled && <div className="flex justify-between text-sm pl-1"><span className="text-white/40">WHT 3%</span><span className="text-orange-400 font-medium">-฿{whtAmount.toLocaleString("th-TH", { minimumFractionDigits: 2 })}</span></div>}
             </div>
+            </>)}
 
-            {/* Savings */}
+            {/* ═══ INCOME TAB ═══ */}
+            {txType === "income" && (
             <div className="rounded-xl bg-white/[0.03] border border-white/10 p-4 space-y-3">
-              <p className="text-xs font-semibold text-white/50">เงินออม</p>
+              <p className="text-xs font-semibold text-green-500/70">ข้อมูลรายรับ</p>
+              <div><label className={lbl}>แหล่งที่มา</label><input value={editForm.storeName || ""} onChange={(e) => setEditForm({ ...editForm, storeName: e.target.value })} placeholder="เช่น บริษัท ABC, ลูกค้า, ฟรีแลนซ์" className={inp} /></div>
+              <div><label className={lbl}>จำนวนเงินที่ได้รับ (฿)</label><input type="number" value={editItems[0]?.price || ""} onChange={(e) => { const n = [...editItems]; n[0] = { ...n[0], name: editForm.storeName || "รายรับ", qty: 1, price: Number(e.target.value) }; setEditItems(n); }} placeholder="0.00" className={inp} /></div>
               <div className="grid grid-cols-2 gap-3">
-                <div><label className={lbl}>หักเข้าออม (฿)</label><input type="number" value={editForm.savingsAmount || ""} onChange={(e) => setEditForm({ ...editForm, savingsAmount: e.target.value })} placeholder="0" className={inp} /></div>
-                <div><label className={lbl}>เป้าหมาย</label><input value={editForm.savingsGoal || ""} onChange={(e) => setEditForm({ ...editForm, savingsGoal: e.target.value })} placeholder="เช่น ท่องเที่ยว" className={inp} /></div>
+                <div><label className={lbl}>วันที่รับ</label><DatePicker value={editForm.date || ""} onChange={(v) => setEditForm({ ...editForm, date: v })} /></div>
+                <div><label className={lbl}>เวลา</label><TimePicker value={editForm.time || ""} onChange={(v) => setEditForm({ ...editForm, time: v })} /></div>
               </div>
+              <div className="grid grid-cols-2 gap-3">
+                <div><label className={lbl}>หมวดรายรับ</label>
+                  <Select value={editForm.category || "อื่นๆ"} onChange={(v) => setEditForm({ ...editForm, category: v })} options={[
+                    { value: "เงินเดือน", label: "เงินเดือน", dot: "#22c55e" },
+                    { value: "ฟรีแลนซ์", label: "ฟรีแลนซ์", dot: "#3b82f6" },
+                    { value: "ขายของ", label: "ขายของ", dot: "#f59e0b" },
+                    { value: "ลงทุน", label: "ลงทุน", dot: "#8b5cf6" },
+                    { value: "โบนัส", label: "โบนัส", dot: "#ec4899" },
+                    { value: "คืนเงิน", label: "คืนเงิน", dot: "#06b6d4" },
+                    { value: "อื่นๆ", label: "อื่นๆ", dot: "#78716c" },
+                  ]} />
+                </div>
+                <div><label className={lbl}>วิธีรับเงิน</label><Select value={editForm.paymentMethod || "transfer"} onChange={(v) => setEditForm({ ...editForm, paymentMethod: v })} options={PAYMENT_METHODS} /></div>
+              </div>
+              <div><label className={lbl}>หมายเหตุ</label><textarea rows={2} value={editForm.note || ""} onChange={(e) => setEditForm({ ...editForm, note: e.target.value })} placeholder="รายละเอียดเพิ่มเติม..." className={`${inp} h-auto py-2`} /></div>
             </div>
+            )}
 
-            {/* Grand total */}
-            <div className="rounded-xl p-4 bg-[#FA3633]/10 border border-[#FA3633]/20">
-              <div className="flex items-center justify-between">
-                <span className="text-sm font-semibold text-white/70">ยอดสุทธิ</span>
-                <span className="text-2xl font-bold text-white">฿{grandTotal.toLocaleString("th-TH", { minimumFractionDigits: 2 })}</span>
+            {/* ═══ SAVINGS TAB ═══ */}
+            {(txType as string) === "savings" && (
+            <div className="rounded-xl bg-white/[0.03] border border-white/10 p-4 space-y-3">
+              <p className="text-xs font-semibold text-blue-400/70">บันทึกเงินออม</p>
+              <div><label className={lbl}>เป้าหมาย</label><input value={editForm.savingsGoal || ""} onChange={(e) => setEditForm({ ...editForm, savingsGoal: e.target.value })} placeholder="เช่น ท่องเที่ยวญี่ปุ่น, MacBook Pro" className={inp} /></div>
+              <div><label className={lbl}>จำนวนที่ออม (฿)</label><input type="number" value={editForm.savingsAmount || ""} onChange={(e) => setEditForm({ ...editForm, savingsAmount: e.target.value })} placeholder="0.00" className={inp} /></div>
+              <div className="grid grid-cols-2 gap-3">
+                <div><label className={lbl}>วันที่ออม</label><DatePicker value={editForm.date || ""} onChange={(v) => setEditForm({ ...editForm, date: v })} /></div>
+                <div><label className={lbl}>วิธีออม</label>
+                  <Select value={editForm.paymentMethod || "transfer"} onChange={(v) => setEditForm({ ...editForm, paymentMethod: v })} options={[
+                    { value: "transfer", label: "โอนเข้าบัญชีออม" },
+                    { value: "cash", label: "หยอดกระปุก" },
+                    { value: "debit", label: "ตัดบัตรอัตโนมัติ" },
+                    { value: "other", label: "อื่นๆ" },
+                  ]} />
+                </div>
               </div>
-              {(vatEnabled || whtEnabled) && (
+              <div><label className={lbl}>หมายเหตุ</label><textarea rows={2} value={editForm.note || ""} onChange={(e) => setEditForm({ ...editForm, note: e.target.value })} placeholder="เช่น ออมจากเงินทอน, โบนัส..." className={`${inp} h-auto py-2`} /></div>
+            </div>
+            )}
+
+            {/* Grand total — show for expense/income */}
+            {txType !== "savings" as any && (
+            <div className={`rounded-xl p-4 ${txType === "income" ? "bg-green-500/10 border border-green-500/20" : "bg-[#FA3633]/10 border border-[#FA3633]/20"}`}>
+              <div className="flex items-center justify-between">
+                <span className="text-sm font-semibold text-white/70">{txType === "income" ? "ยอดรับ" : "ยอดสุทธิ"}</span>
+                <span className={`text-2xl font-bold text-white`}>฿{grandTotal.toLocaleString("th-TH", { minimumFractionDigits: 2 })}</span>
+              </div>
+              {txType === "expense" && (vatEnabled || whtEnabled) && (
                 <p className="text-[11px] text-white/30 mt-1">สินค้า ฿{itemsTotal.toLocaleString("th-TH", { minimumFractionDigits: 2 })}{vatEnabled ? ` + VAT ฿${vatAmount.toLocaleString("th-TH", { minimumFractionDigits: 2 })}` : ""}{whtEnabled ? ` - WHT ฿${whtAmount.toLocaleString("th-TH", { minimumFractionDigits: 2 })}` : ""}</p>
               )}
-              {!isAdding && editingReceipt && grandTotal !== editingReceipt.amount && grandTotal > 0 && (
+              {!isAdding && editingReceipt && txType === "expense" && grandTotal !== editingReceipt.amount && grandTotal > 0 && (
                 <div className="mt-3 flex items-start gap-2 p-2.5 rounded-lg bg-amber-500/10">
                   <span className="text-amber-400 text-sm mt-0.5">⚠</span>
-                  <div>
-                    <p className="text-xs font-medium text-amber-400">ยอดไม่ตรงกับ OCR</p>
-                    <p className="text-[11px] text-amber-400/60 mt-0.5">ยอดจาก OCR: ฿{editingReceipt.amount.toLocaleString("th-TH", { minimumFractionDigits: 2 })} — ยอดที่แก้ไข: ฿{grandTotal.toLocaleString("th-TH", { minimumFractionDigits: 2 })}</p>
-                  </div>
+                  <p className="text-[11px] text-amber-400/60">OCR: ฿{editingReceipt.amount.toLocaleString("th-TH", { minimumFractionDigits: 2 })} → แก้ไข: ฿{grandTotal.toLocaleString("th-TH", { minimumFractionDigits: 2 })}</p>
                 </div>
               )}
             </div>
+            )}
 
-            {/* Financial info — edit mode only */}
-            {!isAdding && editingReceipt && (
-            <div className="rounded-xl bg-white/[0.03] border border-white/10 p-4 space-y-2">
-              <p className="text-xs font-semibold text-white/50">ข้อมูลเพิ่มเติม</p>
-              {editingReceipt.documentNumber && <div className="flex justify-between text-sm"><span className="text-white/40">เลขที่เอกสาร</span><span className="text-white font-mono text-xs">{editingReceipt.documentNumber}</span></div>}
-              {editingReceipt.merchantTaxId && <div className="flex justify-between text-sm"><span className="text-white/40">เลขผู้เสียภาษี</span><span className="text-white font-mono text-xs">{editingReceipt.merchantTaxId}</span></div>}
-              <div className="flex justify-between text-sm"><span className="text-white/40">วิธีจ่าย</span><span className="text-white">{paymentLabel[editingReceipt.paymentMethod || ""] || editingReceipt.paymentMethod || "-"}</span></div>
-              <div className="flex justify-between text-sm"><span className="text-white/40">Drive</span><span className="flex items-center gap-1.5">{(editingReceipt.hasImage || editingReceipt.imageUrl) ? <><Cloud size={14} className="text-green-500" /><span className="text-green-400 text-xs">อัปโหลดแล้ว</span></> : <><CloudOff size={14} className="text-white/20" /><span className="text-white/30 text-xs">ยังไม่อัปโหลด</span></>}</span></div>
+            {/* Savings total */}
+            {(txType as string) === "savings" && editForm.savingsAmount && (
+            <div className="rounded-xl p-4 bg-blue-500/10 border border-blue-500/20">
+              <div className="flex items-center justify-between">
+                <span className="text-sm font-semibold text-white/70">ออมครั้งนี้</span>
+                <span className="text-2xl font-bold text-white">฿{Number(editForm.savingsAmount || 0).toLocaleString("th-TH", { minimumFractionDigits: 2 })}</span>
+              </div>
+              {editForm.savingsGoal && <p className="text-[11px] text-blue-400/60 mt-1">เป้าหมาย: {editForm.savingsGoal}</p>}
             </div>
             )}
 
