@@ -188,6 +188,7 @@ export default function ReceiptsClient({ receipts: initialReceipts }: { receipts
   const [editForm, setEditForm] = useState<Partial<ReceiptRow>>({});
   const [editItems, setEditItems] = useState<LineItem[]>([]);
   const [vatEnabled, setVatEnabled] = useState(false);
+  const [vatInclusive, setVatInclusive] = useState(false); // true = VAT รวมในยอดแล้ว
   const [whtEnabled, setWhtEnabled] = useState(false);
   const [attachments, setAttachments] = useState<Attachment[]>([]);
   const [txType, setTxType] = useState<"income" | "expense">("expense");
@@ -339,9 +340,9 @@ export default function ReceiptsClient({ receipts: initialReceipts }: { receipts
     if (!editingId) return;
     setSaving(true);
     const itemsTotal = editItems.reduce((s, it) => s + it.qty * it.price, 0);
-    const vat = vatEnabled ? Math.round(itemsTotal * 0.07) : 0;
+    const vat = vatEnabled ? (vatInclusive ? Math.round(itemsTotal * 7 / 107) : Math.round(itemsTotal * 0.07)) : 0;
     const wht = whtEnabled ? Math.round(itemsTotal * 0.03) : 0;
-    const total = itemsTotal + vat - wht;
+    const total = vatInclusive ? itemsTotal - wht : itemsTotal + vat - wht;
     try {
       // Upload new files
       const fileIds: string[] = [];
@@ -433,9 +434,9 @@ export default function ReceiptsClient({ receipts: initialReceipts }: { receipts
     if (!editForm.storeName) return;
     setSaving(true);
     const itemsTotal = editItems.reduce((s, it) => s + it.qty * it.price, 0);
-    const vat = vatEnabled ? Math.round(itemsTotal * 0.07) : 0;
+    const vat = vatEnabled ? (vatInclusive ? Math.round(itemsTotal * 7 / 107) : Math.round(itemsTotal * 0.07)) : 0;
     const wht = whtEnabled ? Math.round(itemsTotal * 0.03) : 0;
-    const total = itemsTotal + vat - wht;
+    const total = vatInclusive ? itemsTotal - wht : itemsTotal + vat - wht;
     try {
       // Upload files first
       const fileIds: string[] = [];
@@ -783,9 +784,15 @@ export default function ReceiptsClient({ receipts: initialReceipts }: { receipts
       <div className="fixed inset-y-0 right-0 z-50 w-[540px] max-w-full sm:max-w-[95vw] bg-[#0a0a0a] border-l border-white/10 shadow-2xl overflow-y-auto animate-slide-in-right">
         {(() => {
           const itemsTotal = editItems.reduce((s, it) => s + it.qty * it.price, 0);
-          const vatAmount = vatEnabled ? Math.round(itemsTotal * 0.07) : 0;
+          const vatAmount = vatEnabled
+            ? vatInclusive
+              ? Math.round(itemsTotal * 7 / 107) // VAT รวมในยอดแล้ว: แยก VAT ออกจากยอด
+              : Math.round(itemsTotal * 0.07)      // VAT บวกเพิ่ม
+            : 0;
           const whtAmount = whtEnabled ? Math.round(itemsTotal * 0.03) : 0;
-          const grandTotal = itemsTotal + vatAmount - whtAmount;
+          const grandTotal = vatInclusive
+            ? itemsTotal - whtAmount  // ยอดรวม VAT อยู่แล้ว ไม่ต้องบวกเพิ่ม
+            : itemsTotal + vatAmount - whtAmount;
           const inp = "w-full h-9 px-3 bg-white/5 border border-white/10 text-white rounded-lg text-sm focus:outline-none focus:border-[#FA3633]/50";
           const lbl = "block text-xs text-white/40 mb-1";
 
@@ -796,7 +803,7 @@ export default function ReceiptsClient({ receipts: initialReceipts }: { receipts
               <button onClick={handleCancelEdit} className="w-8 h-8 rounded-lg hover:bg-white/5 text-white/40 hover:text-white flex items-center justify-center text-xl transition-colors">&times;</button>
             </div>
 
-            {/* Slip / files — multi upload */}
+            {/* Slip / files — multi upload + existing image preview */}
             <input ref={slipInputRef} type="file" multiple onChange={handleSlipInputChange} className="hidden" />
             <div
               onDragOver={(e) => { e.preventDefault(); setSlipDragging(true); }}
@@ -804,6 +811,17 @@ export default function ReceiptsClient({ receipts: initialReceipts }: { receipts
               onDrop={handleSlipDrop}
               className="space-y-2"
             >
+              {/* Existing receipt image (when editing) */}
+              {slipPreview && slipFiles.length === 0 && (
+                <div className="relative w-full rounded-xl overflow-hidden bg-white/5 border border-white/10 group">
+                  <img src={slipPreview} alt="สลิป" className="w-full max-h-56 object-contain" />
+                  <div className="absolute inset-0 bg-black/0 group-hover:bg-black/40 transition-colors flex items-center justify-center gap-2 opacity-0 group-hover:opacity-100">
+                    <button onClick={() => slipInputRef.current?.click()} className="px-3 py-1.5 rounded-lg text-xs font-medium bg-white/20 text-white hover:bg-white/30 transition-colors">เพิ่มไฟล์</button>
+                    <button onClick={() => handleSlipRemove()} className="p-1.5 rounded-lg bg-red-500/20 text-red-400 hover:bg-red-500/30 transition-colors"><X size={14} /></button>
+                  </div>
+                </div>
+              )}
+              {/* Newly uploaded files */}
               {slipFiles.length > 0 && (
                 <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
                   {slipFiles.map((sf, i) => (
@@ -826,14 +844,17 @@ export default function ReceiptsClient({ receipts: initialReceipts }: { receipts
                   ))}
                 </div>
               )}
-              <div
-                onClick={() => slipInputRef.current?.click()}
-                className={`w-full rounded-xl border-2 border-dashed cursor-pointer transition-colors flex flex-col items-center justify-center gap-2 ${slipFiles.length > 0 ? "h-20 py-3" : "h-44"} ${slipDragging ? "border-[#FA3633]/50 bg-[#FA3633]/5" : "border-white/10 bg-white/[0.02] hover:border-white/20 hover:bg-white/[0.04]"}`}
-              >
-                <Upload size={slipFiles.length > 0 ? 18 : 28} className="text-white/20" />
-                <p className="text-xs text-white/40">{slipFiles.length > 0 ? "เพิ่มไฟล์" : "คลิกหรือลากไฟล์มาวาง"}</p>
-                <p className="text-[10px] text-white/20">รูป, PDF, เอกสาร — หลายไฟล์ได้</p>
-              </div>
+              {/* Upload button */}
+              {!(slipPreview && slipFiles.length === 0) && (
+                <div
+                  onClick={() => slipInputRef.current?.click()}
+                  className={`w-full rounded-xl border-2 border-dashed cursor-pointer transition-colors flex flex-col items-center justify-center gap-2 ${slipFiles.length > 0 ? "h-20 py-3" : "h-36"} ${slipDragging ? "border-[#FA3633]/50 bg-[#FA3633]/5" : "border-white/10 bg-white/[0.02] hover:border-white/20 hover:bg-white/[0.04]"}`}
+                >
+                  <Upload size={slipFiles.length > 0 ? 18 : 28} className="text-white/20" />
+                  <p className="text-xs text-white/40">{slipFiles.length > 0 ? "เพิ่มไฟล์" : "คลิกหรือลากไฟล์มาวาง"}</p>
+                  <p className="text-[10px] text-white/20">รูป, PDF, เอกสาร — หลายไฟล์ได้</p>
+                </div>
+              )}
             </div>
 
             {/* Income / Expense / Savings toggle */}
@@ -915,20 +936,6 @@ export default function ReceiptsClient({ receipts: initialReceipts }: { receipts
               </div>
               <div className="border-t border-white/10 pt-3"><div className="flex justify-between text-sm"><span className="text-white/40">รวม ({editItems.length} รายการ)</span><span className="text-white font-medium">฿{itemsTotal.toLocaleString("th-TH", { minimumFractionDigits: 2 })}</span></div></div>
             </div>
-            {/* VAT/WHT */}
-            <div className="rounded-xl bg-white/[0.03] border border-white/10 p-4 space-y-3">
-              <p className="text-xs font-semibold text-white/50">ภาษี</p>
-              <label className="flex items-center justify-between cursor-pointer py-1">
-                <div><p className="text-sm text-white">VAT 7%</p><p className="text-xs text-white/30">ภาษีมูลค่าเพิ่ม</p></div>
-                <button onClick={() => setVatEnabled(!vatEnabled)} className={`w-11 h-6 rounded-full transition-colors relative ${vatEnabled ? "bg-[#FA3633]" : "bg-white/10"}`}><div className={`w-5 h-5 rounded-full bg-white absolute top-0.5 transition-transform ${vatEnabled ? "translate-x-[22px]" : "translate-x-0.5"}`} /></button>
-              </label>
-              {vatEnabled && <div className="flex justify-between text-sm pl-1"><span className="text-white/40">VAT 7%</span><span className="text-blue-400 font-medium">+฿{vatAmount.toLocaleString("th-TH", { minimumFractionDigits: 2 })}</span></div>}
-              <label className="flex items-center justify-between cursor-pointer py-1">
-                <div><p className="text-sm text-white">WHT 3%</p><p className="text-xs text-white/30">ภาษีหัก ณ ที่จ่าย</p></div>
-                <button onClick={() => setWhtEnabled(!whtEnabled)} className={`w-11 h-6 rounded-full transition-colors relative ${whtEnabled ? "bg-[#FA3633]" : "bg-white/10"}`}><div className={`w-5 h-5 rounded-full bg-white absolute top-0.5 transition-transform ${whtEnabled ? "translate-x-[22px]" : "translate-x-0.5"}`} /></button>
-              </label>
-              {whtEnabled && <div className="flex justify-between text-sm pl-1"><span className="text-white/40">WHT 3%</span><span className="text-orange-400 font-medium">-฿{whtAmount.toLocaleString("th-TH", { minimumFractionDigits: 2 })}</span></div>}
-            </div>
             </>)}
 
             {/* ═══ INCOME TAB ═══ */}
@@ -980,6 +987,44 @@ export default function ReceiptsClient({ receipts: initialReceipts }: { receipts
             </div>
             )}
 
+            {/* ═══ VAT/WHT — shared for expense + income ═══ */}
+            {(txType === "expense" || txType === "income") && (
+            <div className="rounded-xl bg-white/[0.03] border border-white/10 p-4 space-y-3">
+              <p className="text-xs font-semibold text-white/50">ภาษี</p>
+              <label className="flex items-center justify-between cursor-pointer py-1">
+                <div><p className="text-sm text-white">VAT 7%</p><p className="text-xs text-white/30">ภาษีมูลค่าเพิ่ม</p></div>
+                <button onClick={() => { setVatEnabled(!vatEnabled); if (vatEnabled) setVatInclusive(false); }} className={`w-11 h-6 rounded-full transition-colors relative ${vatEnabled ? "bg-[#FA3633]" : "bg-white/10"}`}><div className={`w-5 h-5 rounded-full bg-white absolute top-0.5 transition-transform ${vatEnabled ? "translate-x-[22px]" : "translate-x-0.5"}`} /></button>
+              </label>
+              {vatEnabled && (
+                <>
+                  <div className="flex gap-2 pl-1">
+                    <button onClick={() => setVatInclusive(false)} className={`px-3 py-1.5 rounded-lg text-[11px] font-medium transition-all ${!vatInclusive ? "bg-blue-500/15 text-blue-400 ring-1 ring-blue-500/30" : "bg-white/5 text-white/40 hover:bg-white/8"}`}>
+                      บวกเพิ่ม (+7%)
+                    </button>
+                    <button onClick={() => setVatInclusive(true)} className={`px-3 py-1.5 rounded-lg text-[11px] font-medium transition-all ${vatInclusive ? "bg-blue-500/15 text-blue-400 ring-1 ring-blue-500/30" : "bg-white/5 text-white/40 hover:bg-white/8"}`}>
+                      รวมในยอดแล้ว
+                    </button>
+                  </div>
+                  <div className="flex justify-between text-sm pl-1">
+                    <span className="text-white/40">VAT 7%{vatInclusive ? " (แยกจากยอด)" : ""}</span>
+                    <span className="text-blue-400 font-medium">{vatInclusive ? "" : "+"}฿{vatAmount.toLocaleString("th-TH", { minimumFractionDigits: 2 })}</span>
+                  </div>
+                  {vatInclusive && (
+                    <div className="flex justify-between text-xs pl-1">
+                      <span className="text-white/30">ราคาก่อน VAT</span>
+                      <span className="text-white/50">฿{(itemsTotal - vatAmount).toLocaleString("th-TH", { minimumFractionDigits: 2 })}</span>
+                    </div>
+                  )}
+                </>
+              )}
+              <label className="flex items-center justify-between cursor-pointer py-1">
+                <div><p className="text-sm text-white">WHT 3%</p><p className="text-xs text-white/30">ภาษีหัก ณ ที่จ่าย</p></div>
+                <button onClick={() => setWhtEnabled(!whtEnabled)} className={`w-11 h-6 rounded-full transition-colors relative ${whtEnabled ? "bg-[#FA3633]" : "bg-white/10"}`}><div className={`w-5 h-5 rounded-full bg-white absolute top-0.5 transition-transform ${whtEnabled ? "translate-x-[22px]" : "translate-x-0.5"}`} /></button>
+              </label>
+              {whtEnabled && <div className="flex justify-between text-sm pl-1"><span className="text-white/40">WHT 3%</span><span className="text-orange-400 font-medium">-฿{whtAmount.toLocaleString("th-TH", { minimumFractionDigits: 2 })}</span></div>}
+            </div>
+            )}
+
             {/* Grand total — show for expense/income */}
             {txType !== "savings" as any && (
             <div className={`rounded-xl p-4 ${txType === "income" ? "bg-green-500/10 border border-green-500/20" : "bg-[#FA3633]/10 border border-[#FA3633]/20"}`}>
@@ -987,8 +1032,12 @@ export default function ReceiptsClient({ receipts: initialReceipts }: { receipts
                 <span className="text-sm font-semibold text-white/70">{txType === "income" ? "ยอดรับ" : "ยอดสุทธิ"}</span>
                 <span className={`text-xl sm:text-2xl font-bold text-white`}>฿{grandTotal.toLocaleString("th-TH", { minimumFractionDigits: 2 })}</span>
               </div>
-              {txType === "expense" && (vatEnabled || whtEnabled) && (
-                <p className="text-[11px] text-white/30 mt-1">สินค้า ฿{itemsTotal.toLocaleString("th-TH", { minimumFractionDigits: 2 })}{vatEnabled ? ` + VAT ฿${vatAmount.toLocaleString("th-TH", { minimumFractionDigits: 2 })}` : ""}{whtEnabled ? ` - WHT ฿${whtAmount.toLocaleString("th-TH", { minimumFractionDigits: 2 })}` : ""}</p>
+              {(vatEnabled || whtEnabled) && (
+                <p className="text-[11px] text-white/30 mt-1">
+                  {vatInclusive ? `ยอดรวม VAT ฿${itemsTotal.toLocaleString("th-TH", { minimumFractionDigits: 2 })} (VAT ฿${vatAmount.toLocaleString("th-TH", { minimumFractionDigits: 2 })})` : `สินค้า ฿${itemsTotal.toLocaleString("th-TH", { minimumFractionDigits: 2 })}`}
+                  {vatEnabled && !vatInclusive ? ` + VAT ฿${vatAmount.toLocaleString("th-TH", { minimumFractionDigits: 2 })}` : ""}
+                  {whtEnabled ? ` - WHT ฿${whtAmount.toLocaleString("th-TH", { minimumFractionDigits: 2 })}` : ""}
+                </p>
               )}
               {!isAdding && editingReceipt && txType === "expense" && grandTotal !== editingReceipt.amount && grandTotal > 0 && (
                 <div className="mt-3 flex items-start gap-2 p-2.5 rounded-lg bg-amber-500/10">
