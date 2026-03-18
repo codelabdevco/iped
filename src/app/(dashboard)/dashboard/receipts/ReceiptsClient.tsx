@@ -45,6 +45,7 @@ interface ReceiptRow {
   submittedBy?: string;
   savingsAmount?: string;
   savingsGoal?: string;
+  direction?: string;
 }
 
 const statusStyle: Record<string, string> = {
@@ -276,7 +277,7 @@ export default function ReceiptsClient({ receipts: initialReceipts }: { receipts
     setEditItems(r.items && r.items.length > 0 ? [...r.items] : [{ name: r.storeName, qty: 1, price: r.amount }]);
     setVatEnabled((r.vat || 0) > 0);
     setWhtEnabled((r.wht || 0) > 0);
-    setTxType((r.amount || 0) < 0 ? "income" : "expense");
+    setTxType((r.direction === "income" ? "income" : r.direction === "savings" ? "savings" : "expense") as any);
     setAttachments([]);
     // Load image lazily for edit panel
     if (r.imageUrl) {
@@ -343,6 +344,7 @@ export default function ReceiptsClient({ receipts: initialReceipts }: { receipts
           wht: wht || undefined,
           imageUrl: slipPreview || undefined,
           items: editItems,
+          direction: txType === "income" ? "income" : (txType as string) === "savings" ? "savings" : "expense",
         }),
       });
       setReceipts((prev) => prev.map((r) => r._id === editingId ? {
@@ -354,6 +356,7 @@ export default function ReceiptsClient({ receipts: initialReceipts }: { receipts
         items: editItems,
         itemCount: editItems.length,
         imageUrl: slipPreview || r.imageUrl,
+        direction: txType === "income" ? "income" : (txType as string) === "savings" ? "savings" : "expense",
       } : r));
       setEditingId(null);
       setEditForm({});
@@ -420,6 +423,7 @@ export default function ReceiptsClient({ receipts: initialReceipts }: { receipts
           merchantTaxId: editForm.merchantTaxId || undefined,
           imageUrl: slipPreview || undefined,
           source: "web",
+          direction: txType === "income" ? "income" : (txType as string) === "savings" ? "savings" : "expense",
         }),
       });
       if (res.ok) {
@@ -438,6 +442,7 @@ export default function ReceiptsClient({ receipts: initialReceipts }: { receipts
           source: "web",
           paymentMethod: editForm.paymentMethod || "cash",
           time: editForm.time || "",
+          direction: txType === "income" ? "income" : (txType as string) === "savings" ? "savings" : "expense",
           note: editForm.note || "",
           vat,
           wht,
@@ -492,21 +497,38 @@ export default function ReceiptsClient({ receipts: initialReceipts }: { receipts
     {
       key: "storeName",
       label: "รายละเอียด",
-      render: (r) => (
-        <div className="leading-tight min-w-0">
-          <div className="font-medium truncate">{r.storeName}</div>
-          <div className={`flex items-center gap-2 mt-0.5 text-[11px] ${muted}`}>
-            <span className="flex items-center gap-1">
-              <span className="w-2 h-2 rounded-full flex-shrink-0" style={{ backgroundColor: getCatColor(r.category) }} />
-              {r.category}
-            </span>
-            <span>·</span>
-            <span>{typeLabel[r.type] || r.type}</span>
+      render: (r) => {
+        const dir = r.direction || "expense";
+        const dirLabel = dir === "income" ? "รายรับ" : dir === "savings" ? "เงินออม" : "รายจ่าย";
+        const dirCls = dir === "income" ? "bg-green-500/10 text-green-500" : dir === "savings" ? "bg-blue-500/10 text-blue-400" : "bg-red-500/10 text-red-400";
+        return (
+          <div className="leading-tight min-w-0">
+            <div className="flex items-center gap-2">
+              <span className="font-medium truncate">{r.storeName}</span>
+              <span className={`shrink-0 px-1.5 py-0.5 rounded text-[9px] font-semibold leading-none ${dirCls}`}>{dirLabel}</span>
+            </div>
+            <div className={`flex items-center gap-2 mt-0.5 text-[11px] ${muted}`}>
+              <span className="flex items-center gap-1">
+                <span className="w-2 h-2 rounded-full flex-shrink-0" style={{ backgroundColor: getCatColor(r.category) }} />
+                {r.category}
+              </span>
+              <span>·</span>
+              <span>{typeLabel[r.type] || r.type}</span>
+            </div>
           </div>
-        </div>
-      ),
+        );
+      },
     },
-    { key: "amount", label: "จำนวนเงิน", align: "right", render: (r) => <Baht value={r.amount} className="font-semibold" /> },
+    {
+      key: "amount",
+      label: "จำนวนเงิน",
+      align: "right",
+      render: (r) => {
+        const dir = r.direction || "expense";
+        const cls = dir === "income" ? "font-semibold text-green-500" : dir === "savings" ? "font-semibold text-blue-400" : "font-semibold";
+        return <Baht value={r.amount} className={cls} />;
+      },
+    },
     {
       key: "paidAt",
       label: "เวลาในสลิป",

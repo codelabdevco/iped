@@ -26,6 +26,7 @@ export interface IReceipt extends Document {
   lineItems?: { description: string; quantity: number; unitPrice: number; amount: number }[];
   userId?: string;
   orgId?: string;
+  direction?: "expense" | "income" | "savings";
   accountType: "personal" | "business";
   createdAt: Date;
   updatedAt: Date;
@@ -58,6 +59,7 @@ const ReceiptSchema = new Schema<IReceipt>(
     lineItems: [{ description: String, quantity: Number, unitPrice: Number, amount: Number }],
     userId: String,
     orgId: String,
+    direction: { type: String, enum: ["expense", "income", "savings"], default: "expense" },
     accountType: { type: String, enum: ["personal", "business"], default: "personal" },
   },
   { timestamps: true }

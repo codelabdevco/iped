@@ -66,6 +66,7 @@ async function ReceiptsData() {
     updatedAt: r.updatedAt ? new Date(r.updatedAt).toISOString() : "",
     createdAt: r.createdAt ? new Date(r.createdAt).toISOString() : "",
     submittedBy: userNameMap[r.userId] || "",
+    direction: r.direction || "expense",
   }));
 
   return <ReceiptsClient receipts={data} />;
