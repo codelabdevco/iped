@@ -470,7 +470,7 @@ function CategoriesTab({ isDark, categoryStats, txt, sub, muted }: any) {
                 const isCustom = customCats.some((c) => c.name === cat.name && c.dir === dir);
                 return (
                   <span key={cat.name} className={`inline-flex items-center gap-1.5 pl-1 pr-2 py-1 rounded-full text-xs group ${isDark ? "bg-white/[0.05] hover:bg-white/[0.08]" : "bg-gray-100 hover:bg-gray-150"} ${txt} transition-colors`}>
-                    <span className="w-4 h-4 rounded-full flex items-center justify-center text-[10px]" style={{ backgroundColor: cat.color + "25" }}>{cat.emoji}</span>
+                    <span className="w-4 h-4 rounded-full shrink-0" style={{ backgroundColor: cat.color }} />
                     <span>{cat.name}</span>
                     {stat && stat.count > 0 && <span className="text-[9px] font-bold px-1 py-0.5 rounded-full leading-none" style={{ backgroundColor: cat.color + "20", color: cat.color }}>{stat.count}</span>}
                     {isCustom && (
