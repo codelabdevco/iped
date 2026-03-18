@@ -118,61 +118,33 @@ export default function DriveClient({ docs: initial, totalStorageBytes = 0 }: { 
 
   const handleView = async (doc: Doc) => {
     if (doc.fileType === "receipt") {
-      if (images[doc._id]) { setLightbox(images[doc._id]); return; }
       if (!doc.hasImage) return;
-      try {
-        const res = await fetch(`/api/receipts/image?id=${doc._id}`);
-        const data = await res.json();
-        if (data.imageUrl) { setImages((prev) => ({ ...prev, [doc._id]: data.imageUrl })); setLightbox(data.imageUrl); }
-      } catch {}
+      setLightbox(`/api/receipts/image?id=${doc._id}`);
     } else {
-      try {
-        const res = await fetch(`/api/files/download?id=${doc._id}`);
-        const data = await res.json();
-        if (data.data) {
-          if (data.type.startsWith("image/") || data.type === "application/pdf") {
-            setLightbox(data.data);
-          } else {
-            const a = document.createElement("a");
-            a.href = data.data;
-            a.download = data.name;
-            a.click();
-          }
-        }
-      } catch {}
+      const url = `/api/files/download?id=${doc._id}`;
+      if (doc.mimeType.startsWith("image/")) {
+        setLightbox(url);
+      } else {
+        // Open file in new tab (PDF, etc.)
+        window.open(url, "_blank");
+      }
     }
   };
 
-  // Thumbnail
+  // Thumbnail — uses binary image API directly
   const Thumb = ({ doc }: { doc: Doc }) => {
-    const [src, setSrc] = useState<string | null>(images[doc._id] || null);
-    const ref = useRef<HTMLDivElement>(null);
     const isImage = doc.mimeType.startsWith("image/");
-    useEffect(() => {
-      if (src || !isImage && doc.fileType !== "receipt") return;
-      if (doc.fileType === "receipt" && !doc.hasImage) return;
-      const el = ref.current;
-      if (!el) return;
-      const obs = new IntersectionObserver(([entry]) => {
-        if (entry.isIntersecting) {
-          const url = doc.fileType === "receipt" ? `/api/receipts/image?id=${doc._id}` : `/api/files/download?id=${doc._id}`;
-          fetch(url).then((r) => r.json()).then((d) => {
-            const imgData = d.imageUrl || d.data;
-            if (imgData) { setSrc(imgData); setImages((prev) => ({ ...prev, [doc._id]: imgData })); }
-          }).catch(() => {});
-          obs.disconnect();
-        }
-      }, { rootMargin: "200px" });
-      obs.observe(el);
-      return () => obs.disconnect();
-    }, [doc, src, isImage]);
+    const canShow = (doc.fileType === "receipt" && doc.hasImage) || (doc.fileType === "file" && isImage);
+    const imgUrl = canShow
+      ? (doc.fileType === "receipt" ? `/api/receipts/image?id=${doc._id}` : `/api/files/download?id=${doc._id}`)
+      : null;
 
     const fi = getFileIcon(doc.mimeType);
     const Icon = fi.icon;
 
     return (
-      <div ref={ref} className={`w-full h-full flex items-center justify-center ${isDark ? "bg-white/[0.03]" : "bg-gray-50"}`}>
-        {src ? <img src={src} alt="" className="w-full h-full object-cover" /> : (
+      <div className={`w-full h-full flex items-center justify-center ${isDark ? "bg-white/[0.03]" : "bg-gray-50"}`}>
+        {imgUrl ? <img src={imgUrl} alt="" className="w-full h-full object-cover" loading="lazy" /> : (
           <div className="flex flex-col items-center gap-1">
             <Icon size={24} style={{ color: fi.color }} />
             <span className={`text-[9px] ${muted}`}>{fi.label}</span>

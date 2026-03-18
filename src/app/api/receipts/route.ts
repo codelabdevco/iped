@@ -60,7 +60,7 @@ export async function POST(request: NextRequest) {
     await connectDB();
     const body = await req.json();
 
-    if (!body.merchant || !body.date || !body.amount) {
+    if (!body.merchant || !body.date || body.amount == null) {
       return apiError("กรุณากรอก merchant, date, amount", 400);
     }
 
