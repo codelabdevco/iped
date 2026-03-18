@@ -133,10 +133,10 @@ export async function POST(request: NextRequest) {
     }
 
     try {
-      // Search for receipt-related emails (last 30 days, with or without attachments)
-      const query = encodeURIComponent("subject:(ใบเสร็จ OR receipt OR invoice OR payment OR สลิป OR โอนเงิน OR billing OR order) newer_than:30d");
+      // Search ALL emails (last 30 days)
+      const query = encodeURIComponent("newer_than:30d");
       let listRes = await fetch(
-        `https://gmail.googleapis.com/gmail/v1/users/me/messages?q=${query}&maxResults=20`,
+        `https://gmail.googleapis.com/gmail/v1/users/me/messages?q=${query}&maxResults=50`,
         { headers: { Authorization: `Bearer ${accessToken}` } }
       );
 
@@ -146,7 +146,7 @@ export async function POST(request: NextRequest) {
         if (newToken) {
           accessToken = newToken;
           listRes = await fetch(
-            `https://gmail.googleapis.com/gmail/v1/users/me/messages?q=${query}&maxResults=20`,
+            `https://gmail.googleapis.com/gmail/v1/users/me/messages?q=${query}&maxResults=50`,
             { headers: { Authorization: `Bearer ${accessToken}` } }
           );
         } else {
@@ -165,7 +165,7 @@ export async function POST(request: NextRequest) {
 
       const results: { subject: string; from: string; date: string; status: string; receiptId?: string; account?: string }[] = [];
 
-      for (const msg of messages.slice(0, 10)) {
+      for (const msg of messages.slice(0, 30)) {
         try {
           // Get message details
           const msgRes = await fetch(

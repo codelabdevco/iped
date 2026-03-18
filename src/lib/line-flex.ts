@@ -1,145 +1,417 @@
 /**
- * iped — LINE Flex Message Templates (v2)
- * Design: B-style header + A-style body + income/expense + category + time + iped icon
+ * iped — LINE Flex Message Templates (v3)
+ * Design: Brand-aligned, amount-as-hero, clear visual hierarchy
+ * Theme: iPED red (#FA3633) accent, yellow (#FFDE00) primary
  */
 
-// ─── Status colors ───
+// ─── Brand & Status Colors ───
 const C = {
-  green: "#06C755", greenBg: "#E8F8EE",
-  amber: "#E09100", amberBg: "#FFF8E1",
-  red: "#E53E3E", redBg: "#FEE2E2",
-  blue: "#3B82F6", blueBg: "#E8F0FE",
-  text: "#111111", sub: "#999999", border: "#F0F0F0",
-  bg: "#F5F5F5", white: "#FFFFFF",
+  // iPED brand
+  brand: "#FA3633",
+  brandBg: "#FFF0F0",
+  gold: "#FFDE00",
+  goldBg: "#FFFAE6",
+
+  // Status
+  green: "#06C755",
+  greenBg: "#E8F8EE",
+  greenLight: "#D4EDDA",
+  amber: "#E09100",
+  amberBg: "#FFF8E1",
+  red: "#E53E3E",
+  redBg: "#FEE2E2",
+  blue: "#3B82F6",
+  blueBg: "#EBF2FF",
+
+  // Neutral
+  text: "#111111",
+  textSec: "#555555",
+  sub: "#999999",
+  muted: "#BBBBBB",
+  border: "#EEEEEE",
+  bg: "#F7F7F7",
+  bgCard: "#FAFAFA",
+  white: "#FFFFFF",
 };
 
 // ─── Helpers ───
 function fmtDate(d: string | Date): string {
   const dt = typeof d === "string" ? new Date(d) : d;
   if (isNaN(dt.getTime())) return String(d);
-  const m = ["ม.ค.","ก.พ.","มี.ค.","เม.ย.","พ.ค.","มิ.ย.","ก.ค.","ส.ค.","ก.ย.","ต.ค.","พ.ย.","ธ.ค."];
+  const m = [
+    "ม.ค.", "ก.พ.", "มี.ค.", "เม.ย.", "พ.ค.", "มิ.ย.",
+    "ก.ค.", "ส.ค.", "ก.ย.", "ต.ค.", "พ.ย.", "ธ.ค.",
+  ];
   return `${dt.getDate()} ${m[dt.getMonth()]} ${dt.getFullYear() + 543}`;
 }
-function fmtTime(): string {
+
+function fmtTime(t?: string | null): string {
+  if (t) return t.includes("น.") ? t : `${t} น.`;
   const now = new Date();
-  return `${String(now.getHours()).padStart(2,"0")}:${String(now.getMinutes()).padStart(2,"0")} น.`;
+  return `${String(now.getHours()).padStart(2, "0")}:${String(now.getMinutes()).padStart(2, "0")} น.`;
 }
+
 function fmtAmt(n: number): string {
-  return n.toLocaleString("th-TH", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+  return n.toLocaleString("th-TH", {
+    minimumFractionDigits: 2,
+    maximumFractionDigits: 2,
+  });
 }
 
-// ─── Shared: header box ───
-function headerBox(badge: string, badgeColor: string, badgeBg: string, logoColor: string): any {
-  return {
-    type: "box", layout: "horizontal", paddingAll: "12px", spacing: "sm",
-    contents: [
-      {
-        type: "box", layout: "horizontal", flex: 0, width: "22px", height: "22px",
-        cornerRadius: "11px", backgroundColor: logoColor,
-        contents: [{ type: "text", text: "i", size: "xxs", color: "#FFFFFF", align: "center", gravity: "center", weight: "bold" }],
-      },
-      { type: "text", text: "iped", size: "xs", color: "#555555", weight: "bold", flex: 0, gravity: "center" },
-      { type: "text", text: badge, size: "xs", color: badgeColor, weight: "bold", flex: 0, gravity: "center" },
-    ],
-  };
-}
+// ─── Shared Components ───
 
-// ─── Shared: merchant row ───
-function merchantRow(icon: string, name: string, subtext: string): any {
+/** Brand header: iPED logo + status pill */
+function headerBar(
+  statusText: string,
+  statusColor: string,
+  bandColor: string,
+): any {
   return {
-    type: "box", layout: "horizontal", spacing: "md", paddingBottom: "14px",
+    type: "box",
+    layout: "horizontal",
+    paddingAll: "14px",
+    backgroundColor: bandColor,
     contents: [
+      // iPED logo circle
       {
-        type: "box", layout: "vertical", flex: 0, width: "40px", height: "40px",
-        cornerRadius: "10px", backgroundColor: "#F4F7F4",
-        contents: [{ type: "text", text: icon, size: "lg", align: "center", gravity: "center" }],
-      },
-      {
-        type: "box", layout: "vertical", flex: 1,
+        type: "box",
+        layout: "horizontal",
+        flex: 0,
+        width: "24px",
+        height: "24px",
+        cornerRadius: "12px",
+        backgroundColor: C.brand,
         contents: [
-          { type: "text", text: name, size: "sm", weight: "bold", color: C.text, wrap: true },
-          ...(subtext ? [{ type: "text", text: subtext, size: "xxs", color: C.sub, margin: "xs" }] : []),
+          {
+            type: "text",
+            text: "i",
+            size: "xs",
+            color: C.white,
+            align: "center",
+            gravity: "center",
+            weight: "bold",
+          },
+        ],
+      },
+      {
+        type: "text",
+        text: "iPED",
+        size: "xs",
+        color: C.textSec,
+        weight: "bold",
+        flex: 0,
+        gravity: "center",
+        margin: "sm",
+      },
+      { type: "filler" },
+      // Status pill
+      {
+        type: "box",
+        layout: "horizontal",
+        flex: 0,
+        cornerRadius: "12px",
+        backgroundColor: statusColor,
+        paddingStart: "10px",
+        paddingEnd: "10px",
+        paddingTop: "4px",
+        paddingBottom: "4px",
+        contents: [
+          {
+            type: "text",
+            text: statusText,
+            size: "xxs",
+            color: C.white,
+            weight: "bold",
+            align: "center",
+          },
         ],
       },
     ],
   };
 }
 
-// ─── Shared: type + category row ───
-function typeCatRow(isExpense: boolean, catIcon: string, catName: string): any {
-  const typeText = isExpense ? "\ud83d\udce4 รายจ่าย" : "\ud83d\udce5 รายรับ";
-  const typeColor = isExpense ? C.red : C.green;
-  const typeBg = isExpense ? C.redBg : C.greenBg;
+/** Amount hero block */
+function amountHero(
+  amount: number,
+  isExpense: boolean,
+  color: string,
+): any {
+  const prefix = isExpense ? "-" : "+";
   return {
-    type: "box", layout: "horizontal", spacing: "sm", margin: "lg",
+    type: "box",
+    layout: "vertical",
+    alignItems: "center",
+    margin: "lg",
     contents: [
-      { type: "text", text: typeText, size: "xs", color: typeColor, weight: "bold", flex: 0,
-offsetTop: "1px", offsetBottom: "1px" },
-      { type: "text", text: `${catIcon} ${catName}`, size: "xs", color: "#555555", flex: 0,
-offsetTop: "1px", offsetBottom: "1px" },
+      {
+        type: "text",
+        text: `${prefix}฿${fmtAmt(amount)}`,
+        size: "3xl",
+        weight: "bold",
+        color,
+        align: "center",
+      },
     ],
   };
 }
 
-// ─── Shared: detail grid row ───
-function detailRow(label: string, value: string): any {
+/** Merchant + category row */
+function merchantInfo(
+  icon: string,
+  name: string,
+  category: string,
+  subtext?: string,
+): any {
   return {
-    type: "box", layout: "vertical", flex: 1,
+    type: "box",
+    layout: "horizontal",
+    spacing: "md",
     contents: [
-      { type: "text", text: label, size: "xxs", color: C.sub },
-      { type: "text", text: value, size: "xs", color: C.text, weight: "bold", margin: "xs" },
+      {
+        type: "box",
+        layout: "vertical",
+        flex: 0,
+        width: "44px",
+        height: "44px",
+        cornerRadius: "12px",
+        backgroundColor: C.bg,
+        contents: [
+          {
+            type: "text",
+            text: icon,
+            size: "xl",
+            align: "center",
+            gravity: "center",
+          },
+        ],
+      },
+      {
+        type: "box",
+        layout: "vertical",
+        flex: 1,
+        justifyContent: "center",
+        contents: [
+          {
+            type: "text",
+            text: name,
+            size: "sm",
+            weight: "bold",
+            color: C.text,
+            wrap: true,
+            maxLines: 2,
+          },
+          {
+            type: "text",
+            text: category + (subtext ? ` · ${subtext}` : ""),
+            size: "xxs",
+            color: C.sub,
+            margin: "xs",
+          },
+        ],
+      },
     ],
   };
 }
 
-// ─── Shared: confidence bar ───
-function confBar(pct: number, color: string): any {
+/** Detail row: label + value side by side */
+function detailItem(label: string, value: string): any {
+  return {
+    type: "box",
+    layout: "horizontal",
+    contents: [
+      { type: "text", text: label, size: "xs", color: C.sub, flex: 3 },
+      {
+        type: "text",
+        text: value,
+        size: "xs",
+        color: C.text,
+        weight: "bold",
+        flex: 4,
+        align: "end",
+      },
+    ],
+  };
+}
+
+/** Direction badge (รายจ่าย / รายรับ / เงินออม) */
+function directionBadge(isExpense: boolean): any {
+  const text = isExpense ? "รายจ่าย" : "รายรับ";
+  const color = isExpense ? C.red : C.green;
+  const bg = isExpense ? C.redBg : C.greenBg;
+  return {
+    type: "box",
+    layout: "horizontal",
+    flex: 0,
+    cornerRadius: "10px",
+    backgroundColor: bg,
+    paddingStart: "8px",
+    paddingEnd: "8px",
+    paddingTop: "3px",
+    paddingBottom: "3px",
+    contents: [
+      {
+        type: "text",
+        text,
+        size: "xxs",
+        color,
+        weight: "bold",
+      },
+    ],
+  };
+}
+
+/** Confidence indicator bar */
+function confidenceBar(pct: number, color: string): any {
   const w = Math.max(5, Math.min(100, pct));
   return {
-    type: "box", layout: "horizontal", spacing: "md", paddingAll: "10px", cornerRadius: "8px", backgroundColor: C.bg, margin: "md", alignItems: "center",
+    type: "box",
+    layout: "horizontal",
+    spacing: "md",
+    paddingAll: "10px",
+    cornerRadius: "8px",
+    backgroundColor: C.bg,
+    margin: "lg",
+    alignItems: "center",
     contents: [
-      { type: "text", text: "\u0e04\u0e27\u0e32\u0e21\u0e41\u0e21\u0e48\u0e19\u0e22\u0e33", size: "xxs", color: C.sub, flex: 0, gravity: "center" },
       {
-        type: "box", layout: "vertical", flex: 1, height: "6px", cornerRadius: "3px",
-        backgroundColor: "#E0E0E0",
-        contents: [{
-          type: "box", layout: "vertical", height: "6px", cornerRadius: "3px",
-          backgroundColor: color, width: `${w}%`, contents: [{ type: "filler" }],
-        }],
+        type: "text",
+        text: "ความแม่นยำ",
+        size: "xxs",
+        color: C.sub,
+        flex: 0,
+        gravity: "center",
       },
-      { type: "text", text: `${pct}%`, size: "xs", color: color, weight: "bold", flex: 0, align: "end", gravity: "center" },
+      {
+        type: "box",
+        layout: "vertical",
+        flex: 1,
+        height: "6px",
+        cornerRadius: "3px",
+        backgroundColor: "#E0E0E0",
+        contents: [
+          {
+            type: "box",
+            layout: "vertical",
+            height: "6px",
+            cornerRadius: "3px",
+            backgroundColor: color,
+            width: `${w}%`,
+            contents: [{ type: "filler" }],
+          },
+        ],
+      },
+      {
+        type: "text",
+        text: `${pct}%`,
+        size: "xs",
+        color,
+        weight: "bold",
+        flex: 0,
+        align: "end",
+        gravity: "center",
+      },
     ],
   };
 }
 
-// ─── Shared: button ───
-function btnBox(label: string, style: "primary" | "secondary", color: string, data?: string, url?: string): any {
-  const action: any = data
-    ? { type: "postback", label, data }
-    : url
-    ? { type: "uri", label, uri: url }
-    : { type: "message", label, text: label };
+/** Footer with action buttons + branding */
+function footerBox(buttons: any[]): any {
+  return {
+    type: "box",
+    layout: "vertical",
+    paddingAll: "14px",
+    spacing: "sm",
+    contents: [
+      {
+        type: "box",
+        layout: "horizontal",
+        spacing: "sm",
+        contents: buttons,
+      },
+      {
+        type: "text",
+        text: "iPED by codelabs tech",
+        size: "xxs",
+        color: C.muted,
+        align: "center",
+        margin: "md",
+      },
+    ],
+  };
+}
+
+/** Action button */
+function actionBtn(
+  label: string,
+  style: "primary" | "secondary",
+  color: string,
+  opts?: { data?: string; url?: string },
+): any {
+  const action: any = opts?.data
+    ? { type: "postback", label, data: opts.data }
+    : opts?.url
+      ? { type: "uri", label, uri: opts.url }
+      : { type: "message", label, text: label };
+
   if (style === "primary") {
     return {
-      type: "box", layout: "horizontal", backgroundColor: color, cornerRadius: "8px",
-      paddingAll: "8px", flex: 1, action,
-      contents: [{ type: "text", text: label, size: "xs", color: "#FFFFFF", align: "center", weight: "bold" }],
+      type: "box",
+      layout: "horizontal",
+      backgroundColor: color,
+      cornerRadius: "8px",
+      paddingAll: "10px",
+      flex: 1,
+      action,
+      contents: [
+        {
+          type: "text",
+          text: label,
+          size: "xs",
+          color: C.white,
+          align: "center",
+          weight: "bold",
+        },
+      ],
     };
   }
   return {
-    type: "box", layout: "horizontal", backgroundColor: "#F5F5F5",
-    cornerRadius: "8px", paddingAll: "8px", flex: 1, action,
-    contents: [{ type: "text", text: label, size: "xs", color: "#888888", align: "center" }],
+    type: "box",
+    layout: "horizontal",
+    backgroundColor: C.bg,
+    cornerRadius: "8px",
+    paddingAll: "10px",
+    flex: 1,
+    action,
+    contents: [
+      {
+        type: "text",
+        text: label,
+        size: "xs",
+        color: C.textSec,
+        align: "center",
+        weight: "bold",
+      },
+    ],
   };
 }
 
-// ════════════════════════════════════════════════════
-//  1. receiptConfirmFlex — ✅ success / ⚠️ warning
-// ════════════════════════════════════════════════════
+/** Thin separator */
+function sep(): any {
+  return { type: "separator", color: C.border, margin: "lg" };
+}
+
+const APP_URL =
+  process.env.NEXT_PUBLIC_APP_URL || "https://iped.codelabdev.co";
+
+// ════════════════════════════════════════════════════════════
+//  1. receiptConfirmFlex — ยืนยันใบเสร็จ (success / warning)
+// ════════════════════════════════════════════════════════════
+
 interface ReceiptFlexData {
   merchant: string;
   merchantTaxId?: string | null;
   date: string;
+  time?: string | null;
   amount: number;
   vat?: number | null;
   category: string;
@@ -154,80 +426,177 @@ interface ReceiptFlexData {
 }
 
 export function receiptConfirmFlex(data: ReceiptFlexData) {
+  const isExpense = data.isExpense !== false;
   const isWarn = data.confidence < 70;
-  const isExpense = data.isExpense !== false; // default expense
-  const amtPrefix = isExpense ? "- " : "+ ";
-  const amtColor = isWarn ? C.amber : (isExpense ? C.red : C.green);
-  const badge = isWarn ? "⚠️ ตรวจสอบ" : "✅ สำเร็จ";
-  const badgeColor = isWarn ? C.amber : C.green;
-  const badgeBg = isWarn ? C.amberBg : C.greenBg;
-  const logoColor = isWarn ? C.amber : C.green;
-  const confColor = isWarn ? C.amber : C.green;
-  const payment = data.paymentMethod || "\u2014";
+  const isLow = data.confidence < 40;
+
+  // Colors based on confidence + direction
+  const statusText = isLow
+    ? "❌ ตรวจสอบ"
+    : isWarn
+      ? "⚠️ ตรวจสอบ"
+      : "✅ สำเร็จ";
+  const statusColor = isLow ? C.red : isWarn ? C.amber : C.green;
+  const bandColor = isLow ? C.redBg : isWarn ? C.amberBg : C.greenBg;
+  const amtColor = isExpense ? C.red : C.green;
+
+  // Items — max 3 lines
+  const itemLines = data.items
+    ? data.items.split("\n").filter(Boolean)
+    : [];
+  const showItems = itemLines.slice(0, 3);
+  const moreItems = itemLines.length > 3 ? itemLines.length - 3 : 0;
 
   return {
     type: "flex" as const,
-    altText: `${isExpense ? "\u0e23\u0e32\u0e22\u0e08\u0e48\u0e32\u0e22" : "\u0e23\u0e32\u0e22\u0e23\u0e31\u0e1b"} ${data.merchant} \u0e3f${fmtAmt(data.amount)}`,
+    altText: `${isExpense ? "รายจ่าย" : "รายรับ"} ${data.merchant} ฿${fmtAmt(data.amount)}`,
     contents: {
-      type: "bubble", size: "mega",
-      header: headerBox(badge, badgeColor, badgeBg, logoColor),
+      type: "bubble",
+      size: "mega",
+      header: headerBar(statusText, statusColor, bandColor),
       body: {
-        type: "box", layout: "vertical", paddingAll: "16px", spacing: "md",
+        type: "box",
+        layout: "vertical",
+        paddingAll: "16px",
+        spacing: "sm",
         contents: [
-          merchantRow(data.categoryIcon, data.merchant, data.merchantTaxId ? `Tax ID: ${data.merchantTaxId}` : (data.documentType || "\u0e43\u0e1a\u0e40\u0e2a\u0e23\u0e47\u0e08")),
-          typeCatRow(isExpense, data.categoryIcon, data.category),
-          // Amount
+          // Direction badge + document type
           {
-            type: "box", layout: "vertical", margin: "md",
+            type: "box",
+            layout: "horizontal",
+            spacing: "sm",
             contents: [
-              { type: "text", text: "\u0e22\u0e2d\u0e14\u0e23\u0e27\u0e21", size: "xxs", color: C.sub },
-              { type: "text", text: `${amtPrefix}\u0e3f ${fmtAmt(data.amount)}`, size: "xl", weight: "bold", color: amtColor, margin: "xs" },
+              directionBadge(isExpense),
+              ...(data.documentType
+                ? [
+                    {
+                      type: "box" as const,
+                      layout: "horizontal" as const,
+                      flex: 0,
+                      cornerRadius: "10px",
+                      backgroundColor: C.bg,
+                      paddingStart: "8px",
+                      paddingEnd: "8px",
+                      paddingTop: "3px",
+                      paddingBottom: "3px",
+                      contents: [
+                        {
+                          type: "text" as const,
+                          text: data.documentType,
+                          size: "xxs" as const,
+                          color: C.sub,
+                        },
+                      ],
+                    },
+                  ]
+                : []),
+              { type: "filler" as const },
             ],
           },
-          // Details grid
+
+          // Amount — HERO
+          amountHero(data.amount, isExpense, amtColor),
+
+          // Merchant info
+          merchantInfo(
+            data.categoryIcon,
+            data.merchant,
+            data.category,
+            data.merchantTaxId || undefined,
+          ),
+
+          sep(),
+
+          // Detail grid
           {
-            type: "box", layout: "horizontal", spacing: "md", margin: "lg",
+            type: "box",
+            layout: "vertical",
+            spacing: "sm",
+            margin: "lg",
             contents: [
-              detailRow(`\ud83d\udcc5 \u0e27\u0e31\u0e19\u0e17\u0e35\u0e48 / \u0e40\u0e27\u0e25\u0e32`, `${fmtDate(data.date)} \u00b7 ${fmtTime()}`),
-              detailRow(`\ud83e\uddc9 VAT`, data.vat ? `\u0e3f ${fmtAmt(data.vat)}` : "\u2014"),
+              detailItem(
+                "📅 วันที่",
+                fmtDate(data.date),
+              ),
+              detailItem("🕐 เวลา", fmtTime(data.time)),
+              detailItem(
+                "💳 ชำระ",
+                data.paymentMethod || "—",
+              ),
+              ...(data.vat
+                ? [
+                    detailItem(
+                      "🧾 VAT",
+                      `฿${fmtAmt(data.vat)}`,
+                    ),
+                  ]
+                : []),
             ],
           },
-          {
-            type: "box", layout: "horizontal", spacing: "md", margin: "sm",
-            contents: [
-              detailRow(`\ud83d\udcb3 \u0e0a\u0e33\u0e23\u0e30`, payment),
-              detailRow(`\ud83d\udcc4 \u0e1b\u0e23\u0e30\u0e40\u0e20\u0e17`, data.documentType || "\u0e43\u0e1a\u0e40\u0e2a\u0e23\u0e47\u0e08"),
-            ],
-          },
-          // Items
-          ...(data.items ? [{
-            type: "box" as const, layout: "vertical" as const, cornerRadius: "8px",
-            backgroundColor: "#FAFAFA", paddingAll: "10px", margin: "lg" as const,
-            contents: [
-              { type: "text" as const, text: "\ud83d\udccb \u0e23\u0e32\u0e22\u0e01\u0e32\u0e23", size: "xxs" as const, color: C.sub },
-              { type: "text" as const, text: data.items, size: "xs" as const, color: "#555555", wrap: true, margin: "xs" as const },
-            ],
-          }] : []),
-          confBar(data.confidence, confColor),
+
+          // Items (if any)
+          ...(showItems.length > 0
+            ? [
+                sep(),
+                {
+                  type: "box" as const,
+                  layout: "vertical" as const,
+                  spacing: "xs" as const,
+                  margin: "lg" as const,
+                  contents: [
+                    {
+                      type: "text" as const,
+                      text: "📋 รายการ",
+                      size: "xxs" as const,
+                      color: C.sub,
+                      margin: "none" as const,
+                    },
+                    ...showItems.map((item) => ({
+                      type: "text" as const,
+                      text: item,
+                      size: "xs" as const,
+                      color: C.textSec,
+                      wrap: true,
+                    })),
+                    ...(moreItems > 0
+                      ? [
+                          {
+                            type: "text" as const,
+                            text: `+ อีก ${moreItems} รายการ`,
+                            size: "xxs" as const,
+                            color: C.blue,
+                            margin: "xs" as const,
+                          },
+                        ]
+                      : []),
+                  ],
+                },
+              ]
+            : []),
+
+          // Confidence bar
+          confidenceBar(data.confidence, statusColor),
         ],
       },
-      footer: {
-        type: "box", layout: "vertical", paddingAll: "12px", spacing: "sm",
-        contents: [
-          { type: "box", layout: "horizontal", spacing: "sm", contents: [
-            btnBox("\u270f\ufe0f \u0e41\u0e01\u0e49\u0e44\u0e02", "secondary", C.sub, undefined, `${process.env.NEXT_PUBLIC_APP_URL || "https://iped.codelabdev.co"}/receipt/${data.receiptId}/edit`),
-            btnBox("\u2705 \u0e22\u0e37\u0e19\u0e22\u0e31\u0e19", "primary", isWarn ? C.amber : C.green, `action=confirm&id=${data.receiptId}`),
-          ]},
-          { type: "text", text: "Powered by codelabs tech", size: "xxs", color: "#BBBBBB", align: "center", margin: "md" },
-        ],
-      },
+      footer: footerBox([
+        actionBtn("✏️ แก้ไข", "secondary", C.sub, {
+          url: `${APP_URL}/receipt/${data.receiptId}/edit`,
+        }),
+        actionBtn(
+          "✅ ยืนยัน",
+          "primary",
+          statusColor,
+          { data: `action=confirm&id=${data.receiptId}` },
+        ),
+      ]),
     },
   };
 }
 
-// ════════════════════════════════════════════════════
-//  2. duplicateWarningFlex — 🔄
-// ════════════════════════════════════════════════════
+// ════════════════════════════════════════════════════════════
+//  2. duplicateWarningFlex — 🔄 พบรายการซ้ำ
+// ════════════════════════════════════════════════════════════
+
 export function duplicateWarningFlex(data: {
   merchant: string;
   amount: number;
@@ -237,125 +606,374 @@ export function duplicateWarningFlex(data: {
   category?: string;
   merchantTaxId?: string | null;
   confidence?: number;
+  isExpense?: boolean;
 }) {
   const conf = data.confidence || 90;
+  const isExpense = data.isExpense !== false;
+
   return {
     type: "flex" as const,
-    altText: `\ud83d\udd04 \u0e1e\u0e1b\u0e23\u0e32\u0e22\u0e01\u0e32\u0e23\u0e0b\u0e49\u0e33 ${data.merchant} \u0e3f${fmtAmt(data.amount)}`,
+    altText: `🔄 พบรายการซ้ำ ${data.merchant} ฿${fmtAmt(data.amount)}`,
     contents: {
-      type: "bubble", size: "mega",
-      header: headerBox("🔄 ซ้ำ", C.blue, C.blueBg, C.blue),
+      type: "bubble",
+      size: "mega",
+      header: headerBar("🔄 ซ้ำ", C.blue, C.blueBg),
       body: {
-        type: "box", layout: "vertical", paddingAll: "16px", spacing: "md",
+        type: "box",
+        layout: "vertical",
+        paddingAll: "16px",
+        spacing: "sm",
         contents: [
-          merchantRow(data.categoryIcon || "\ud83c\udfea", data.merchant, data.merchantTaxId ? `Tax ID: ${data.merchantTaxId}` : ""),
-          typeCatRow(true, data.categoryIcon || "\ud83c\udfea", data.category || "\u0e44\u0e21\u0e48\u0e23\u0e30\u0e1b\u0e38"),
+          // Amount
+          amountHero(data.amount, isExpense, C.blue),
+
+          // Merchant
+          merchantInfo(
+            data.categoryIcon || "🏪",
+            data.merchant,
+            data.category || "ไม่ระบุ",
+            data.merchantTaxId || undefined,
+          ),
+
+          sep(),
+
+          // Duplicate comparison box
           {
-            type: "box", layout: "vertical", margin: "md",
+            type: "box",
+            layout: "vertical",
+            cornerRadius: "10px",
+            backgroundColor: C.blueBg,
+            paddingAll: "14px",
+            margin: "lg",
             contents: [
-              { type: "text", text: "\u0e22\u0e2d\u0e14\u0e23\u0e27\u0e21", size: "xxs", color: C.sub },
-              { type: "text", text: `- \u0e3f ${fmtAmt(data.amount)}`, size: "xl", weight: "bold", color: C.blue, margin: "xs" },
+              {
+                type: "text",
+                text: "⚠️ พบรายการที่คล้ายกัน",
+                size: "xs",
+                color: C.blue,
+                weight: "bold",
+              },
+              {
+                type: "box",
+                layout: "horizontal",
+                margin: "md",
+                spacing: "sm",
+                contents: [
+                  {
+                    type: "box",
+                    layout: "vertical",
+                    flex: 1,
+                    contents: [
+                      {
+                        type: "text",
+                        text: "รายการเดิม",
+                        size: "xxs",
+                        color: C.sub,
+                      },
+                      {
+                        type: "text",
+                        text: fmtDate(data.originalDate),
+                        size: "xs",
+                        color: C.text,
+                        weight: "bold",
+                        margin: "xs",
+                      },
+                      {
+                        type: "text",
+                        text: `฿${fmtAmt(data.amount)}`,
+                        size: "xs",
+                        color: C.textSec,
+                        margin: "xs",
+                      },
+                    ],
+                  },
+                  {
+                    type: "box",
+                    layout: "vertical",
+                    flex: 0,
+                    width: "1px",
+                    backgroundColor: "#D0D8E8",
+                    contents: [{ type: "filler" }],
+                  },
+                  {
+                    type: "box",
+                    layout: "vertical",
+                    flex: 1,
+                    contents: [
+                      {
+                        type: "text",
+                        text: "รายการใหม่",
+                        size: "xxs",
+                        color: C.sub,
+                      },
+                      {
+                        type: "text",
+                        text: "วันนี้",
+                        size: "xs",
+                        color: C.text,
+                        weight: "bold",
+                        margin: "xs",
+                      },
+                      {
+                        type: "text",
+                        text: `฿${fmtAmt(data.amount)}`,
+                        size: "xs",
+                        color: C.textSec,
+                        margin: "xs",
+                      },
+                    ],
+                  },
+                ],
+              },
+              {
+                type: "text",
+                text: "ร้านเดียวกัน · ยอดเดียวกัน · วันใกล้กัน",
+                size: "xxs",
+                color: C.sub,
+                margin: "md",
+                wrap: true,
+              },
             ],
           },
-          // Duplicate warning box
-          {
-            type: "box", layout: "vertical", cornerRadius: "8px", backgroundColor: "#F0F5FF",
-            paddingAll: "12px", margin: "lg",
-            contents: [
-              { type: "text", text: "\u26a0\ufe0f \u0e23\u0e32\u0e22\u0e01\u0e32\u0e23\u0e19\u0e35\u0e49\u0e2d\u0e32\u0e08\u0e0b\u0e49\u0e33\u0e01\u0e31\u0e1a", size: "xs", color: C.blue, weight: "bold" },
-              { type: "text", text: `\u0e1b\u0e31\u0e19\u0e17\u0e36\u0e01\u0e40\u0e21\u0e37\u0e48\u0e2d ${fmtDate(data.originalDate)} \u2014 \u0e3f${fmtAmt(data.amount)}`, size: "xs", color: "#555555", margin: "xs", wrap: true },
-              { type: "text", text: "\u0e23\u0e49\u0e32\u0e19\u0e40\u0e14\u0e35\u0e22\u0e27\u0e01\u0e31\u0e19 \u0e22\u0e2d\u0e14\u0e40\u0e14\u0e35\u0e22\u0e27\u0e01\u0e31\u0e19 \u0e27\u0e31\u0e19\u0e40\u0e14\u0e35\u0e22\u0e27\u0e01\u0e31\u0e19", size: "xxs", color: C.sub, margin: "xs" },
-            ],
-          },
-          confBar(conf, C.green),
+
+          confidenceBar(conf, C.green),
         ],
       },
-      footer: {
-        type: "box", layout: "vertical", paddingAll: "12px", spacing: "sm",
-        contents: [
-          { type: "box", layout: "horizontal", spacing: "sm", contents: [
-            btnBox("\u274c \u0e22\u0e01\u0e40\u0e25\u0e34\u0e01", "secondary", C.sub, `action=cancel&id=${data.receiptId}`),
-            btnBox("\ud83d\udcbe \u0e1a\u0e31\u0e19\u0e17\u0e36\u0e01\u0e0b\u0e49\u0e33", "primary", C.blue, `action=force_save&id=${data.receiptId}`),
-          ]},
-          { type: "text", text: "Powered by codelabs tech", size: "xxs", color: "#BBBBBB", align: "center", margin: "md" },
-        ],
-      },
+      footer: footerBox([
+        actionBtn("❌ ยกเลิก", "secondary", C.sub, {
+          data: `action=cancel&id=${data.receiptId}`,
+        }),
+        actionBtn("💾 บันทึกซ้ำ", "primary", C.blue, {
+          data: `action=force_save&id=${data.receiptId}`,
+        }),
+      ]),
     },
   };
 }
 
-// ════════════════════════════════════════════════════
-//  3. errorFlex — ❌ can't read
-// ════════════════════════════════════════════════════
+// ════════════════════════════════════════════════════════════
+//  3. errorFlex — ❌ อ่านไม่ได้
+// ════════════════════════════════════════════════════════════
+
 export function errorFlex(confidence?: number) {
   const conf = confidence || 0;
   return {
     type: "flex" as const,
-    altText: "\u274c \u0e44\u0e21\u0e48\u0e2a\u0e32\u0e21\u0e32\u0e23\u0e16\u0e2d\u0e48\u0e32\u0e19\u0e43\u0e1b\u0e40\u0e2a\u0e23\u0e47\u0e08\u0e44\u0e14\u0e49",
+    altText: "❌ ไม่สามารถอ่านใบเสร็จได้",
     contents: {
-      type: "bubble", size: "mega",
-      header: headerBox("❌ ผิดพลาด", C.red, C.redBg, C.red),
+      type: "bubble",
+      size: "mega",
+      header: headerBar("❌ ผิดพลาด", C.red, C.redBg),
       body: {
-        type: "box", layout: "vertical", paddingAll: "20px", spacing: "md",
+        type: "box",
+        layout: "vertical",
+        paddingAll: "20px",
+        spacing: "md",
         contents: [
-          { type: "text", text: "\ud83d\udcf8", size: "3xl", align: "center" },
-          { type: "text", text: "\u0e44\u0e21\u0e48\u0e2a\u0e32\u0e21\u0e32\u0e23\u0e16\u0e2d\u0e48\u0e32\u0e19\u0e43\u0e1a\u0e40\u0e2a\u0e23\u0e47\u0e08\u0e44\u0e14\u0e49", size: "sm", weight: "bold", color: C.text, align: "center", margin: "md" },
-          { type: "text", text: "\u0e20\u0e32\u0e1e\u0e2d\u0e32\u0e08\u0e44\u0e21\u0e48\u0e0a\u0e31\u0e14\u0e2b\u0e23\u0e37\u0e2d\u0e40\u0e1a\u0e25\u0e2d\n\u0e01\u0e23\u0e38\u0e13\u0e32\u0e16\u0e48\u0e32\u0e22\u0e23\u0e39\u0e1b\u0e43\u0e2b\u0e21\u0e48\u0e43\u0e2b\u0e49\u0e0a\u0e31\u0e14\u0e40\u0e08\u0e19", size: "xs", color: C.sub, align: "center", wrap: true },
-          confBar(conf, C.red),
+          {
+            type: "text",
+            text: "📸",
+            size: "4xl",
+            align: "center",
+            margin: "md",
+          },
+          {
+            type: "text",
+            text: "ไม่สามารถอ่านใบเสร็จได้",
+            size: "md",
+            weight: "bold",
+            color: C.text,
+            align: "center",
+            margin: "lg",
+          },
+          {
+            type: "text",
+            text: "ภาพอาจไม่ชัดหรือเบลอ\nกรุณาถ่ายรูปใหม่ให้ชัดเจน",
+            size: "xs",
+            color: C.sub,
+            align: "center",
+            wrap: true,
+            margin: "sm",
+          },
+
+          // Tips box
+          {
+            type: "box",
+            layout: "vertical",
+            cornerRadius: "10px",
+            backgroundColor: C.bg,
+            paddingAll: "14px",
+            margin: "xl",
+            contents: [
+              {
+                type: "text",
+                text: "💡 เคล็ดลับถ่ายรูปใบเสร็จ",
+                size: "xxs",
+                color: C.textSec,
+                weight: "bold",
+              },
+              {
+                type: "text",
+                text: "• วางใบเสร็จบนพื้นเรียบ\n• ถ่ายตรงๆ ไม่เอียง\n• แสงสว่างเพียงพอ\n• เห็นตัวอักษรชัดเจน",
+                size: "xxs",
+                color: C.sub,
+                wrap: true,
+                margin: "sm",
+                lineSpacing: "4px",
+              },
+            ],
+          },
+
+          confidenceBar(conf, C.red),
         ],
       },
-      footer: {
-        type: "box", layout: "vertical", paddingAll: "12px", spacing: "sm",
-        contents: [
-          btnBox("\ud83d\udcf8 \u0e2a\u0e48\u0e07\u0e23\u0e39\u0e1b\u0e43\u0e2b\u0e21\u0e48", "secondary", C.sub),
-          { type: "text", text: "Powered by codelabs tech", size: "xxs", color: "#BBBBBB", align: "center", margin: "md" },
-        ],
-      },
+      footer: footerBox([
+        actionBtn("📸 ส่งรูปใหม่", "primary", C.brand),
+      ]),
     },
   };
 }
 
-// ════════════════════════════════════════════════════
-//  4. notReceiptFlex — 📄 not a receipt
-// ════════════════════════════════════════════════════
+// ════════════════════════════════════════════════════════════
+//  4. notReceiptFlex — 📄 ไม่ใช่ใบเสร็จ
+// ════════════════════════════════════════════════════════════
+
 export function notReceiptFlex() {
   return {
     type: "flex" as const,
-    altText: "\ud83d\udcc4 \u0e20\u0e32\u0e1e\u0e19\u0e35\u0e49\u0e44\u0e21\u0e48\u0e43\u0e0a\u0e48\u0e43\u0e1b\u0e40\u0e2a\u0e23\u0e47\u0e08",
+    altText: "📄 ภาพนี้ไม่ใช่ใบเสร็จ",
     contents: {
-      type: "bubble", size: "mega",
-      header: headerBox("📄 ไม่ใช่", C.red, C.redBg, C.red),
+      type: "bubble",
+      size: "mega",
+      header: headerBar("📄 ไม่ใช่ใบเสร็จ", C.amber, C.amberBg),
       body: {
-        type: "box", layout: "vertical", paddingAll: "20px", spacing: "md",
+        type: "box",
+        layout: "vertical",
+        paddingAll: "20px",
+        spacing: "md",
         contents: [
-          { type: "text", text: "\ud83d\uddbc\ufe0f", size: "3xl", align: "center" },
-          { type: "text", text: "\u0e20\u0e32\u0e1e\u0e19\u0e35\u0e49\u0e44\u0e21\u0e48\u0e43\u0e0a\u0e48\u0e43\u0e1a\u0e40\u0e2a\u0e23\u0e47\u0e08", size: "sm", weight: "bold", color: C.text, align: "center", margin: "md" },
-          { type: "text", text: "\u0e23\u0e30\u0e1a\u0e1b\u0e15\u0e23\u0e27\u0e08\u0e1e\u0e1b\u0e27\u0e48\u0e32\u0e20\u0e32\u0e1e\u0e17\u0e35\u0e48\u0e2a\u0e48\u0e07\u0e21\u0e32\n\u0e44\u0e21\u0e48\u0e43\u0e0a\u0e48\u0e43\u0e1a\u0e40\u0e2a\u0e23\u0e47\u0e08\u0e2b\u0e23\u0e37\u0e2d\u0e40\u0e2d\u0e01\u0e2a\u0e32\u0e23\u0e17\u0e32\u0e07\u0e01\u0e32\u0e23\u0e40\u0e07\u0e34\u0e19", size: "xs", color: C.sub, align: "center", wrap: true },
-          // Supported list
           {
-            type: "box", layout: "vertical", cornerRadius: "8px", backgroundColor: "#FFF5F5",
-            paddingAll: "12px", margin: "lg",
+            type: "text",
+            text: "🖼️",
+            size: "4xl",
+            align: "center",
+            margin: "md",
+          },
+          {
+            type: "text",
+            text: "ภาพนี้ไม่ใช่ใบเสร็จ",
+            size: "md",
+            weight: "bold",
+            color: C.text,
+            align: "center",
+            margin: "lg",
+          },
+          {
+            type: "text",
+            text: "ระบบตรวจพบว่าภาพที่ส่งมา\nไม่ใช่เอกสารทางการเงิน",
+            size: "xs",
+            color: C.sub,
+            align: "center",
+            wrap: true,
+            margin: "sm",
+          },
+
+          // Supported types
+          {
+            type: "box",
+            layout: "vertical",
+            cornerRadius: "10px",
+            backgroundColor: C.bg,
+            paddingAll: "14px",
+            margin: "xl",
             contents: [
-              { type: "text", text: "\ud83d\udcce \u0e15\u0e31\u0e27\u0e2d\u0e22\u0e48\u0e32\u0e07\u0e17\u0e35\u0e48\u0e23\u0e2d\u0e07\u0e23\u0e31\u0e1b", size: "xxs", color: C.sub },
-              { type: "text", text: "\ud83e\uddc9 \u0e43\u0e1a\u0e40\u0e2a\u0e23\u0e47\u0e08\u0e23\u0e31\u0e1b\u0e40\u0e07\u0e34\u0e19\n\ud83d\udcc4 \u0e43\u0e1a\u0e01\u0e33\u0e01\u0e31\u0e1b\u0e20\u0e32\u0e29\u0e35\n\ud83c\udfe6 \u0e2a\u0e25\u0e34\u0e1b\u0e42\u0e2d\u0e19\u0e40\u0e07\u0e34\u0e19\n\ud83d\udcb3 \u0e43\u0e1b\u0e41\u0e08\u0e49\u0e07\u0e2b\u0e19\u0e35\u0e49\u0e1b\u0e31\u0e15\u0e23\u0e40\u0e04\u0e23\u0e14\u0e34\u0e15\n\ud83d\udcdd \u0e1b\u0e34\u0e25\u0e04\u0e48\u0e32\u0e19\u0e49\u0e33/\u0e04\u0e48\u0e32\u0e44\u0e1f", size: "xs", color: "#555555", wrap: true, margin: "sm", lineSpacing: "6px" },
+              {
+                type: "text",
+                text: "📎 เอกสารที่รองรับ",
+                size: "xxs",
+                color: C.textSec,
+                weight: "bold",
+              },
+              {
+                type: "box",
+                layout: "vertical",
+                spacing: "sm",
+                margin: "md",
+                contents: [
+                  {
+                    type: "box",
+                    layout: "horizontal",
+                    spacing: "lg",
+                    contents: [
+                      {
+                        type: "text",
+                        text: "🧾 ใบเสร็จ",
+                        size: "xxs",
+                        color: C.textSec,
+                        flex: 1,
+                      },
+                      {
+                        type: "text",
+                        text: "📄 ใบกำกับภาษี",
+                        size: "xxs",
+                        color: C.textSec,
+                        flex: 1,
+                      },
+                    ],
+                  },
+                  {
+                    type: "box",
+                    layout: "horizontal",
+                    spacing: "lg",
+                    contents: [
+                      {
+                        type: "text",
+                        text: "🏦 สลิปโอนเงิน",
+                        size: "xxs",
+                        color: C.textSec,
+                        flex: 1,
+                      },
+                      {
+                        type: "text",
+                        text: "💳 ใบแจ้งหนี้",
+                        size: "xxs",
+                        color: C.textSec,
+                        flex: 1,
+                      },
+                    ],
+                  },
+                  {
+                    type: "box",
+                    layout: "horizontal",
+                    spacing: "lg",
+                    contents: [
+                      {
+                        type: "text",
+                        text: "📝 บิลค่าน้ำ/ไฟ",
+                        size: "xxs",
+                        color: C.textSec,
+                        flex: 1,
+                      },
+                      { type: "filler" },
+                    ],
+                  },
+                ],
+              },
             ],
           },
         ],
       },
-      footer: {
-        type: "box", layout: "vertical", paddingAll: "12px", spacing: "sm",
-        contents: [
-          btnBox("\ud83d\udcf8 \u0e2a\u0e48\u0e07\u0e23\u0e39\u0e1b\u0e43\u0e1b\u0e40\u0e2a\u0e23\u0e47\u0e08", "secondary", C.sub),
-          { type: "text", text: "Powered by codelabs tech", size: "xxs", color: "#BBBBBB", align: "center", margin: "md" },
-        ],
-      },
+      footer: footerBox([
+        actionBtn("📸 ส่งรูปใบเสร็จ", "primary", C.brand),
+      ]),
     },
   };
 }
 
-// ════════════════════════════════════════════════════
-//  5. dailySummaryFlex (keep existing)
-// ════════════════════════════════════════════════════
+// ════════════════════════════════════════════════════════════
+//  5. dailySummaryFlex — 📊 สรุปรายวัน
+// ════════════════════════════════════════════════════════════
+
 export function dailySummaryFlex(data: {
   date: string;
   totalExpense: number;
@@ -363,53 +981,218 @@ export function dailySummaryFlex(data: {
   count: number;
   categories: { icon: string; name: string; amount: number }[];
 }) {
+  const net = data.totalIncome - data.totalExpense;
+  const netColor = net >= 0 ? C.green : C.red;
+  const netPrefix = net >= 0 ? "+" : "";
+  const maxAmt = Math.max(...data.categories.map((c) => c.amount), 1);
+
   return {
     type: "flex" as const,
-    altText: `\ud83d\udcca \u0e2a\u0e23\u0e38\u0e1b\u0e27\u0e31\u0e19\u0e19\u0e35\u0e49 \u0e3f${fmtAmt(data.totalExpense)}`,
+    altText: `📊 สรุปวันนี้ ฿${fmtAmt(data.totalExpense)}`,
     contents: {
-      type: "bubble", size: "mega",
-      header: headerBox("📊 สรุป", C.green, C.greenBg, C.green),
+      type: "bubble",
+      size: "mega",
+      header: headerBar("📊 สรุปวันนี้", C.green, C.greenBg),
       body: {
-        type: "box", layout: "vertical", paddingAll: "16px", spacing: "md",
+        type: "box",
+        layout: "vertical",
+        paddingAll: "16px",
+        spacing: "sm",
         contents: [
-          { type: "text", text: fmtDate(data.date), size: "sm", color: C.sub },
+          // Date
           {
-            type: "box", layout: "horizontal", margin: "md",
+            type: "text",
+            text: fmtDate(data.date),
+            size: "xs",
+            color: C.sub,
+          },
+
+          // Income / Expense cards
+          {
+            type: "box",
+            layout: "horizontal",
+            spacing: "sm",
+            margin: "lg",
             contents: [
-              { type: "box", layout: "vertical", flex: 1, contents: [
-                { type: "text", text: "\u0e23\u0e32\u0e22\u0e08\u0e48\u0e32\u0e22", size: "xxs", color: C.sub },
-                { type: "text", text: `\u0e3f ${fmtAmt(data.totalExpense)}`, size: "lg", weight: "bold", color: C.red },
-              ]},
-              { type: "box", layout: "vertical", flex: 1, contents: [
-                { type: "text", text: "\u0e23\u0e32\u0e22\u0e23\u0e31\u0e1b", size: "xxs", color: C.sub },
-                { type: "text", text: `\u0e3f ${fmtAmt(data.totalIncome)}`, size: "lg", weight: "bold", color: C.green },
-              ]},
+              // Expense card
+              {
+                type: "box",
+                layout: "vertical",
+                flex: 1,
+                cornerRadius: "10px",
+                backgroundColor: C.redBg,
+                paddingAll: "12px",
+                contents: [
+                  {
+                    type: "text",
+                    text: "📤 รายจ่าย",
+                    size: "xxs",
+                    color: C.red,
+                  },
+                  {
+                    type: "text",
+                    text: `฿${fmtAmt(data.totalExpense)}`,
+                    size: "lg",
+                    weight: "bold",
+                    color: C.red,
+                    margin: "sm",
+                  },
+                ],
+              },
+              // Income card
+              {
+                type: "box",
+                layout: "vertical",
+                flex: 1,
+                cornerRadius: "10px",
+                backgroundColor: C.greenBg,
+                paddingAll: "12px",
+                contents: [
+                  {
+                    type: "text",
+                    text: "📥 รายรับ",
+                    size: "xxs",
+                    color: C.green,
+                  },
+                  {
+                    type: "text",
+                    text: `฿${fmtAmt(data.totalIncome)}`,
+                    size: "lg",
+                    weight: "bold",
+                    color: C.green,
+                    margin: "sm",
+                  },
+                ],
+              },
             ],
           },
-          { type: "text", text: `\u0e23\u0e32\u0e22\u0e01\u0e32\u0e23\u0e17\u0e31\u0e49\u0e07\u0e2b\u0e21\u0e14 ${data.count} \u0e23\u0e32\u0e22\u0e01\u0e32\u0e23`, size: "xs", color: C.sub, margin: "md" },
-          { type: "separator", color: C.border, margin: "md" },
-          ...data.categories.slice(0, 5).map(c => ({
-            type: "box" as const, layout: "horizontal" as const, margin: "sm" as const,
+
+          // Net summary
+          {
+            type: "box",
+            layout: "horizontal",
+            cornerRadius: "10px",
+            backgroundColor: C.bg,
+            paddingAll: "10px",
+            margin: "sm",
             contents: [
-              { type: "text" as const, text: `${c.icon} ${c.name}`, size: "xs" as const, color: C.text, flex: 2 },
-              { type: "text" as const, text: `\u0e3f ${fmtAmt(c.amount)}`, size: "xs" as const, color: C.text, align: "end" as const, flex: 1 },
+              {
+                type: "text",
+                text: "คงเหลือสุทธิ",
+                size: "xs",
+                color: C.sub,
+                flex: 1,
+                gravity: "center",
+              },
+              {
+                type: "text",
+                text: `${netPrefix}฿${fmtAmt(Math.abs(net))}`,
+                size: "md",
+                weight: "bold",
+                color: netColor,
+                flex: 0,
+                align: "end",
+              },
+            ],
+          },
+
+          // Transaction count
+          {
+            type: "text",
+            text: `รายการทั้งหมด ${data.count} รายการ`,
+            size: "xxs",
+            color: C.sub,
+            margin: "md",
+          },
+
+          sep(),
+
+          // Top categories with mini bars
+          {
+            type: "text",
+            text: "🏷️ หมวดหมู่",
+            size: "xxs",
+            color: C.sub,
+            margin: "lg",
+          },
+          ...data.categories.slice(0, 5).map((c) => ({
+            type: "box" as const,
+            layout: "vertical" as const,
+            margin: "sm" as const,
+            spacing: "xs" as const,
+            contents: [
+              {
+                type: "box" as const,
+                layout: "horizontal" as const,
+                contents: [
+                  {
+                    type: "text" as const,
+                    text: `${c.icon} ${c.name}`,
+                    size: "xs" as const,
+                    color: C.text,
+                    flex: 2,
+                  },
+                  {
+                    type: "text" as const,
+                    text: `฿${fmtAmt(c.amount)}`,
+                    size: "xs" as const,
+                    color: C.text,
+                    weight: "bold" as const,
+                    align: "end" as const,
+                    flex: 1,
+                  },
+                ],
+              },
+              // Mini progress bar
+              {
+                type: "box" as const,
+                layout: "vertical" as const,
+                height: "3px",
+                cornerRadius: "2px",
+                backgroundColor: "#E8E8E8",
+                contents: [
+                  {
+                    type: "box" as const,
+                    layout: "vertical" as const,
+                    height: "3px",
+                    cornerRadius: "2px",
+                    backgroundColor: C.brand,
+                    width: `${Math.round((c.amount / maxAmt) * 100)}%`,
+                    contents: [{ type: "filler" as const }],
+                  },
+                ],
+              },
             ],
           })),
         ],
       },
       footer: {
-        type: "box" as const, layout: "vertical" as const, paddingAll: "8px",
+        type: "box",
+        layout: "vertical",
+        paddingAll: "14px",
+        spacing: "sm",
         contents: [
-          { type: "text" as const, text: "Powered by codelabs tech" as const, size: "xxs" as const, color: "#BBBBBB" as const, align: "center" as const },
+          actionBtn("📊 ดูรายงานเพิ่มเติม", "primary", C.brand, {
+            url: `${APP_URL}/dashboard/reports`,
+          }),
+          {
+            type: "text",
+            text: "iPED by codelabs tech",
+            size: "xxs",
+            color: C.muted,
+            align: "center",
+            margin: "md",
+          },
         ],
       },
     },
   };
 }
 
-// ════════════════════════════════════════════════════
-//  6. chatResponseFlex (keep existing)
-// ════════════════════════════════════════════════════
+// ════════════════════════════════════════════════════════════
+//  6. chatResponseFlex — 🤖 AI ตอบคำถาม
+// ════════════════════════════════════════════════════════════
+
 export function chatResponseFlex(data: {
   question: string;
   answer: string;
@@ -419,36 +1202,121 @@ export function chatResponseFlex(data: {
     type: "flex" as const,
     altText: data.answer,
     contents: {
-      type: "bubble", size: "mega",
+      type: "bubble",
+      size: "mega",
+      header: headerBar("🤖 ผู้ช่วย AI", C.brand, C.brandBg),
       body: {
-        type: "box", layout: "vertical", paddingAll: "16px",
+        type: "box",
+        layout: "vertical",
+        paddingAll: "16px",
+        spacing: "md",
         contents: [
+          // Question bubble
           {
-            type: "box", layout: "horizontal",
+            type: "box",
+            layout: "horizontal",
+            cornerRadius: "12px",
+            backgroundColor: C.bg,
+            paddingAll: "12px",
             contents: [
-              { type: "text", text: "\ud83e\udd16", size: "lg" },
-              { type: "text", text: data.answer, color: C.text, wrap: true, flex: 5, margin: "md" },
+              {
+                type: "text",
+                text: `💬 "${data.question}"`,
+                size: "xs",
+                color: C.sub,
+                wrap: true,
+                style: "italic",
+              },
             ],
           },
-          ...(data.details ? [
-            { type: "separator" as const, margin: "lg" as const, color: C.border },
-            {
-              type: "box" as const, layout: "vertical" as const, margin: "lg" as const, spacing: "sm" as const,
-              contents: data.details.map(d => ({
-                type: "box" as const, layout: "horizontal" as const,
+
+          // Answer
+          {
+            type: "box",
+            layout: "horizontal",
+            spacing: "md",
+            margin: "lg",
+            contents: [
+              {
+                type: "box",
+                layout: "vertical",
+                flex: 0,
+                width: "36px",
+                height: "36px",
+                cornerRadius: "18px",
+                backgroundColor: C.brandBg,
                 contents: [
-                  { type: "text" as const, text: d.label, size: "xs" as const, color: C.sub, flex: 2 },
-                  { type: "text" as const, text: d.value, size: "xs" as const, color: C.text, flex: 3, align: "end" as const },
+                  {
+                    type: "text",
+                    text: "🤖",
+                    size: "md",
+                    align: "center",
+                    gravity: "center",
+                  },
                 ],
-              })),
-            },
-          ] : []),
+              },
+              {
+                type: "text",
+                text: data.answer,
+                size: "sm",
+                color: C.text,
+                wrap: true,
+                flex: 5,
+              },
+            ],
+          },
+
+          // Details table (if any)
+          ...(data.details && data.details.length > 0
+            ? [
+                sep(),
+                {
+                  type: "box" as const,
+                  layout: "vertical" as const,
+                  margin: "lg" as const,
+                  spacing: "sm" as const,
+                  cornerRadius: "10px",
+                  backgroundColor: C.bg,
+                  paddingAll: "12px",
+                  contents: data.details.map((d) => ({
+                    type: "box" as const,
+                    layout: "horizontal" as const,
+                    contents: [
+                      {
+                        type: "text" as const,
+                        text: d.label,
+                        size: "xs" as const,
+                        color: C.sub,
+                        flex: 2,
+                      },
+                      {
+                        type: "text" as const,
+                        text: d.value,
+                        size: "xs" as const,
+                        color: C.text,
+                        weight: "bold" as const,
+                        flex: 3,
+                        align: "end" as const,
+                      },
+                    ],
+                  })),
+                },
+              ]
+            : []),
         ],
       },
       footer: {
-        type: "box" as const, layout: "vertical" as const, paddingAll: "8px",
+        type: "box",
+        layout: "vertical",
+        paddingAll: "8px",
         contents: [
-          { type: "text" as const, text: "Powered by codelabs tech" as const, size: "xxs" as const, color: "#BBBBBB" as const, align: "center" as const },
+          {
+            type: "text",
+            text: "iPED by codelabs tech",
+            size: "xxs",
+            color: C.muted,
+            align: "center",
+          },
         ],
       },
     },

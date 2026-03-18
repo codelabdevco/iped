@@ -315,6 +315,7 @@ export async function POST(request: NextRequest) {
           const flexMsg = receiptConfirmFlex({
             merchant: ocr.merchant || "\u0e44\u0e21\u0e48\u0e23\u0e30\u0e1a\u0e38\u0e23\u0e49\u0e32\u0e19\u0e04\u0e49\u0e32",
             date: ocr.date || new Date().toLocaleDateString("th-TH"),
+            time: ocr.time || undefined,
             amount: ocr.amount,
             vat: ocr.vat || undefined,
             category: ocr.category || "\u0e2d\u0e37\u0e48\u0e19\u0e46",
@@ -322,7 +323,7 @@ export async function POST(request: NextRequest) {
             confidence: ocr.confidence || 50,
             receiptId: rid,
             webAppUrl: APP_URL,
-      isExpense: ocr.type !== "income",
+            isExpense: ocr.type !== "income",
           });
 
           // 8. Reply: status text (quoted on image) + flex summary
