@@ -313,26 +313,52 @@ export default function ReceiptsClient({ receipts: initialReceipts }: { receipts
     setSlipPreview(null);
   };
 
-  const handleSaveEdit = () => {
+  const handleSaveEdit = async () => {
     if (!editingId) return;
+    setSaving(true);
     const itemsTotal = editItems.reduce((s, it) => s + it.qty * it.price, 0);
     const vat = vatEnabled ? Math.round(itemsTotal * 0.07) : 0;
     const wht = whtEnabled ? Math.round(itemsTotal * 0.03) : 0;
     const total = itemsTotal + vat - wht;
-    setReceipts((prev) => prev.map((r) => r._id === editingId ? {
-      ...r,
-      ...editForm,
-      amount: total,
-      vat,
-      wht,
-      items: editItems,
-      itemCount: editItems.length,
-      imageUrl: slipPreview || r.imageUrl,
-    } : r));
-    setEditingId(null);
-    setEditForm({});
-    setEditItems([]);
-    setSlipPreview(null);
+    try {
+      await fetch(`/api/receipts/${editingId}`, {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          merchant: editForm.storeName,
+          amount: total,
+          date: editForm.date,
+          time: editForm.time,
+          category: editForm.category,
+          type: editForm.type,
+          status: editForm.status,
+          paymentMethod: editForm.paymentMethod,
+          note: editForm.note,
+          documentNumber: editForm.documentNumber,
+          merchantTaxId: editForm.merchantTaxId,
+          vat: vat || undefined,
+          wht: wht || undefined,
+          imageUrl: slipPreview || undefined,
+          items: editItems,
+        }),
+      });
+      setReceipts((prev) => prev.map((r) => r._id === editingId ? {
+        ...r,
+        ...editForm,
+        amount: total,
+        vat,
+        wht,
+        items: editItems,
+        itemCount: editItems.length,
+        imageUrl: slipPreview || r.imageUrl,
+      } : r));
+      setEditingId(null);
+      setEditForm({});
+      setEditItems([]);
+      setSlipPreview(null);
+    } catch {} finally {
+      setSaving(false);
+    }
   };
 
   const handleCancelEdit = () => {

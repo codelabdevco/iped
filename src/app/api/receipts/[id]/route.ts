@@ -29,7 +29,8 @@ export async function PUT(
     const allowedFields = [
       "merchant", "amount", "date", "category", "categoryIcon",
       "subCategory", "paymentMethod", "vat", "wht", "note",
-      "documentType", "documentNumber", "items",
+      "documentNumber", "merchantTaxId", "type", "status",
+      "imageUrl", "time", "items",
     ];
     const updateData: any = {};
     for (const field of allowedFields) {
@@ -37,7 +38,8 @@ export async function PUT(
         updateData[field] = body[field];
       }
     }
-    updateData.status = "edited";
+    // Only force "edited" if status wasn't explicitly set
+    if (!body.status) updateData.status = "edited";
     const receipt = await Receipt.findByIdAndUpdate(id, updateData, { new: true });
     if (!receipt) {
       return NextResponse.json({ success: false, error: "" }, { status: 404 });

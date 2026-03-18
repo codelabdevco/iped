@@ -49,6 +49,7 @@ async function ReceiptsData() {
     date: r.date
       ? new Date(r.date).toLocaleDateString("th-TH")
       : new Date(r.createdAt).toLocaleDateString("th-TH"),
+    time: r.time || "",
     status: r.status || "pending",
     type: r.type || "receipt",
     source: r.source || "web",

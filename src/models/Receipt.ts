@@ -7,6 +7,7 @@ export interface IReceipt extends Document {
   merchant: string;
   merchantTaxId?: string;
   date: Date;
+  time?: string;
   dueDate?: Date;
   amount: number;
   vat?: number;
@@ -38,6 +39,7 @@ const ReceiptSchema = new Schema<IReceipt>(
     merchant: { type: String, required: true },
     merchantTaxId: String,
     date: { type: Date, required: true },
+    time: String,
     dueDate: Date,
     amount: { type: Number, required: true },
     vat: Number,
