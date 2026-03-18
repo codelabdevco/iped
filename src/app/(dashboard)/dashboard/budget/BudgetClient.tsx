@@ -5,6 +5,7 @@ import { useTheme } from "@/contexts/ThemeContext";
 import { Wallet, Target, AlertTriangle, TrendingDown, Plus, Pencil, Trash2, Check, X } from "lucide-react";
 import PageHeader from "@/components/dashboard/PageHeader";
 import StatsCard from "@/components/dashboard/StatsCard";
+import Baht from "@/components/dashboard/Baht";
 
 interface SpendingItem {
   category: string;
@@ -37,12 +38,6 @@ const CATEGORY_MAP: Record<string, { emoji: string; color: string }> = {
 
 function getCatInfo(cat: string) {
   return CATEGORY_MAP[cat] || { emoji: "📋", color: "#9CA3AF" };
-}
-
-function Baht({ value, className = "" }: { value: number; className?: string }) {
-  const whole = Math.floor(Math.abs(value)).toLocaleString();
-  const dec = (Math.abs(value) % 1).toFixed(2).slice(1);
-  return <span className={className}>{value < 0 ? "-" : ""}฿{whole}<span className="text-[0.75em] opacity-50">{dec}</span></span>;
 }
 
 export default function BudgetClient({ spending }: { spending: SpendingItem[] }) {
@@ -225,8 +220,8 @@ export default function BudgetClient({ spending }: { spending: SpendingItem[] })
                 </div>
 
                 <div className="flex items-end justify-between mb-2">
-                  <Baht value={item.spent} className={`text-xl font-bold ${isOver ? "text-red-500" : txt}`} />
-                  {hasBudget && <span className={`text-sm ${muted}`}>/ <Baht value={item.budget} className="" /></span>}
+                  <Baht value={item.spent} direction="expense" className={`text-xl font-bold ${isOver ? "text-red-500" : txt}`} />
+                  {hasBudget && <span className={`text-sm ${muted}`}>/ <Baht value={item.budget} direction="expense" className="" /></span>}
                 </div>
 
                 {hasBudget ? (

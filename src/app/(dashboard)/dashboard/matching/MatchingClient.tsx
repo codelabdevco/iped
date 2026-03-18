@@ -6,6 +6,7 @@ import { useTheme } from "@/contexts/ThemeContext";
 import { Upload, Loader2, Check, X, Mail, Clock, ChevronDown, Paperclip, Download } from "lucide-react";
 import PageHeader from "@/components/dashboard/PageHeader";
 import BrandIcon from "@/components/dashboard/BrandIcon";
+import Baht from "@/components/dashboard/Baht";
 
 interface FileInfo { name: string; type: string; size: number; }
 interface ReceiptRow {
@@ -24,11 +25,6 @@ interface GmailSettings {
   connected: boolean; email: string | null;
   lastGmailScan: string | null; autoGmailScan: boolean;
   accounts?: any[];
-}
-
-function Baht({ value }: { value: number }) {
-  if (!value) return <span className="opacity-30">฿0</span>;
-  return <span className="font-semibold">฿{Math.floor(value).toLocaleString()}<span className="text-[0.75em] opacity-50">.{(value % 1).toFixed(2).slice(2)}</span></span>;
 }
 
 function timeAgo(d: string): string {
@@ -331,7 +327,7 @@ export default function MatchingClient({ receipts, matches: initMatches, gmailSe
                                   <div className={`flex items-center justify-between mt-1`}>
                                     <div>
                                       <p className={`text-xs ${sub}`}>{slip.date}</p>
-                                      <p className={`text-sm font-semibold ${txt}`}><Baht value={slip.amount} /></p>
+                                      <p className={`text-sm font-semibold ${txt}`}><Baht value={slip.amount} direction={slip.direction} /></p>
                                     </div>
                                     {!alreadyMatched ? (
                                       <button
@@ -382,7 +378,7 @@ export default function MatchingClient({ receipts, matches: initMatches, gmailSe
                     </div>
                   )}
                   <p className={`text-[11px] font-medium truncate ${txt}`}>{slip.storeName}</p>
-                  <p className={`text-[10px] ${sub}`}><Baht value={slip.amount} /></p>
+                  <p className={`text-[10px] ${sub}`}><Baht value={slip.amount} direction={slip.direction} /></p>
                   {isMatched && <p className="text-[9px] text-green-400 mt-0.5">จับคู่แล้ว</p>}
                 </div>
               );
@@ -404,7 +400,7 @@ export default function MatchingClient({ receipts, matches: initMatches, gmailSe
               return r ? (
                 <div className="absolute bottom-0 left-0 right-0 bg-black/60 backdrop-blur-sm rounded-b-xl px-4 py-3 text-white">
                   <p className="font-medium">{r.storeName}</p>
-                  <p className="text-sm opacity-70">{r.date} · <Baht value={r.amount} /></p>
+                  <p className="text-sm opacity-70">{r.date} · <Baht value={r.amount} direction={r.direction} /></p>
                 </div>
               ) : null;
             })()}

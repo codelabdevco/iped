@@ -11,18 +11,13 @@ import DataTable, { Column } from "@/components/dashboard/DataTable";
 import Select from "@/components/dashboard/Select";
 import DatePicker from "@/components/dashboard/DatePicker";
 import TimePicker from "@/components/dashboard/TimePicker";
+import Baht from "@/components/dashboard/Baht";
 
 interface ExpenseRow {
   _id: string; storeName: string; amount: number; category: string;
   date: string; rawDate?: string; time?: string; status: string;
   source: string; paymentMethod?: string; note?: string;
   hasImage?: boolean; createdAt?: string; updatedAt?: string;
-}
-
-function Baht({ value, className = "" }: { value: number; className?: string }) {
-  const whole = Math.floor(Math.abs(value)).toLocaleString();
-  const dec = (Math.abs(value) % 1).toFixed(2).slice(1);
-  return <span className={className}>฿{whole}<span className="text-[0.75em] opacity-50">{dec}</span></span>;
 }
 
 const EXPENSE_CATEGORIES = [
@@ -105,7 +100,7 @@ export default function ExpensesClient({ expenses: initial }: { expenses: Expens
 
   const columns: Column<ExpenseRow>[] = useMemo(() => [
     { key: "storeName", label: "รายละเอียด", render: (r) => (<div className="leading-tight min-w-0"><div className="font-medium truncate">{r.storeName}</div><div className={`flex items-center gap-2 mt-0.5 text-[11px] ${muted}`}><span className="flex items-center gap-1"><span className="w-2 h-2 rounded-full flex-shrink-0" style={{ backgroundColor: getCatColor(r.category) }} />{r.category}</span></div></div>) },
-    { key: "amount", label: "จำนวนเงิน", align: "right", render: (r) => <Baht value={r.amount} className="font-semibold" /> },
+    { key: "amount", label: "จำนวนเงิน", align: "right", render: (r) => <Baht value={r.amount} direction="expense" className="font-semibold" /> },
     { key: "paidAt", label: "วันที่จ่าย", render: (r) => { const iso = r.rawDate; if (!iso) return <span className={muted}>-</span>; const d = new Date(iso); const day = d.getDate(); const mon = ["ม.ค.","ก.พ.","มี.ค.","เม.ย.","พ.ค.","มิ.ย.","ก.ค.","ส.ค.","ก.ย.","ต.ค.","พ.ย.","ธ.ค."][d.getMonth()]; const yr = d.getFullYear() + 543; const time = r.time || ""; const isLine = r.source === "line"; return (<div className="leading-tight"><div className="text-sm whitespace-nowrap">{day} {mon} {yr}{time ? <span className={`text-[11px] ml-1 ${muted}`}>{time}</span> : ""}</div><div className={`flex items-center gap-1 mt-0.5 text-[11px] ${isLine ? "text-green-500" : "text-blue-400"}`}>{isLine ? <MessageCircle size={10} /> : <Globe size={10} />}{isLine ? "LINE" : "เว็บ"}</div></div>); } },
     { key: "paymentMethod", label: "วิธีจ่าย", render: (r) => <span className="text-xs">{PAYMENT_METHODS.find((m) => m.value === r.paymentMethod)?.label || r.paymentMethod || "-"}</span> },
     { key: "status", label: "สถานะ", render: (r) => { const st = statusMap[r.status] || statusMap.pending; return <span className={`px-2 py-1 rounded-lg text-xs font-medium ${st.cls}`}>{st.label}</span>; } },

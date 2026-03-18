@@ -5,6 +5,7 @@ import { Check, X, Clock, CheckCircle, AlertTriangle } from "lucide-react";
 import PageHeader from "@/components/dashboard/PageHeader";
 import DataTable, { Column } from "@/components/dashboard/DataTable";
 import StatsCard from "@/components/dashboard/StatsCard";
+import Baht from "@/components/dashboard/Baht";
 
 interface ApprovalRow {
   _id: string;

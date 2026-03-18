@@ -11,6 +11,7 @@ import DataTable, { Column } from "@/components/dashboard/DataTable";
 import Select from "@/components/dashboard/Select";
 import DatePicker from "@/components/dashboard/DatePicker";
 import TimePicker from "@/components/dashboard/TimePicker";
+import Baht from "@/components/dashboard/Baht";
 
 interface SavingsRow {
   _id: string;
@@ -28,12 +29,6 @@ interface SavingsRow {
   hasImage?: boolean;
   createdAt?: string;
   updatedAt?: string;
-}
-
-function Baht({ value, className = "" }: { value: number; className?: string }) {
-  const whole = Math.floor(Math.abs(value)).toLocaleString();
-  const dec = (Math.abs(value) % 1).toFixed(2).slice(1);
-  return <span className={className}>฿{whole}<span className="text-[0.75em] opacity-50">{dec}</span></span>;
 }
 
 const SAVING_CATEGORIES = [
@@ -178,7 +173,7 @@ export default function SavingsClient({ savings: initial }: { savings: SavingsRo
       key: "amount",
       label: "จำนวนเงิน",
       align: "right",
-      render: (r) => <Baht value={r.amount} className="font-semibold text-pink-400" />,
+      render: (r) => <Baht value={r.amount} direction="savings" className="font-semibold text-pink-400" />,
     },
     {
       key: "paidAt",
