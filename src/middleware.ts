@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 
-const publicPaths = ["/login", "/register", "/api/auth", "/api/line/webhook", "/api/line"];
+const publicPaths = ["/login", "/register", "/pricing", "/api/auth", "/api/line/webhook", "/api/line"];
 
 const businessOnlyPages = [
   "/dashboard/tax", "/dashboard/customers", "/dashboard/quotations",
