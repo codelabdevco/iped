@@ -146,54 +146,6 @@ export default function ReceiptsClient({ receipts: initialReceipts }: { receipts
   const { isDark } = useTheme();
   const router = useRouter();
   const [receipts, setReceipts] = useReactiveData(initialReceipts);
-  const [receiptsLoading, setReceiptsLoading] = useState(true);
-
-  // Fetch receipts from API
-  const loadReceipts = useCallback(async () => {
-    setReceiptsLoading(true);
-    try {
-      const res = await fetch("/api/receipts?limit=200", { cache: "no-store" });
-      if (res.ok) {
-        const json = await res.json();
-        if (json.data) {
-          setReceipts(json.data.map((r: any) => ({
-            _id: String(r._id),
-            storeName: r.merchant || "ไม่ระบุร้าน",
-            amount: r.amount || 0,
-            category: r.category || "ไม่ระบุ",
-            rawDate: r.date ? new Date(r.date).toISOString().slice(0,10) : "",
-            date: r.date ? new Date(r.date).toLocaleDateString("th-TH") : "",
-            time: r.time || "",
-            status: r.status || "pending",
-            type: r.type || "receipt",
-            source: r.source || "web",
-            paymentMethod: r.paymentMethod || "",
-            note: r.note || "",
-            vat: r.vat || 0,
-            wht: r.wht || 0,
-            documentNumber: r.documentNumber || "",
-            merchantTaxId: r.merchantTaxId || "",
-            ocrConfidence: r.ocrConfidence,
-            hasImage: !!r.imageHash,
-            items: [],
-            itemCount: 0,
-            direction: r.direction || "expense",
-            linkedEmail: null,
-          })));
-        }
-      }
-    } catch {} finally { setReceiptsLoading(false); }
-  }, []);
-
-  // Fetch on mount
-  useEffect(() => { loadReceipts(); }, [loadReceipts]);
-
-  // Re-fetch on mode change
-  useEffect(() => {
-    const handler = () => setTimeout(loadReceipts, 50);
-    window.addEventListener("iped-mode-change", handler);
-    return () => window.removeEventListener("iped-mode-change", handler);
-  }, [loadReceipts]);
   const pollRef = useRef<{ count: number; latestId: string | null }>({
     count: initialReceipts.length,
     latestId: initialReceipts[0]?._id || null,

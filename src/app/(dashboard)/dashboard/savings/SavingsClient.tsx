@@ -106,29 +106,6 @@ export default function SavingsClient({ savings: initial }: { savings: SavingsRo
     return () => clearInterval(interval);
   }, [router]);
 
-  const loadSavings = useCallback(async () => {
-    try {
-      const res = await fetch("/api/receipts?limit=200", { cache: "no-store" });
-      if (res.ok) {
-        const json = await res.json();
-        if (json.data) {
-          const filtered = json.data.filter((r: any) => r.direction === "savings");
-          setSavings(filtered.map((r: any) => ({ ...r, _id: String(r._id) })));
-        }
-      }
-    } catch {}
-  }, []);
-
-  // Fetch on mount
-  useEffect(() => { loadSavings(); }, [loadSavings]);
-
-  // Re-fetch on mode change
-  useEffect(() => {
-    const handler = () => setTimeout(loadSavings, 50);
-    window.addEventListener("iped-mode-change", handler);
-    return () => window.removeEventListener("iped-mode-change", handler);
-  }, [loadSavings]);
-
   const muted = isDark ? "text-white/30" : "text-gray-400";
   const sub = isDark ? "text-white/50" : "text-gray-500";
   const card = isDark ? "bg-[rgba(255,255,255,0.04)]" : "bg-white";

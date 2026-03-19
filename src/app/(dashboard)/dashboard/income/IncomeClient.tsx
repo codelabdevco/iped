@@ -75,29 +75,6 @@ export default function IncomeClient({ incomes: initial }: { incomes: IncomeRow[
   useEffect(() => { const ids = initial.map((r) => r._id + r.amount).join(","); if (ids === prevRef.current) return; prevRef.current = ids; setIncomes(initial); }, [initial]);
   useEffect(() => { const i = setInterval(async () => { try { await fetch("/api/receipts/poll"); router.refresh(); } catch {} }, 5000); return () => clearInterval(i); }, [router]);
 
-  const loadIncomes = useCallback(async () => {
-    try {
-      const res = await fetch("/api/receipts?limit=200", { cache: "no-store" });
-      if (res.ok) {
-        const json = await res.json();
-        if (json.data) {
-          const filtered = json.data.filter((r: any) => r.direction === "income");
-          setIncomes(filtered.map((r: any) => ({ ...r, _id: String(r._id) })));
-        }
-      }
-    } catch {}
-  }, []);
-
-  // Fetch on mount
-  useEffect(() => { loadIncomes(); }, [loadIncomes]);
-
-  // Re-fetch on mode change
-  useEffect(() => {
-    const handler = () => setTimeout(loadIncomes, 50);
-    window.addEventListener("iped-mode-change", handler);
-    return () => window.removeEventListener("iped-mode-change", handler);
-  }, [loadIncomes]);
-
   const muted = isDark ? "text-white/30" : "text-gray-400";
   const now = new Date();
   const thisMonthStart = new Date(now.getFullYear(), now.getMonth(), 1);

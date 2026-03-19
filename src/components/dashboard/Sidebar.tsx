@@ -118,15 +118,23 @@ export default function Sidebar({ onNavigate, badges = {} }: { onNavigate?: () =
   const { isDark, toggleTheme } = useTheme();
   const { mode, switchMode: ctxSwitchMode } = useMode();
 
-  // Business-only pages — redirect to /dashboard if switching to personal
-  const businessOnly = ["/dashboard/tax","/dashboard/customers","/dashboard/quotations","/dashboard/invoices","/dashboard/receivables","/dashboard/team","/dashboard/payroll","/dashboard/approvals","/dashboard/reimbursement","/dashboard/accounting","/dashboard/admin","/dashboard/billing"];
-
   const switchMode = (m: Mode) => {
     ctxSwitchMode(m);
-    // If on a business-only page and switching to personal → navigate to dashboard
-    if (m === "personal" && businessOnly.some((p) => pathname === p || pathname.startsWith(p + "/"))) {
-      router.push("/dashboard");
-    }
+    // Show loading overlay then reload — guaranteed fresh data from server
+    document.body.style.opacity = "0.5";
+    document.body.style.transition = "opacity 0.15s";
+    document.body.style.pointerEvents = "none";
+    // If on business-only page and switching to personal, go to dashboard
+    const businessOnly = ["/dashboard/tax","/dashboard/customers","/dashboard/quotations","/dashboard/invoices","/dashboard/receivables","/dashboard/team","/dashboard/payroll","/dashboard/approvals","/dashboard/reimbursement","/dashboard/accounting","/dashboard/admin","/dashboard/billing"];
+    const needsRedirect = m === "personal" && businessOnly.some((p) => pathname === p || pathname.startsWith(p + "/"));
+
+    setTimeout(() => {
+      if (needsRedirect) {
+        window.location.href = "/dashboard";
+      } else {
+        window.location.reload();
+      }
+    }, 150);
   };
 
   const toggleGroup = (label: string) => {
