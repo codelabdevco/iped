@@ -16,13 +16,14 @@ async function DriveData() {
   await connectDB();
   const accountType = await getAccountMode();
 
+  // Files don't have accountType — only show in personal mode
   const [receipts, files] = await Promise.all([
     Receipt.find({ userId: session.userId, accountType })
       .select("merchant category date time status source direction imageHash paymentMethod amount createdAt")
       .sort({ createdAt: -1 }).limit(200).lean(),
-    FileModel.find({ userId: session.userId })
-      .select("-data")
-      .sort({ createdAt: -1 }).limit(200).lean(),
+    accountType === "personal"
+      ? FileModel.find({ userId: session.userId }).select("-data").sort({ createdAt: -1 }).limit(200).lean()
+      : Promise.resolve([]),
   ]);
 
   const receiptDocs = receipts.map((r: any) => ({
