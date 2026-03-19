@@ -3,8 +3,8 @@ import { cookies } from "next/headers";
 import { connectDB } from "./mongodb";
 import User from "@/models/User";
 
-if (!process.env.JWT_SECRET) {
-  console.warn("⚠️ JWT_SECRET not set — using insecure default. Set JWT_SECRET in production!");
+if (!process.env.JWT_SECRET && process.env.NODE_ENV === "production" && typeof window === "undefined" && process.env.NEXT_PHASE !== "phase-production-build") {
+  console.error("WARNING: JWT_SECRET not set in production!");
 }
 const JWT_SECRET = new TextEncoder().encode(process.env.JWT_SECRET || "iped-secret-key-change-in-production");
 const TOKEN_NAME = "iped-token";
@@ -50,8 +50,9 @@ export async function getCurrentUser() {
 }
 
 export function setTokenCookie(token: string) {
+  const secure = process.env.NODE_ENV === "production" ? "; Secure" : "";
   return {
-    "Set-Cookie": `${TOKEN_NAME}=${token}; Path=/; HttpOnly; SameSite=Lax; Max-Age=${7 * 24 * 60 * 60}`,
+    "Set-Cookie": `${TOKEN_NAME}=${token}; Path=/; HttpOnly; SameSite=Lax; Max-Age=${7 * 24 * 60 * 60}${secure}`,
   };
 }
 

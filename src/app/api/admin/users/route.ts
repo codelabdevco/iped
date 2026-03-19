@@ -21,7 +21,8 @@ export async function GET(request: NextRequest) {
     // Search filter
     const search = searchParams.get("search");
     if (search) {
-      const regex = new RegExp(search, "i");
+      const escapedSearch = search.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+      const regex = new RegExp(escapedSearch, "i");
       filter.$or = [
         { name: regex },
         { email: regex },
