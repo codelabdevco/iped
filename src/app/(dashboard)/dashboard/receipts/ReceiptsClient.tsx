@@ -184,7 +184,14 @@ export default function ReceiptsClient({ receipts: initialReceipts }: { receipts
   const [statusFilter, setStatusFilter] = useState("all");
   const [typeFilter, setTypeFilter] = useState("all");
   const [driveFilter, setDriveFilter] = useState("all");
+  const [sourceFilter, setSourceFilter] = useState("all");
   const searchParams = useSearchParams();
+
+  // Auto-set filter from URL params (e.g. ?source=reimbursement)
+  useEffect(() => {
+    const src = searchParams.get("source");
+    if (src === "reimbursement") setSourceFilter("reimbursement");
+  }, [searchParams]);
   const [editingId, setEditingId] = useState<string | null>(null);
   const [editForm, setEditForm] = useState<Partial<ReceiptRow>>({});
   const [editItems, setEditItems] = useState<LineItem[]>([]);
@@ -211,9 +218,11 @@ export default function ReceiptsClient({ receipts: initialReceipts }: { receipts
       const matchStatus = statusFilter === "all" || r.status === statusFilter;
       const matchType = typeFilter === "all" || r.type === typeFilter;
       const matchDrive = driveFilter === "all" || (driveFilter === "uploaded" ? (r.hasImage || r.imageUrl) : !(r.hasImage || r.imageUrl));
-      return matchSearch && matchStatus && matchType && matchDrive;
+      const isReimbursement = (r.note || "").includes("เบิกจ่ายจากส่วนตัว");
+      const matchSource = sourceFilter === "all" || (sourceFilter === "reimbursement" ? isReimbursement : r.source === sourceFilter);
+      return matchSearch && matchStatus && matchType && matchDrive && matchSource;
     });
-  }, [receipts, search, statusFilter, typeFilter, driveFilter]);
+  }, [receipts, search, statusFilter, typeFilter, driveFilter, sourceFilter]);
 
   const confirmedReceipts = filtered.filter((r) => r.status === "confirmed");
   const totalAmount = confirmedReceipts.reduce((s, r) => s + r.amount, 0);
@@ -687,12 +696,17 @@ export default function ReceiptsClient({ receipts: initialReceipts }: { receipts
         const yr = d.getFullYear() + 543;
         const time = r.time || "";
         const isLine = r.source === "line";
+        const isEmail = r.source === "email";
+        const isReimbursement = (r.note || "").includes("เบิกจ่ายจากส่วนตัว");
+        const sourceBrand = isReimbursement ? "personal" : isLine ? "line" : isEmail ? "gmail" : "web";
+        const sourceLabel = isReimbursement ? "เบิกจ่าย" : isLine ? "LINE" : isEmail ? "Email" : "เว็บ";
+        const sourceColor = isReimbursement ? "text-orange-400" : isLine ? "text-green-500" : isEmail ? "text-purple-400" : "text-blue-400";
         return (
           <div className="leading-tight">
             <div className="text-sm whitespace-nowrap">{day} {mon} {yr}{time ? <span className={`text-[11px] ml-1 ${muted}`}>{time}</span> : ""}</div>
             <div className={`flex items-center gap-1 mt-0.5 text-[11px]`}>
-              <BrandIcon brand={isLine ? "line" : "web"} size={13} />
-              <span className={isLine ? "text-green-500" : "text-blue-400"}>{isLine ? "LINE" : "เว็บ"}</span>
+              {isReimbursement ? <ArrowRightLeft size={12} className="text-orange-400" /> : <BrandIcon brand={sourceBrand} size={13} />}
+              <span className={sourceColor}>{sourceLabel}</span>
               {r.submittedBy && <span className={muted}>· {r.submittedBy}</span>}
             </div>
           </div>
@@ -1238,6 +1252,7 @@ export default function ReceiptsClient({ receipts: initialReceipts }: { receipts
           <Select value={statusFilter} onChange={setStatusFilter} className="w-44" options={[{ value: "all", label: "สถานะทั้งหมด" }, ...STATUS_OPTIONS]} />
           <Select value={typeFilter} onChange={setTypeFilter} className="w-40" options={[{ value: "all", label: "ประเภททั้งหมด" }, ...Object.entries(typeLabel).map(([k, v]) => ({ value: k, label: v }))]} />
           <Select value={driveFilter} onChange={setDriveFilter} className="w-44" options={[{ value: "all", label: "Drive ทั้งหมด" }, { value: "uploaded", label: "อัปโหลดแล้ว" }, { value: "not_uploaded", label: "ยังไม่อัปโหลด" }]} />
+          <Select value={sourceFilter} onChange={setSourceFilter} className="w-40" options={[{ value: "all", label: "แหล่งทั้งหมด" }, { value: "line", label: "LINE" }, { value: "web", label: "เว็บ" }, { value: "email", label: "Email" }, { value: "reimbursement", label: "เบิกจ่าย" }]} />
         </div>
       </div>
 
