@@ -83,6 +83,16 @@ export default function OnboardingChecklist() {
     setMounted(true);
   }, []);
 
+  // Listen for mode changes from Sidebar
+  useEffect(() => {
+    const handleModeChange = (e: Event) => {
+      const newMode = (e as CustomEvent).detail as "personal" | "business";
+      setMode(newMode);
+    };
+    window.addEventListener("iped-mode-change", handleModeChange);
+    return () => window.removeEventListener("iped-mode-change", handleModeChange);
+  }, []);
+
   // Auto-detect completed steps from API
   const autoDetect = useCallback(async () => {
     try {
