@@ -1492,24 +1492,83 @@ function ProfileTab({ data, isDark, toggleTheme }: { data: MobileData; isDark: b
         )}
       </div>
 
-      <div className={`${card} border ${border} rounded-2xl p-4`}>
-        <div className="flex items-center justify-between mb-2">
-          <p className={`text-xs font-semibold ${txt}`}>งบประมาณ</p>
+      {/* งบประมาณ + เป้าหมาย */}
+      <div className={`${card} border ${border} rounded-2xl p-4 space-y-4`}>
+        <div className="flex items-center justify-between">
+          <p className={`text-xs font-semibold ${txt}`}>งบประมาณ & เป้าหมาย</p>
           {editSection === "budget" ? (
             <div className="flex gap-2">
               <button onClick={() => setEditSection(null)} className={muted}><X size={14} /></button>
-              <button onClick={() => saveField({ monthlyBudget: form.monthlyBudget })} className="px-2.5 py-1 rounded-lg bg-[#FA3633] text-white text-[11px] font-semibold">บันทึก</button>
+              <button onClick={() => saveField({ monthlyBudget: form.monthlyBudget })} disabled={saving} className="flex items-center gap-1 px-2.5 py-1 rounded-lg bg-[#FA3633] text-white text-[11px] font-semibold">
+                {saving ? <Loader2 size={10} className="animate-spin" /> : <Check size={10} />} บันทึก
+              </button>
             </div>
           ) : (
             <button onClick={() => { setForm({ ...p }); setEditSection("budget"); }} className={`text-[11px] ${muted}`}><Pencil size={10} className="inline mr-1" />แก้ไข</button>
           )}
         </div>
+
         {editSection === "budget" ? (
-          <div><label className={lbl}>งบ/เดือน (฿)</label><input type="number" value={form.monthlyBudget || ""} onChange={(e) => setForm({ ...form, monthlyBudget: Number(e.target.value) || 0 })} className={inp} /></div>
+          <div><label className={lbl}>งบรายจ่าย/เดือน (฿)</label><input type="number" inputMode="decimal" value={form.monthlyBudget || ""} onChange={(e) => setForm({ ...form, monthlyBudget: Number(e.target.value) || 0 })} className={inp} placeholder="เช่น 15000" /></div>
         ) : (
           <>
-            <InfoRow l="งบ/เดือน" v={p.monthlyBudget > 0 ? `฿${fmt(p.monthlyBudget)}` : "ยังไม่ตั้ง"} d={isDark} />
-            {p.monthlyBudget > 0 && <div className={`h-2 rounded-full mt-2 ${isDark ? "bg-white/10" : "bg-gray-100"}`}><div className={`h-full rounded-full ${budgetPct > 80 ? "bg-red-500" : "bg-[#FA3633]"}`} style={{ width: `${budgetPct}%` }} /></div>}
+            {/* งบรายจ่าย */}
+            <div>
+              <div className="flex items-center justify-between mb-1.5">
+                <p className={`text-xs ${sub}`}>งบรายจ่าย · {new Date().toLocaleDateString("th-TH", { month: "long", year: "numeric" })}</p>
+                {p.monthlyBudget > 0 && <span className={`text-[11px] font-semibold ${budgetPct > 80 ? "text-red-500" : "text-green-500"}`}>{Math.round(budgetPct)}%</span>}
+              </div>
+              {p.monthlyBudget > 0 ? (
+                <>
+                  <div className={`h-3 rounded-full overflow-hidden ${isDark ? "bg-white/10" : "bg-gray-100"}`}>
+                    <div className={`h-full rounded-full transition-all ${budgetPct > 100 ? "bg-red-500" : budgetPct > 80 ? "bg-amber-500" : "bg-[#FA3633]"}`} style={{ width: `${Math.min(budgetPct, 100)}%` }} />
+                  </div>
+                  <div className="flex justify-between mt-1.5">
+                    <span className={`text-xs ${sub}`}>ใช้ไป <span className="text-red-500 font-semibold">฿{fmt(s.monthExpense)}</span></span>
+                    <span className={`text-xs ${sub}`}>จาก <span className={`font-semibold ${txt}`}>฿{fmt(p.monthlyBudget)}</span></span>
+                  </div>
+                  {p.monthlyBudget - s.monthExpense > 0 ? (
+                    <p className={`text-xs text-green-500 font-medium mt-1`}>เหลืออีก ฿{fmt(p.monthlyBudget - s.monthExpense)}</p>
+                  ) : (
+                    <p className="text-xs text-red-500 font-medium mt-1">เกินงบ ฿{fmt(s.monthExpense - p.monthlyBudget)}</p>
+                  )}
+                </>
+              ) : (
+                <p className={`text-xs ${muted}`}>ยังไม่ตั้งงบรายจ่าย — กด "แก้ไข" เพื่อตั้ง</p>
+              )}
+            </div>
+
+            {/* เส้นแบ่ง */}
+            <div className={`border-t ${isDark ? "border-white/[0.06]" : "border-gray-100"}`} />
+
+            {/* เป้าหมายรายจ่าย/รายรับ */}
+            <div>
+              <p className={`text-xs ${sub} mb-2`}>เป้าหมาย · {new Date().toLocaleDateString("th-TH", { month: "long" })}</p>
+              <div className="grid grid-cols-2 gap-3">
+                <GoalCard storageKey="goal-expense" current={data.monthExpense} label="เป้ารายจ่าย" color="red" />
+                <GoalCard storageKey="goal-income" current={data.monthIncome} label="เป้ารายรับ" color="green" />
+              </div>
+            </div>
+
+            {/* เงินออม */}
+            <div className={`border-t ${isDark ? "border-white/[0.06]" : "border-gray-100"}`} />
+            <div>
+              <p className={`text-xs ${sub} mb-2`}>เงินออม</p>
+              <div className="grid grid-cols-3 gap-2">
+                <div className={`rounded-xl p-2.5 text-center ${isDark ? "bg-pink-500/5" : "bg-pink-50"}`}>
+                  <p className={`text-[10px] ${muted}`}>ออมเดือนนี้</p>
+                  <p className="text-sm font-bold text-pink-500">฿{fmt(data.receipts.filter((r: any) => r.direction === "savings").reduce((s: number, r: any) => s + r.amount, 0))}</p>
+                </div>
+                <div className={`rounded-xl p-2.5 text-center ${isDark ? "bg-green-500/5" : "bg-green-50"}`}>
+                  <p className={`text-[10px] ${muted}`}>รับเดือนนี้</p>
+                  <p className="text-sm font-bold text-green-500">฿{fmt(data.monthIncome)}</p>
+                </div>
+                <div className={`rounded-xl p-2.5 text-center ${isDark ? "bg-red-500/5" : "bg-red-50"}`}>
+                  <p className={`text-[10px] ${muted}`}>จ่ายเดือนนี้</p>
+                  <p className="text-sm font-bold text-red-500">฿{fmt(data.monthExpense)}</p>
+                </div>
+              </div>
+            </div>
           </>
         )}
       </div>
