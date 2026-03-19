@@ -494,103 +494,75 @@ function ReceiptsTab({ receipts: initialReceipts, isDark }: { receipts: any[]; i
           {!refreshing && pullY > 50 && <span className={`text-[10px] ml-2 ${isDark ? "text-white/40" : "text-gray-400"}`}>ปล่อยเพื่อรีเฟรช</span>}
         </div>
       )}
-      <p className={`text-lg font-bold ${txt}`}>ใบเสร็จ</p>
-
-      {/* Stats */}
-      <div className="grid grid-cols-4 gap-2">
-        <div className={`${card} border ${border} rounded-lg p-2 text-center`}>
-          <p className={`text-lg font-bold ${txt}`}>{receipts.length}</p>
-          <p className={`text-[8px] ${muted}`}>ทั้งหมด</p>
+      {/* Header + search inline */}
+      <div className="flex items-center gap-3">
+        <p className={`text-lg font-bold ${txt} shrink-0`}>ใบเสร็จ</p>
+        <div className="relative flex-1">
+          <Search size={14} className={`absolute left-2.5 top-1/2 -translate-y-1/2 ${muted}`} />
+          <input value={search} onChange={(e) => setSearch(e.target.value)} placeholder="ค้นหา..."
+            className={`w-full h-9 pl-8 pr-3 rounded-lg text-xs ${isDark ? "bg-white/5 border-white/10 text-white placeholder:text-white/25" : "bg-gray-50 border-gray-200 text-gray-900 placeholder:text-gray-400"} border focus:outline-none focus:border-[#FA3633]/50`} />
         </div>
-        <div className={`${card} border ${border} rounded-lg p-2 text-center`}>
-          <p className={`text-lg font-bold ${totalAmount >= 0 ? "text-green-500" : "text-red-500"}`}>{totalAmount >= 0 ? "+" : ""}{fmt(Math.abs(totalAmount))}</p>
-          <p className={`text-[8px] ${muted}`}>ยอดรวม</p>
-        </div>
-        <div className={`${card} border ${border} rounded-lg p-2 text-center`}>
-          <p className="text-lg font-bold text-amber-500">{pendingCount}</p>
-          <p className={`text-[8px] ${muted}`}>รอยืนยัน</p>
-        </div>
-        <div className={`${card} border ${border} rounded-lg p-2 text-center`}>
-          <p className="text-lg font-bold text-green-500">{confirmedCount}</p>
-          <p className={`text-[8px] ${muted}`}>ยืนยัน</p>
+        <div className={`shrink-0 text-right`}>
+          <p className={`text-sm font-bold ${totalAmount >= 0 ? "text-green-500" : "text-red-500"}`}>{totalAmount >= 0 ? "+" : ""}฿{fmt(Math.abs(totalAmount))}</p>
+          <p className={`text-[8px] ${muted}`}>{receipts.length} รายการ</p>
         </div>
       </div>
 
-      {/* Search */}
-      <div className="relative">
-        <Search size={16} className={`absolute left-3 top-1/2 -translate-y-1/2 ${muted}`} />
-        <input value={search} onChange={(e) => setSearch(e.target.value)} placeholder="ค้นหาร้านค้า, หมวดหมู่..."
-          className={`w-full h-10 pl-9 pr-3 rounded-xl text-sm ${isDark ? "bg-white/5 border-white/10 text-white placeholder:text-white/25" : "bg-gray-50 border-gray-200 text-gray-900 placeholder:text-gray-400"} border focus:outline-none focus:border-[#FA3633]/50`} />
-      </div>
-
-      {/* Direction filter */}
-      <div className={`flex p-1 rounded-xl ${isDark ? "bg-white/5" : "bg-gray-100"}`}>
+      {/* Direction filter — compact */}
+      <div className={`flex p-0.5 rounded-lg ${isDark ? "bg-white/5" : "bg-gray-100"}`}>
         {dirTabs.map((t) => (
-          <button key={t.key} onClick={() => setDirFilter(t.key)} className={`flex-1 py-2 rounded-lg text-xs font-semibold transition-all ${dirFilter === t.key ? `${t.activeClass} shadow-sm` : isDark ? "text-white/40" : "text-gray-500"}`}>
+          <button key={t.key} onClick={() => setDirFilter(t.key)} className={`flex-1 py-1.5 rounded-md text-[11px] font-semibold transition-all ${dirFilter === t.key ? `${t.activeClass} shadow-sm` : isDark ? "text-white/40" : "text-gray-500"}`}>
             {t.label}
           </button>
         ))}
       </div>
 
-      {/* Status filter pills */}
-      <div className="flex gap-1.5 overflow-x-auto pb-1 -mx-1 px-1 no-scrollbar">
-        <button onClick={() => setStatusFilter("all")} className={`shrink-0 px-3 py-1.5 rounded-full text-[10px] font-semibold transition-all ${statusFilter === "all" ? "bg-[#FA3633] text-white" : isDark ? "bg-white/5 text-white/40" : "bg-gray-100 text-gray-500"}`}>
-          ทั้งหมด
-        </button>
-        {ALL_STATUSES.map((s) => {
-          const count = receipts.filter((r) => r.status === s).length;
-          if (count === 0) return null;
-          return (
-            <button key={s} onClick={() => setStatusFilter(statusFilter === s ? "all" : s)} className={`shrink-0 px-3 py-1.5 rounded-full text-[10px] font-semibold transition-all ${statusFilter === s ? "bg-[#FA3633] text-white" : isDark ? "bg-white/5 text-white/40" : "bg-gray-100 text-gray-500"}`}>
-              {STATUS_MAP[s].text} ({count})
-            </button>
-          );
-        })}
+      {/* Status pills — scroll horizontal */}
+      <div className="flex gap-1.5 overflow-x-auto -mx-1 px-1 no-scrollbar">
+        {[{ key: "all", text: "ทั้งหมด", count: receipts.length }, ...ALL_STATUSES.map((s) => ({ key: s, text: STATUS_MAP[s].text, count: receipts.filter((r) => r.status === s).length }))].filter((s) => s.count > 0).map((s) => (
+          <button key={s.key} onClick={() => setStatusFilter(statusFilter === s.key ? "all" : s.key)} className={`shrink-0 px-2.5 py-1 rounded-full text-[10px] font-medium transition-all ${statusFilter === s.key ? "bg-[#FA3633] text-white" : isDark ? "bg-white/5 text-white/40" : "bg-gray-100 text-gray-500"}`}>
+            {s.text} {s.count}
+          </button>
+        ))}
       </div>
 
       {/* Receipt list */}
-      <div className="space-y-2">
+      <div className="space-y-1.5">
         {filtered.map((r) => {
           const st = STATUS_MAP[r.status] || STATUS_MAP.pending;
-          const isIncome = r.direction === "income";
           return (
-            <div key={r._id} className={`${card} border ${border} rounded-xl overflow-hidden`}>
-              <div className="px-3.5 py-3 flex items-center gap-3" onClick={() => openEdit(r)}>
+            <div key={r._id} className={`${card} border ${border} rounded-xl active:scale-[0.99] transition-transform`} onClick={() => openEdit(r)}>
+              <div className="px-3 py-2.5 flex items-center gap-2.5">
+                {/* Icon */}
                 {r.hasImage ? (
                   <button onClick={(e) => { e.stopPropagation(); setLightbox(`/api/receipts/image?id=${r._id}`); }} className="shrink-0">
-                    <img src={`/api/receipts/image?id=${r._id}`} alt="" loading="lazy" className="w-11 h-11 rounded-lg object-cover ring-1 ring-black/5" />
+                    <img src={`/api/receipts/image?id=${r._id}`} alt="" loading="lazy" className="w-10 h-10 rounded-lg object-cover" />
                   </button>
-                ) : r.paymentMethod && (r.paymentMethod.startsWith("bank-") || r.paymentMethod === "promptpay") ? (
-                  <BrandIcon brand={r.paymentMethod} size={44} className="rounded-lg shrink-0" />
                 ) : (
-                  <div className={`w-11 h-11 rounded-lg flex items-center justify-center text-lg shrink-0 ${isDark ? "bg-white/5" : "bg-gray-50"}`}>{r.categoryIcon}</div>
+                  <div className={`w-10 h-10 rounded-lg flex items-center justify-center text-base shrink-0 ${isDark ? "bg-white/5" : "bg-gray-50"}`}>{r.categoryIcon || "📦"}</div>
                 )}
+                {/* Info */}
                 <div className="flex-1 min-w-0">
-                  <div className="flex items-center gap-1.5">
-                    <span className={`text-[8px] px-1.5 py-0.5 rounded font-bold leading-none ${r.direction === "income" ? "bg-green-500/15 text-green-500" : r.direction === "savings" ? "bg-pink-500/15 text-pink-500" : "bg-red-500/15 text-red-500"}`}>
-                      {r.direction === "income" ? "รับ" : r.direction === "savings" ? "ออม" : "จ่าย"}
-                    </span>
-                    <p className={`text-sm font-medium ${txt} truncate`}>{r.merchant}</p>
-                  </div>
-                  <div className="flex items-center gap-1.5 mt-0.5">
-                    <span className={`text-[10px] ${muted}`}>{r.date}{r.time ? ` · ${r.time}` : ""}</span>
-                    {r.source === "line" && <BrandIcon brand="line" size={10} />}
-                    <span className={`text-[8px] px-1.5 py-0.5 rounded-full font-semibold ${st.cls}`}>{st.text}</span>
+                  <p className={`text-[13px] font-medium ${txt} truncate`}>{r.merchant}</p>
+                  <div className="flex items-center gap-1 mt-0.5">
+                    <span className={`text-[9px] ${muted}`}>{r.date}</span>
+                    {r.source === "line" && <BrandIcon brand="line" size={9} />}
+                    <span className={`text-[8px] px-1 py-px rounded font-semibold ${st.cls}`}>{st.text}</span>
                   </div>
                 </div>
-                <div className="text-right shrink-0 flex items-center gap-2">
-                  <div>
-                    <Baht value={r.amount} direction={r.direction} className="text-sm font-bold" />
-                    <p className={`text-[10px] ${muted}`}>{r.category}</p>
-                  </div>
-                  <ChevronRight size={14} className={muted} />
+                {/* Amount */}
+                <div className="text-right shrink-0">
+                  <p className={`text-[13px] font-bold ${r.direction === "income" ? "text-green-500" : r.direction === "savings" ? "text-pink-500" : "text-red-500"}`}>
+                    {r.direction === "income" ? "+" : r.direction === "savings" ? "" : "-"}฿{fmt(r.amount)}
+                  </p>
+                  <p className={`text-[9px] ${muted}`}>{r.category}</p>
                 </div>
               </div>
             </div>
           );
         })}
         {filtered.length === 0 && <EmptyState isDark={isDark} />}
-        <p className={`text-center text-[10px] ${muted} py-2`}>แสดง {filtered.length} จาก {receipts.length} รายการ</p>
+        {filtered.length > 0 && <p className={`text-center text-[9px] ${muted} py-1`}>{filtered.length} รายการ</p>}
       </div>
 
       {/* FAB — add new receipt manually */}
