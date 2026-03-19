@@ -1,13 +1,13 @@
 "use client";
 
-import { createContext, useContext, useState, useEffect, useCallback, useRef, ReactNode } from "react";
+import { createContext, useContext, useState, useEffect, useCallback, ReactNode } from "react";
+import { usePathname } from "next/navigation";
 
 type Mode = "personal" | "business";
 
 interface ModeContextValue {
   mode: Mode;
   switchMode: (m: Mode) => void;
-  /** Increments on every mode change — use as dependency to trigger re-fetch */
   version: number;
 }
 
@@ -17,20 +17,24 @@ const ModeContext = createContext<ModeContextValue>({
   version: 0,
 });
 
+/** Read mode from URL pathname: /business/... → "business", else "personal" */
+function getModeFromPath(pathname: string): Mode {
+  return pathname.startsWith("/business") ? "business" : "personal";
+}
+
 export function ModeProvider({ children }: { children: ReactNode }) {
-  const [mode, setMode] = useState<Mode>("personal");
+  const pathname = usePathname();
+  // Initialize from URL — no flash, no useEffect needed
+  const [mode, setMode] = useState<Mode>(() => getModeFromPath(pathname));
   const [version, setVersion] = useState(0);
-  const initRef = useRef(false);
 
-  // Load from localStorage on mount
+  // Keep in sync if pathname changes (e.g. browser back/forward)
   useEffect(() => {
-    if (initRef.current) return;
-    initRef.current = true;
-    const saved = localStorage.getItem("iped-mode") as Mode | null;
-    if (saved === "business") setMode("business");
-  }, []);
+    const newMode = getModeFromPath(pathname);
+    if (newMode !== mode) setMode(newMode);
+  }, [pathname]);
 
-  // Listen for external mode changes (e.g. from Settings page)
+  // Listen for external mode changes
   useEffect(() => {
     const handler = (e: Event) => {
       const newMode = (e as CustomEvent).detail as Mode;
