@@ -559,36 +559,61 @@ function ReportsTab({ data, isDark }: { data: MobileData; isDark: boolean }) {
         <StatsCard label="หมวดหมู่" value={`${data.categories.length} หมวด`} icon={<FolderOpen size={18} />} />
       </div>
 
-      {/* Chart */}
+      {/* Chart — balanced */}
       <div className={`${card} border ${border} rounded-2xl p-4`}>
         <p className={`text-xs font-semibold ${txt} mb-4`}>ภาพรวมค่าใช้จ่ายรายเดือน</p>
-        <div className="flex items-end justify-between gap-1.5 h-36 mb-2">
-          {data.monthlyData.map((m, i) => {
-            const isLast = i === data.monthlyData.length - 1;
-            return (
-              <div key={m.month} className="flex-1 flex flex-col items-center gap-1">
-                {m.expense > 0 && <span className={`text-[7px] ${muted}`}>{m.expense >= 1000 ? `${Math.round(m.expense / 1000)}k` : fmt(m.expense)}</span>}
-                <div className="w-full flex items-end justify-center gap-px h-24">
-                  <div className={`w-3 rounded-t transition-all ${isLast ? "bg-red-500" : "bg-red-500/40"}`} style={{ height: `${Math.max(3, (m.expense / maxMonthly) * 100)}%` }} />
-                  {m.income > 0 && <div className={`w-3 rounded-t transition-all ${isLast ? "bg-green-500" : "bg-green-500/40"}`} style={{ height: `${Math.max(3, (m.income / maxMonthly) * 100)}%` }} />}
-                </div>
-                <span className={`text-[10px] font-medium ${isLast ? txt : muted}`}>{m.month}</span>
+        {/* Y-axis + bars */}
+        {(() => {
+          const niceMax = Math.ceil(maxMonthly / 1000) * 1000 || 1000;
+          const yTicks = [0, 0.25, 0.5, 0.75, 1].map((p) => Math.round(niceMax * p));
+          const fmtY = (v: number) => v >= 1000 ? `${(v / 1000).toFixed(0)}k` : `${v}`;
+          return (
+            <div className="flex gap-0" style={{ height: 160 }}>
+              {/* Y labels */}
+              <div className="flex flex-col justify-between pr-1.5 py-0" style={{ width: 32 }}>
+                {[...yTicks].reverse().map((v, i) => (
+                  <span key={i} className={`text-[8px] text-right leading-none ${muted}`}>{fmtY(v)}</span>
+                ))}
               </div>
-            );
-          })}
-        </div>
-        <div className="flex justify-center gap-4">
-          <div className="flex items-center gap-1.5"><div className="w-2 h-2 rounded-sm bg-red-500" /><span className={`text-[10px] ${sub}`}>จ่าย</span></div>
-          <div className="flex items-center gap-1.5"><div className="w-2 h-2 rounded-sm bg-green-500" /><span className={`text-[10px] ${sub}`}>รับ</span></div>
+              {/* Chart area */}
+              <div className="flex-1 relative">
+                {/* Grid lines */}
+                {[0, 0.25, 0.5, 0.75, 1].map((p, i) => (
+                  <div key={i} className={`absolute left-0 right-0 border-t ${isDark ? "border-white/5" : "border-gray-100"}`} style={{ top: `${(1 - p) * 100}%` }} />
+                ))}
+                {/* Bars */}
+                <div className="absolute inset-0 flex items-end justify-around px-0.5 pb-5">
+                  {data.monthlyData.map((m, i) => {
+                    const isLast = i === data.monthlyData.length - 1;
+                    const expH = niceMax > 0 ? (m.expense / niceMax) * 100 : 0;
+                    const incH = niceMax > 0 ? (m.income / niceMax) * 100 : 0;
+                    return (
+                      <div key={m.month} className="flex flex-col items-center h-full justify-end" style={{ width: `${100 / data.monthlyData.length - 1}%` }}>
+                        <div className="flex items-end gap-0.5 w-full justify-center" style={{ height: `calc(100% - 18px)` }}>
+                          <div className={`rounded-t transition-all ${isLast ? "bg-red-500" : "bg-red-500/40"}`} style={{ width: 10, height: `${Math.max(m.expense > 0 ? 3 : 0, expH)}%` }} />
+                          <div className={`rounded-t transition-all ${isLast ? "bg-green-500" : "bg-green-500/40"}`} style={{ width: 10, height: `${Math.max(m.income > 0 ? 3 : 0, incH)}%` }} />
+                        </div>
+                        <span className={`text-[9px] mt-1 font-medium ${isLast ? txt : muted}`}>{m.month}</span>
+                      </div>
+                    );
+                  })}
+                </div>
+              </div>
+            </div>
+          );
+        })()}
+        <div className="flex justify-center gap-4 mt-2">
+          <div className="flex items-center gap-1.5"><div className="w-2 h-2 rounded-sm bg-red-500" /><span className={`text-[10px] ${sub}`}>รายจ่าย</span></div>
+          <div className="flex items-center gap-1.5"><div className="w-2 h-2 rounded-sm bg-green-500" /><span className={`text-[10px] ${sub}`}>รายรับ</span></div>
         </div>
       </div>
 
-      {/* Goals */}
+      {/* Goals — donut charts */}
       <div className={`${card} border ${border} rounded-2xl p-4`}>
-        <p className={`text-xs font-semibold ${txt} mb-3`}>เป้าหมาย</p>
-        <div className="grid grid-cols-2 gap-3">
-          <GoalCard storageKey="goal-expense" current={data.monthExpense} label="เป้ารายจ่าย" color="red" />
-          <GoalCard storageKey="goal-income" current={data.monthIncome} label="เป้ารายรับ" color="green" />
+        <p className={`text-xs font-semibold ${txt} mb-4`}>เป้าหมาย</p>
+        <div className="grid grid-cols-2 gap-4">
+          <DonutGoal label="เป้ารายจ่าย" current={data.monthExpense} storageKey="goal-expense" color="#FA3633" isDark={isDark} />
+          <DonutGoal label="เป้ารายรับ" current={data.monthIncome} storageKey="goal-income" color="#22C55E" isDark={isDark} />
         </div>
       </div>
 
@@ -904,6 +929,56 @@ function ProfileTab({ data, isDark, toggleTheme }: { data: MobileData; isDark: b
       </div>
 
       <p className={`text-center text-[10px] ${muted} py-2`}>อาซิ่ม v1.0 — Powered by codelabs tech</p>
+    </div>
+  );
+}
+
+// ════════════════════════════════════════
+//  DONUT GOAL
+// ════════════════════════════════════════
+function DonutGoal({ label, current, storageKey, color, isDark }: { label: string; current: number; storageKey: string; color: string; isDark: boolean }) {
+  const { txt, sub, muted } = useS(isDark);
+  const [target] = useState<number>(() => {
+    try {
+      const s = typeof window !== "undefined" ? localStorage.getItem(storageKey) : null;
+      return s ? Number(JSON.parse(s).target) || 0 : 0;
+    } catch { return 0; }
+  });
+
+  const pct = target > 0 ? Math.min((current / target) * 100, 100) : 0;
+  const overBudget = target > 0 && current > target;
+  const r = 40;
+  const stroke = 8;
+  const circumference = 2 * Math.PI * r;
+  const dashOffset = circumference - (circumference * Math.min(pct, 100)) / 100;
+
+  return (
+    <div className="flex flex-col items-center">
+      <div className="relative" style={{ width: 100, height: 100 }}>
+        <svg width="100" height="100" viewBox="0 0 100 100" className="-rotate-90">
+          {/* Background ring */}
+          <circle cx="50" cy="50" r={r} fill="none" stroke={isDark ? "rgba(255,255,255,0.06)" : "rgba(0,0,0,0.06)"} strokeWidth={stroke} />
+          {/* Progress ring */}
+          {target > 0 && (
+            <circle cx="50" cy="50" r={r} fill="none" stroke={overBudget ? "#EF4444" : color} strokeWidth={stroke} strokeLinecap="round"
+              strokeDasharray={circumference} strokeDashoffset={dashOffset}
+              style={{ transition: "stroke-dashoffset 0.8s ease" }} />
+          )}
+        </svg>
+        {/* Center text */}
+        <div className="absolute inset-0 flex flex-col items-center justify-center">
+          {target > 0 ? (
+            <>
+              <span className={`text-base font-bold ${overBudget ? "text-red-500" : txt}`}>{Math.round(pct)}%</span>
+              <span className={`text-[8px] ${muted}`}>ของเป้า</span>
+            </>
+          ) : (
+            <span className={`text-[9px] ${muted}`}>ยังไม่ตั้ง</span>
+          )}
+        </div>
+      </div>
+      <p className={`text-[11px] font-semibold mt-2 ${txt}`}>{label}</p>
+      <p className={`text-[10px] ${sub}`}>฿{fmt(current)}{target > 0 ? ` / ฿${fmt(target)}` : ""}</p>
     </div>
   );
 }
