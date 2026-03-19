@@ -144,7 +144,7 @@ const typeLabel: Record<string, string> = {
   expense: "รายจ่าย",
 };
 
-export default function ReceiptsClient({ receipts: initialReceipts }: { receipts: ReceiptRow[] }) {
+export default function ReceiptsClient({ receipts: initialReceipts, hasOrg = false }: { receipts: ReceiptRow[]; hasOrg?: boolean }) {
   const { isDark } = useTheme();
   const modal = useModal();
   const { mode } = useMode();
@@ -855,8 +855,8 @@ export default function ReceiptsClient({ receipts: initialReceipts }: { receipts
 
         return (
         <div className="flex items-center gap-1" onClick={(e) => e.stopPropagation()}>
-          {/* Personal mode: transfer button or "ส่งแล้ว" badge */}
-          {!isBusiness && (isSent ? (
+          {/* Personal mode: transfer button (only if joined company) */}
+          {!isBusiness && hasOrg && (isSent ? (
             <span className={`px-2 py-1 rounded-lg text-[10px] font-medium ${dark ? "bg-green-500/10 text-green-400" : "bg-green-50 text-green-600"}`}>ส่งแล้ว</span>
           ) : (
             <button onClick={() => handleTransfer([r._id])} className={`p-2 rounded-lg transition-colors ${dark ? "hover:bg-white/5 text-white/40 hover:text-blue-400" : "hover:bg-gray-100 text-gray-400 hover:text-blue-500"}`} title="ส่งเป็นค่าใช้จ่ายบริษัท">

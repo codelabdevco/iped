@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { withAuth } from "@/lib/api-helpers";
 import { connectDB } from "@/lib/mongodb";
 import Receipt from "@/models/Receipt";
+import User from "@/models/User";
 
 export async function POST(
   request: NextRequest,
@@ -18,6 +19,14 @@ export async function POST(
         { success: false, error: "direction ต้องเป็น 'to-business' หรือ 'to-personal'" },
         { status: 400 }
       );
+    }
+
+    // Check if user has joined a company before allowing transfer to business
+    if (direction === "to-business") {
+      const user = await User.findById(session.userId).select("orgId").lean() as any;
+      if (!user?.orgId) {
+        return NextResponse.json({ success: false, error: "กรุณาเชื่อมต่อบริษัทก่อนส่งค่าใช้จ่าย" }, { status: 403 });
+      }
     }
 
     const sourceAccountType = direction === "to-business" ? "personal" : "business";

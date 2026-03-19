@@ -112,7 +112,8 @@ async function ReceiptsData() {
     })(),
   }));
 
-  return <ReceiptsClient receipts={data} />;
+  const hasOrg = !!(currentUser as any)?.orgId;
+  return <ReceiptsClient receipts={data} hasOrg={hasOrg} />;
 }
 
 export default function ReceiptsPage() {

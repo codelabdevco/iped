@@ -12,10 +12,11 @@ interface ShellProps {
   pictureUrl?: string;
   pendingReceipts?: number;
   badges?: Record<string, number>;
+  hasOrg?: boolean;
   children: React.ReactNode;
 }
 
-function ShellInner({ displayName, pictureUrl, badges: propBadges, children }: ShellProps) {
+function ShellInner({ displayName, pictureUrl, badges: propBadges, hasOrg, children }: ShellProps) {
   const { isDark } = useTheme();
   const [mobileOpen, setMobileOpen] = useState(false);
   const toggleMobile = useCallback(() => setMobileOpen((p) => !p), []);
@@ -27,7 +28,7 @@ function ShellInner({ displayName, pictureUrl, badges: propBadges, children }: S
     <div className="flex h-screen overflow-hidden shell-theme">
       {/* Desktop sidebar */}
       <div className="hidden md:flex h-full">
-        <Sidebar badges={badges} />
+        <Sidebar badges={badges} hasOrg={!!hasOrg} />
       </div>
 
       {/* Mobile overlay */}
@@ -37,7 +38,7 @@ function ShellInner({ displayName, pictureUrl, badges: propBadges, children }: S
 
       {/* Mobile sidebar */}
       <div className={`fixed inset-y-0 left-0 z-50 md:hidden transition-transform duration-300 ${mobileOpen ? "translate-x-0" : "-translate-x-full"}`}>
-        <Sidebar onNavigate={closeMobile} badges={badges} />
+        <Sidebar onNavigate={closeMobile} badges={badges} hasOrg={!!hasOrg} />
       </div>
 
       <div className="flex-1 flex flex-col overflow-hidden">
@@ -48,12 +49,12 @@ function ShellInner({ displayName, pictureUrl, badges: propBadges, children }: S
   );
 }
 
-export default function DashboardShell({ displayName, pictureUrl, pendingReceipts, badges, children }: ShellProps) {
+export default function DashboardShell({ displayName, pictureUrl, pendingReceipts, badges, hasOrg, children }: ShellProps) {
   return (
     <ThemeProvider>
       <ModeProvider>
         <ModalProvider>
-          <ShellInner displayName={displayName} pictureUrl={pictureUrl} badges={badges}>{children}</ShellInner>
+          <ShellInner displayName={displayName} pictureUrl={pictureUrl} badges={badges} hasOrg={hasOrg}>{children}</ShellInner>
         </ModalProvider>
       </ModeProvider>
     </ThemeProvider>

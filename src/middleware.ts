@@ -30,6 +30,14 @@ export function middleware(request: NextRequest) {
 
     if (!token) return NextResponse.redirect(new URL("/login", request.url));
 
+    // Route guard: block /business/ if user hasn't joined a company
+    if (mode === "business") {
+      const hasOrg = request.cookies.get("iped-has-org")?.value;
+      if (!hasOrg) {
+        return NextResponse.redirect(new URL("/personal/dashboard", request.url));
+      }
+    }
+
     // Route guard
     if (mode === "personal") {
       const pagePath = rest.replace(/\/$/, "") || "/dashboard";

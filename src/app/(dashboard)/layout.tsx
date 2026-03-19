@@ -22,7 +22,7 @@ export default async function DashboardLayout({ children }: { children: React.Re
   const userId = payload.userId;
 
   const [user, pendingReceipts, pendingApprovals, pendingReimbursement, pendingPayroll, pendingClaims] = await Promise.all([
-    User.findById(userId).select("lineDisplayName lineProfilePic name").lean(),
+    User.findById(userId).select("lineDisplayName lineProfilePic name orgId").lean(),
     Receipt.countDocuments({ userId, accountType, status: "pending" }),
     // Business: approvals — confirmed items waiting to be paid
     accountType === "business"
@@ -44,16 +44,25 @@ export default async function DashboardLayout({ children }: { children: React.Re
 
   const displayName = user?.lineDisplayName || user?.name || "User";
   const pictureUrl = user?.lineProfilePic || "";
+  const hasOrg = !!(user as any)?.orgId;
 
   const badges: Record<string, number> = {};
   if (pendingReceipts > 0) badges["/dashboard/receipts"] = pendingReceipts;
-  if (pendingApprovals > 0) badges["/dashboard/approvals"] = pendingApprovals;
-  if (pendingReimbursement > 0) badges["/dashboard/reimbursement"] = pendingReimbursement;
-  if (pendingPayroll > 0) badges["/dashboard/payroll"] = pendingPayroll;
-  if (pendingClaims > 0) badges["/dashboard/my-claims"] = pendingClaims;
+  if (hasOrg && pendingApprovals > 0) badges["/dashboard/approvals"] = pendingApprovals;
+  if (hasOrg && pendingReimbursement > 0) badges["/dashboard/reimbursement"] = pendingReimbursement;
+  if (hasOrg && pendingPayroll > 0) badges["/dashboard/payroll"] = pendingPayroll;
+  if (hasOrg && pendingClaims > 0) badges["/dashboard/my-claims"] = pendingClaims;
+
+  // Set org cookie for middleware to check
+  const cookieStoreWrite = await cookies();
+  if (hasOrg) {
+    cookieStoreWrite.set("iped-has-org", "1", { path: "/", maxAge: 3600 });
+  } else {
+    cookieStoreWrite.delete("iped-has-org");
+  }
 
   return (
-    <DashboardShell displayName={displayName} pictureUrl={pictureUrl} pendingReceipts={pendingReceipts} badges={badges}>
+    <DashboardShell displayName={displayName} pictureUrl={pictureUrl} pendingReceipts={pendingReceipts} badges={badges} hasOrg={hasOrg}>
       {children}
     </DashboardShell>
   );

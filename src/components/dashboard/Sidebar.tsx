@@ -115,7 +115,7 @@ const businessNav: NavGroup[] = [
   },
 ];
 
-export default function Sidebar({ onNavigate, badges = {} }: { onNavigate?: () => void; badges?: Record<string, number> }) {
+export default function Sidebar({ onNavigate, badges = {}, hasOrg = false }: { onNavigate?: () => void; badges?: Record<string, number>; hasOrg?: boolean }) {
   const [collapsed, setCollapsed] = useState(false);
   const [collapsedGroups, setCollapsedGroups] = useState<Record<string, boolean>>({});
   const pathname = usePathname();
@@ -140,7 +140,10 @@ export default function Sidebar({ onNavigate, badges = {} }: { onNavigate?: () =
     setCollapsedGroups((prev) => ({ ...prev, [label]: !prev[label] }));
   };
 
-  const navGroups = mode === "personal" ? personalNav : businessNav;
+  // Filter nav: hide "บริษัท" section in personal if user hasn't joined a company
+  const navGroups = mode === "personal"
+    ? (hasOrg ? personalNav : personalNav.filter((g) => g.label !== "บริษัท"))
+    : businessNav;
 
   const isActive = (href: string) =>
     rawPath === href || (href !== "/dashboard" && rawPath.startsWith(href));
@@ -188,8 +191,8 @@ export default function Sidebar({ onNavigate, badges = {} }: { onNavigate?: () =
         </div>
       </div>
 
-      {/* Mode Switcher */}
-      {!collapsed && (
+      {/* Mode Switcher — only show if user joined a company */}
+      {!collapsed && hasOrg && (
         <div className="px-3 pt-3 pb-1">
           <div
             className={`flex p-1 rounded-xl ${
@@ -227,7 +230,7 @@ export default function Sidebar({ onNavigate, badges = {} }: { onNavigate?: () =
       )}
 
       {/* Collapsed mode indicator */}
-      {collapsed && (
+      {hasOrg && collapsed && (
         <div className="flex justify-center py-3">
           <div
             className={`w-8 h-8 rounded-lg flex items-center justify-center cursor-pointer transition-colors ${
