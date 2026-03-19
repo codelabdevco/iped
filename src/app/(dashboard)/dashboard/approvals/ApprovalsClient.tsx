@@ -1,5 +1,6 @@
 "use client";
 import { useState } from "react";
+import { useReactiveData } from "@/hooks/useReactiveMode";
 import { useTheme } from "@/contexts/ThemeContext";
 import { Check, X, Clock, CheckCircle, AlertTriangle } from "lucide-react";
 import PageHeader from "@/components/dashboard/PageHeader";
@@ -26,7 +27,7 @@ const statusStyle: Record<string, string> = {
 
 export default function ApprovalsClient({ approvals: initial }: { approvals: ApprovalRow[] }) {
   const { isDark } = useTheme();
-  const [data, setData] = useState(initial);
+  const [data, setData] = useReactiveData(initial);
   const pending = data.filter(d => d.status === "รออนุมัติ").length;
   const approved = data.filter(d => d.status === "อนุมัติ").length;
   const rejected = data.filter(d => d.status === "ปฏิเสธ").length;

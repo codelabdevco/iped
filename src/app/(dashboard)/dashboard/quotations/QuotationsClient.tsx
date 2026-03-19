@@ -1,5 +1,6 @@
 "use client";
 import { useState } from "react";
+import { useReactiveData } from "@/hooks/useReactiveMode";
 import { useTheme } from "@/contexts/ThemeContext";
 import { FileText, Clock, Wallet } from "lucide-react";
 import PageHeader from "@/components/dashboard/PageHeader";
@@ -30,7 +31,7 @@ const statusColor: Record<string, string> = {
 
 export default function QuotationsClient({ quotations: initial }: { quotations: QuotationRow[] }) {
   const { isDark } = useTheme();
-  const [data] = useState(initial);
+  const [data] = useReactiveData(initial);
   const pending = data.filter(d => d.status === "ส่งแล้ว").length;
   const total = data.reduce((s, d) => s + d.amount, 0);
 

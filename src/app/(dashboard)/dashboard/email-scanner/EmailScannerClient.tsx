@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { useTheme } from "@/contexts/ThemeContext";
 import { Mail, FileText, CheckCircle, Search, Loader2, Clock, ToggleLeft, ToggleRight, Plus, User } from "lucide-react";
@@ -79,6 +79,10 @@ export default function EmailScannerClient({
   const [scanning, setScanning] = useState(false);
   const [autoScan, setAutoScan] = useState(initialAutoScan);
   const [lastScan, setLastScan] = useState(initialLastScan);
+
+  // Sync when server re-renders (mode switch)
+  useEffect(() => { setAutoScan(initialAutoScan); }, [initialAutoScan]);
+  useEffect(() => { setLastScan(initialLastScan); }, [initialLastScan]);
 
   const c = isDark ? "bg-[rgba(255,255,255,0.04)]" : "bg-white";
   const b = isDark ? "border-[rgba(255,255,255,0.06)]" : "border-gray-200";

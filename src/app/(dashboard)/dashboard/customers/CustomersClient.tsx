@@ -1,5 +1,6 @@
 "use client";
 import { useState } from "react";
+import { useReactiveData } from "@/hooks/useReactiveMode";
 import { useTheme } from "@/contexts/ThemeContext";
 import { Users, Search, UserPlus, Banknote } from "lucide-react";
 import PageHeader from "@/components/dashboard/PageHeader";
@@ -18,7 +19,7 @@ interface CustomerRow {
 
 export default function CustomersClient({ customers: initial }: { customers: CustomerRow[] }) {
   const { isDark } = useTheme();
-  const [data] = useState(initial);
+  const [data] = useReactiveData(initial);
   const [q, setQ] = useState("");
   const c = isDark ? "bg-[rgba(255,255,255,0.04)]" : "bg-white";
   const b = isDark ? "border-[rgba(255,255,255,0.06)]" : "border-gray-200";

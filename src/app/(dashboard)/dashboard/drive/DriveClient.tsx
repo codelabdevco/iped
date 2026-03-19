@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useEffect, useRef, useCallback } from "react";
+import { useReactiveData } from "@/hooks/useReactiveMode";
 import { useTheme } from "@/contexts/ThemeContext";
 import { Cloud, Grid3X3, List, Search, ImageIcon, FileText, Upload, Eye, MessageCircle, Globe, Trash2, Download, File, FileSpreadsheet, FileImage, FileVideo, FileArchive } from "lucide-react";
 import BrandIcon from "@/components/dashboard/BrandIcon";
@@ -56,7 +57,7 @@ export default function DriveClient({ docs: initial, totalStorageBytes = 0 }: { 
     finally { setSyncing(false); }
   };
   const { isDark } = useTheme();
-  const [docs, setDocs] = useState(initial);
+  const [docs, setDocs] = useReactiveData(initial);
   const [view, setView] = useState<"grid" | "list">("grid");
   const [search, setSearch] = useState("");
   const [filterType, setFilterType] = useState("all");

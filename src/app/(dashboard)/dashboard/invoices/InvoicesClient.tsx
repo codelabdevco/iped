@@ -1,5 +1,6 @@
 "use client";
 import { useState } from "react";
+import { useReactiveData } from "@/hooks/useReactiveMode";
 import { useTheme } from "@/contexts/ThemeContext";
 import { Clock, FileText, AlertTriangle, Wallet } from "lucide-react";
 import PageHeader from "@/components/dashboard/PageHeader";
@@ -28,7 +29,7 @@ const statusStyle: Record<string, string> = {
 
 export default function InvoicesClient({ invoices: initial }: { invoices: InvoiceRow[] }) {
   const { isDark } = useTheme();
-  const [data] = useState(initial);
+  const [data] = useReactiveData(initial);
   const pending = data.filter(d => d.status === "ค้างชำระ").length;
   const overdue = data.filter(d => d.status === "เกินกำหนด").length;
   const total = data.reduce((s, d) => s + d.amount, 0);

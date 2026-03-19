@@ -2,6 +2,7 @@
 
 import { useState, useMemo, useCallback, useRef, useEffect } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
+import { useReactiveData } from "@/hooks/useReactiveMode";
 import { Search, Filter, Receipt, FileText, CheckCircle, Clock, Pencil, Trash2, ImageIcon, Cloud, CloudOff, HardDrive, Upload, X, MessageCircle, Globe, User, Plus, Loader2, Mail, Link2, ArrowRightLeft, Building2 } from "lucide-react";
 import BrandIcon from "@/components/dashboard/BrandIcon";
 import Select from "@/components/dashboard/Select";
@@ -144,7 +145,7 @@ const typeLabel: Record<string, string> = {
 export default function ReceiptsClient({ receipts: initialReceipts }: { receipts: ReceiptRow[] }) {
   const { isDark } = useTheme();
   const router = useRouter();
-  const [receipts, setReceipts] = useState(initialReceipts);
+  const [receipts, setReceipts] = useReactiveData(initialReceipts);
   const pollRef = useRef<{ count: number; latestId: string | null }>({
     count: initialReceipts.length,
     latestId: initialReceipts[0]?._id || null,

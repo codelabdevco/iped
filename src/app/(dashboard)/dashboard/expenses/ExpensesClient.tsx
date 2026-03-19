@@ -2,6 +2,7 @@
 
 import { useState, useMemo, useCallback, useRef, useEffect } from "react";
 import { useRouter } from "next/navigation";
+import { useReactiveData } from "@/hooks/useReactiveMode";
 import { useTheme } from "@/contexts/ThemeContext";
 import { TrendingDown, Hash, Calculator, Plus, Pencil, Trash2, Loader2, MessageCircle, Globe, ImageIcon, X } from "lucide-react";
 import GoalCard from "@/components/dashboard/GoalCard";
@@ -72,7 +73,7 @@ function LazyImage({ id, hasImage, onClickFull, isDark }: { id: string; hasImage
 export default function ExpensesClient({ expenses: initial }: { expenses: ExpenseRow[] }) {
   const { isDark } = useTheme();
   const router = useRouter();
-  const [expenses, setExpenses] = useState(initial);
+  const [expenses, setExpenses] = useReactiveData(initial);
   const [isAdding, setIsAdding] = useState(false);
   const [editingId, setEditingId] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);

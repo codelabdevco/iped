@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
+import { useReactiveData } from "@/hooks/useReactiveMode";
 import { useTheme } from "@/contexts/ThemeContext";
 import { Copy, Trash2, CheckCircle, AlertTriangle, Shield, ImageIcon, MessageCircle, Globe, Loader2 } from "lucide-react";
 import PageHeader from "@/components/dashboard/PageHeader";
@@ -21,7 +22,7 @@ interface DupGroup {
 export default function DuplicatesClient({ groups: initial }: { groups: DupGroup[] }) {
   const { isDark } = useTheme();
   const router = useRouter();
-  const [groups, setGroups] = useState(initial);
+  const [groups, setGroups] = useReactiveData(initial);
   const [resolved, setResolved] = useState<Set<string>>(new Set());
   const [acting, setActing] = useState<string | null>(null);
   const [deleteTarget, setDeleteTarget] = useState<{ group: DupGroup; mode: "first" | "all" } | null>(null);

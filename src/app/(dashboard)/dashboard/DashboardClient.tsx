@@ -301,6 +301,11 @@ export default function DashboardClient({ data: initialData }: { data: Dashboard
   const [hoveredReceipt, setHoveredReceipt] = useState<string | null>(null);
   const exportRef = useRef<HTMLDivElement>(null);
 
+  // Sync data when server re-renders with new props (e.g. mode switch)
+  useEffect(() => {
+    setData(initialData);
+  }, [initialData]);
+
   useEffect(() => {
     function handleClick(e: MouseEvent) {
       if (exportRef.current && !exportRef.current.contains(e.target as Node)) setShowExportMenu(false);
