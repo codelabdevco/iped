@@ -33,47 +33,47 @@ async function MobileData() {
     topMerchants,
     paymentMethods,
   ] = await Promise.all([
-    Receipt.find({ userId: session.userId, status: { $ne: "cancelled" } })
+    Receipt.find({ userId: session.userId, status: { $nin: ["cancelled", "draft"] } })
       .select("merchant amount category categoryIcon direction paymentMethod date time status source imageHash createdAt")
       .sort({ createdAt: -1 }).limit(100).lean(),
-    Receipt.find({ userId: session.userId, date: { $gte: todayStart }, status: { $ne: "cancelled" } })
+    Receipt.find({ userId: session.userId, date: { $gte: todayStart }, status: { $nin: ["cancelled", "draft"] } })
       .select("amount direction").lean(),
     Receipt.aggregate([
-      { $match: { userId: session.userId, date: { $gte: monthStart }, direction: { $ne: "income" }, status: { $ne: "cancelled" } } },
+      { $match: { userId: session.userId, date: { $gte: monthStart }, direction: { $ne: "income" }, status: { $nin: ["cancelled", "draft"] } } },
       { $group: { _id: null, total: { $sum: "$amount" } } },
     ]),
     Receipt.aggregate([
-      { $match: { userId: session.userId, date: { $gte: monthStart }, direction: "income", status: { $ne: "cancelled" } } },
+      { $match: { userId: session.userId, date: { $gte: monthStart }, direction: "income", status: { $nin: ["cancelled", "draft"] } } },
       { $group: { _id: null, total: { $sum: "$amount" } } },
     ]),
     Receipt.aggregate([
-      { $match: { userId: session.userId, date: { $gte: monthStart }, direction: { $ne: "income" }, status: { $ne: "cancelled" } } },
+      { $match: { userId: session.userId, date: { $gte: monthStart }, direction: { $ne: "income" }, status: { $nin: ["cancelled", "draft"] } } },
       { $group: { _id: "$category", icon: { $first: "$categoryIcon" }, total: { $sum: "$amount" }, count: { $sum: 1 } } },
       { $sort: { total: -1 } },
       { $limit: 10 },
     ]),
     Receipt.aggregate([
-      { $match: { userId: session.userId, date: { $gte: sixMonthsAgo }, status: { $ne: "cancelled" } } },
+      { $match: { userId: session.userId, date: { $gte: sixMonthsAgo }, status: { $nin: ["cancelled", "draft"] } } },
       { $group: { _id: { month: { $month: "$date" }, year: { $year: "$date" }, direction: { $ifNull: ["$direction", "expense"] } }, total: { $sum: "$amount" } } },
       { $sort: { "_id.year": 1, "_id.month": 1 } },
     ]),
-    Receipt.countDocuments({ userId: session.userId, status: { $ne: "cancelled" } }),
+    Receipt.countDocuments({ userId: session.userId, status: { $nin: ["cancelled", "draft"] } }),
     Receipt.aggregate([
-      { $match: { userId: session.userId, status: { $ne: "cancelled" } } },
+      { $match: { userId: session.userId, status: { $nin: ["cancelled", "draft"] } } },
       { $group: { _id: { $dateToString: { format: "%Y-%m-%d", date: "$date" } } } },
       { $sort: { _id: -1 } },
       { $limit: 60 },
     ]),
     // Top merchants this month
     Receipt.aggregate([
-      { $match: { userId: session.userId, date: { $gte: monthStart }, direction: { $ne: "income" }, status: { $ne: "cancelled" } } },
+      { $match: { userId: session.userId, date: { $gte: monthStart }, direction: { $ne: "income" }, status: { $nin: ["cancelled", "draft"] } } },
       { $group: { _id: "$merchant", total: { $sum: "$amount" }, count: { $sum: 1 } } },
       { $sort: { total: -1 } },
       { $limit: 5 },
     ]),
     // Payment methods this month
     Receipt.aggregate([
-      { $match: { userId: session.userId, date: { $gte: monthStart }, status: { $ne: "cancelled" } } },
+      { $match: { userId: session.userId, date: { $gte: monthStart }, status: { $nin: ["cancelled", "draft"] } } },
       { $group: { _id: "$paymentMethod", total: { $sum: "$amount" }, count: { $sum: 1 } } },
       { $sort: { total: -1 } },
       { $limit: 5 },

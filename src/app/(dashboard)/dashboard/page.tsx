@@ -110,7 +110,7 @@ async function getDashboardData(userId: string) {
   };
 
   // Savings by category (real data)
-  const savingsReceipts = await Receipt.find({ userId, direction: "savings", status: { $ne: "cancelled" } })
+  const savingsReceipts = await Receipt.find({ userId, direction: "savings", status: { $nin: ["cancelled", "draft"] } })
     .select("amount category")
     .lean();
   const savingsByCategory: Record<string, number> = {};

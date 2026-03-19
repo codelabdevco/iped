@@ -945,7 +945,7 @@ export function errorFlex(confidence?: number) {
 //  4. notReceiptFlex — 📄 ไม่ใช่ใบเสร็จ
 // ════════════════════════════════════════════════════════════
 
-export function notReceiptFlex() {
+export function notReceiptFlex(receiptId?: string) {
   return {
     type: "flex" as const,
     altText: "ภาพนี้ไม่ใช่ใบเสร็จ",
@@ -1030,7 +1030,14 @@ export function notReceiptFlex() {
           },
         ],
       },
-      footer: footerBox([
+      footer: footerBox(receiptId ? [
+        actionBtn("ยกเลิก", "secondary", C.sub, {
+          data: `action=cancel&id=${receiptId}`,
+        }),
+        actionBtn("ยืนยันบันทึก", "primary", C.brand, {
+          data: `action=confirm_not_receipt&id=${receiptId}`,
+        }),
+      ] : [
         actionBtn("ส่งรูปใบเสร็จ", "primary", C.brand),
       ]),
     },

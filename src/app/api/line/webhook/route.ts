@@ -356,11 +356,31 @@ export async function POST(request: NextRequest) {
           const ocr = await ocrReceipt(imageBuffer, knowledge, userNameCtx);
           console.log("OCR:", JSON.stringify(ocr));
 
-          // 3. Not a receipt? (📄)
+          // 3. Not a receipt? → save as draft + ask to confirm
           if (!ocr || ocr.isReceipt === false) {
-            const nrFlex = notReceiptFlex();
-            await replyMessage(rt, [{ type: "text", text: "📄 ภาพนี้ไม่ใช่ใบเสร็จ", quoteToken: qt }, nrFlex]);
-            console.log("Reply: not_receipt");
+            const mongoUidNr = await resolveUserId(uid || "");
+            const nrAccountType = await getUserAccountType(uid || "");
+            let nrImageUrl: string | undefined;
+            if (imageBuffer) nrImageUrl = `data:image/jpeg;base64,${imageBuffer.toString("base64")}`;
+            const nrReceipt = await Receipt.create({
+              type: "receipt", source: "line",
+              merchant: ocr?.merchant || "ไม่ระบุ",
+              date: ocr?.date ? new Date(ocr.date) : new Date(),
+              time: ocr?.time || undefined,
+              amount: ocr?.amount || 0,
+              category: ocr?.category || "อื่นๆ",
+              categoryIcon: ocr?.categoryIcon || "📦",
+              paymentMethod: ocr?.paymentMethod || undefined,
+              direction: "expense",
+              status: "draft",
+              imageUrl: nrImageUrl, imageHash: imgHash,
+              ocrConfidence: (ocr?.confidence || 0) / 100,
+              userId: mongoUidNr, accountType: nrAccountType,
+              note: "ระบบตรวจพบว่าอาจไม่ใช่ใบเสร็จ — รอยืนยัน",
+            });
+            const nrFlex = notReceiptFlex(String(nrReceipt._id));
+            await replyMessage(rt, [{ type: "text", text: "📄 ภาพนี้อาจไม่ใช่ใบเสร็จ", quoteToken: qt }, nrFlex]);
+            console.log("Reply: not_receipt (draft:", nrReceipt._id, ")");
             continue;
           }
 
@@ -379,7 +399,7 @@ export async function POST(request: NextRequest) {
           console.log("Status", status.type, status.emoji);
           
           if (status.type === "duplicate") {
-            // Still save with "duplicate" status so it shows in dashboard
+            // Save as draft — not shown in normal receipts until confirmed
             const mongoUidDup = await resolveUserId(uid || "");
             const dupAccountType = await getUserAccountType(uid || "");
             let dupImageUrl: string | undefined;
@@ -397,7 +417,7 @@ export async function POST(request: NextRequest) {
               categoryIcon: ocr.categoryIcon || "\ud83d\udcdd",
               paymentMethod: ocr.paymentMethod || undefined,
               direction: ocr.type === "income" ? "income" : ocr.type === "savings" ? "savings" : "expense",
-              status: "duplicate",
+              status: "draft",
               imageUrl: dupImageUrl,
               imageHash: imgHash,
               ocrConfidence: (ocr.confidence || 0) / 100,
@@ -406,7 +426,7 @@ export async function POST(request: NextRequest) {
               accountType: dupAccountType,
               note: `พบสลิปซ้ำกับ ${dup.merchant} (${dup.date ? new Date(dup.date).toLocaleDateString("th-TH") : ""})`,
             });
-            console.log("Saved duplicate:", dupReceipt._id);
+            console.log("Saved draft (duplicate):", dupReceipt._id);
 
             const dupFlex = duplicateWarningFlex({
               merchant: ocr.merchant,
@@ -418,7 +438,7 @@ export async function POST(request: NextRequest) {
               { type: "text", text: status.emoji + " " + status.title + "\n" + status.sub, quoteToken: qt },
               dupFlex
             ]);
-            console.log("Reply: duplicate");
+            console.log("Reply: duplicate (draft)");
             continue;
           }
 
@@ -511,13 +531,21 @@ export async function POST(request: NextRequest) {
               { type: "text", text: "✅ ยืนยันใบเสร็จเรียบร้อยแล้ว", quickReply: quickReplyButtons() },
             ]);
           } else if (action === "force_save" && id) {
-            await Receipt.findByIdAndUpdate(id, { status: "confirmed" });
+            // Duplicate confirmed — change from draft to duplicate (visible in system)
+            await Receipt.findByIdAndUpdate(id, { status: "duplicate", note: "ยืนยันบันทึกซ้ำ" });
             await replyMessage(ev.replyToken, [
-              { type: "text", text: "✅ บันทึกใบเสร็จซ้ำเรียบร้อยแล้ว", quickReply: quickReplyButtons() },
+              { type: "text", text: "✅ ยืนยันบันทึกสลิปซ้ำเรียบร้อยแล้ว", quickReply: quickReplyButtons() },
+            ]);
+          } else if (action === "confirm_not_receipt" && id) {
+            // Not-receipt confirmed — change from draft to pending (visible in system)
+            await Receipt.findByIdAndUpdate(id, { status: "pending", note: "ยืนยันบันทึก (อาจไม่ใช่ใบเสร็จ)" });
+            await replyMessage(ev.replyToken, [
+              { type: "text", text: "✅ ยืนยันบันทึกเรียบร้อยแล้ว\nแก้ไขข้อมูลได้ที่หน้าใบเสร็จ", quickReply: quickReplyButtons() },
             ]);
           } else if (action === "cancel" && id) {
-            await Receipt.findByIdAndUpdate(id, { status: "cancelled" });
-            await replyMessage(ev.replyToken, [{ type: "text", text: "❌ ยกเลิกใบเสร็จเรียบร้อยแล้ว" }]);
+            // Cancel — delete draft entirely
+            await Receipt.findByIdAndDelete(id);
+            await replyMessage(ev.replyToken, [{ type: "text", text: "❌ ยกเลิกแล้ว — ไม่บันทึกรายการนี้" }]);
           } else {
             await replyMessage(ev.replyToken, [{ type: "text", text: "ไม่พบคำสั่ง" }]);
           }
