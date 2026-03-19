@@ -299,14 +299,18 @@ function EmptyState({ isDark }: { isDark: boolean }) {
 //  RECEIPTS TAB
 // ════════════════════════════════════════
 function ReceiptsTab({ receipts, isDark }: { receipts: any[]; isDark: boolean }) {
-  const { txt, sub, card, border } = useS(isDark);
+  const { txt, sub, card, border, muted } = useS(isDark);
   const [filter, setFilter] = useState<"all" | "expense" | "income">("all");
+  const [lightbox, setLightbox] = useState<string | null>(null);
   const filtered = filter === "all" ? receipts : receipts.filter((r) => r.direction === filter);
 
   const statusLabel: Record<string, { text: string; cls: string }> = {
     pending: { text: "รอยืนยัน", cls: "bg-amber-500/10 text-amber-500" },
     confirmed: { text: "ยืนยันแล้ว", cls: "bg-green-500/10 text-green-500" },
     duplicate: { text: "ซ้ำ", cls: "bg-blue-500/10 text-blue-500" },
+    edited: { text: "แก้ไขแล้ว", cls: "bg-blue-500/10 text-blue-500" },
+    matched: { text: "จับคู่แล้ว", cls: "bg-purple-500/10 text-purple-500" },
+    cancelled: { text: "ยกเลิก", cls: "bg-gray-500/10 text-gray-500" },
   };
 
   return (
@@ -319,33 +323,53 @@ function ReceiptsTab({ receipts, isDark }: { receipts: any[]; isDark: boolean })
           </button>
         ))}
       </div>
-      <div className="space-y-1.5">
+      <div className="space-y-2">
         {filtered.map((r) => {
           const st = statusLabel[r.status] || statusLabel.pending;
           return (
-            <div key={r._id} className={`${card} border ${border} rounded-xl px-3.5 py-3 flex items-center gap-3`}>
-              {r.paymentMethod && (r.paymentMethod.startsWith("bank-") || r.paymentMethod === "promptpay") ? (
-                <BrandIcon brand={r.paymentMethod} size={36} className="rounded-lg" />
-              ) : (
-                <div className={`w-9 h-9 rounded-lg flex items-center justify-center text-base ${isDark ? "bg-white/5" : "bg-gray-50"}`}>{r.categoryIcon}</div>
-              )}
-              <div className="flex-1 min-w-0">
-                <p className={`text-sm font-medium ${txt} truncate`}>{r.merchant}</p>
-                <div className="flex items-center gap-1.5 mt-0.5">
-                  <span className={`text-[10px] ${isDark ? "text-white/30" : "text-gray-400"}`}>{r.date}</span>
-                  {r.source === "line" && <BrandIcon brand="line" size={10} />}
-                  <span className={`text-[8px] px-1.5 py-0.5 rounded-full font-semibold ${st.cls}`}>{st.text}</span>
+            <div key={r._id} className={`${card} border ${border} rounded-xl overflow-hidden`}>
+              <div className="px-3.5 py-3 flex items-center gap-3">
+                {/* Thumbnail */}
+                {r.hasImage ? (
+                  <button onClick={() => setLightbox(`/api/receipts/image?id=${r._id}`)} className="shrink-0">
+                    <img src={`/api/receipts/image?id=${r._id}`} alt="" loading="lazy"
+                      className="w-11 h-11 rounded-lg object-cover ring-1 ring-black/5" />
+                  </button>
+                ) : r.paymentMethod && (r.paymentMethod.startsWith("bank-") || r.paymentMethod === "promptpay") ? (
+                  <BrandIcon brand={r.paymentMethod} size={44} className="rounded-lg shrink-0" />
+                ) : (
+                  <div className={`w-11 h-11 rounded-lg flex items-center justify-center text-lg shrink-0 ${isDark ? "bg-white/5" : "bg-gray-50"}`}>{r.categoryIcon}</div>
+                )}
+                {/* Info */}
+                <div className="flex-1 min-w-0">
+                  <p className={`text-sm font-medium ${txt} truncate`}>{r.merchant}</p>
+                  <div className="flex items-center gap-1.5 mt-0.5">
+                    <span className={`text-[10px] ${muted}`}>{r.date}{r.time ? ` · ${r.time}` : ""}</span>
+                    {r.source === "line" && <BrandIcon brand="line" size={10} />}
+                    <span className={`text-[8px] px-1.5 py-0.5 rounded-full font-semibold ${st.cls}`}>{st.text}</span>
+                  </div>
                 </div>
-              </div>
-              <div className="text-right shrink-0">
-                <Baht value={r.amount} direction={r.direction} className="text-sm font-bold" />
-                <p className={`text-[10px] ${isDark ? "text-white/25" : "text-gray-400"}`}>{r.category}</p>
+                {/* Amount */}
+                <div className="text-right shrink-0">
+                  <Baht value={r.amount} direction={r.direction} className="text-sm font-bold" />
+                  <p className={`text-[10px] ${muted}`}>{r.category}</p>
+                </div>
               </div>
             </div>
           );
         })}
         {filtered.length === 0 && <EmptyState isDark={isDark} />}
       </div>
+
+      {/* Lightbox */}
+      {lightbox && (
+        <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/80 backdrop-blur-sm" onClick={() => setLightbox(null)}>
+          <button onClick={() => setLightbox(null)} className="absolute top-4 right-4 z-10 w-10 h-10 rounded-full bg-black/50 flex items-center justify-center text-white">
+            <X size={20} />
+          </button>
+          <img src={lightbox} alt="ใบเสร็จ" className="max-w-[90vw] max-h-[85vh] object-contain rounded-xl" onClick={(e) => e.stopPropagation()} />
+        </div>
+      )}
     </div>
   );
 }
