@@ -2,16 +2,8 @@ import { Suspense } from "react";
 import { getSession } from "@/lib/auth";
 import { redirect } from "next/navigation";
 import { connectDB } from "@/lib/mongodb";
-import User from "@/models/User";
+import Employee from "@/models/Employee";
 import TeamClient from "./TeamClient";
-
-const ROLE_MAP: Record<string, string> = {
-  superadmin: "Admin",
-  admin: "Admin",
-  manager: "Manager",
-  accountant: "Manager",
-  user: "User",
-};
 
 const DEPT_ICONS: Record<string, string> = {
   "การเงิน": "💰",
@@ -19,7 +11,14 @@ const DEPT_ICONS: Record<string, string> = {
   "ปฏิบัติการ": "⚙️",
   "IT": "💻",
   "บัญชี": "📊",
+  "การตลาด": "📣",
+  "บุคคล": "👤",
+  "ขาย": "🛒",
 };
+
+function serialize(obj: any) {
+  return JSON.parse(JSON.stringify(obj, (_, v) => (typeof v === "object" && v?.constructor?.name === "ObjectId" ? String(v) : v)));
+}
 
 async function TeamData() {
   const session = await getSession();
@@ -27,28 +26,31 @@ async function TeamData() {
 
   await connectDB();
 
-  let users;
-  if (session.orgId) {
-    users = await User.find({ orgId: session.orgId }).lean();
-  } else {
-    users = await User.find({ _id: session.userId }).lean();
-  }
+  const employees = await Employee.find({ userId: session.userId })
+    .sort({ status: 1, department: 1, name: 1 })
+    .lean();
 
-  const members = users.map((u: any) => ({
-    id: u._id.toString(),
-    name: u.name || "ไม่ระบุ",
-    dept: u.occupation || "-",
-    position: u.occupation || "-",
-    email: u.email || "-",
-    role: ROLE_MAP[u.role] || "User",
-    active: u.status === "active",
+  const members = employees.map((e: any) => ({
+    _id: String(e._id),
+    employeeCode: e.employeeCode,
+    name: e.name,
+    nickname: e.nickname || "",
+    position: e.position || "-",
+    department: e.department || "-",
+    employmentType: e.employmentType || "full-time",
+    baseSalary: e.baseSalary || 0,
+    bankName: e.bankName || "",
+    email: e.email || "",
+    lineUserId: e.lineUserId || "",
+    startDate: e.startDate ? new Date(e.startDate).toISOString() : "",
+    status: e.status || "active",
   }));
 
-  // Build department cards from occupation grouping
+  // Department cards
   const deptCounts: Record<string, number> = {};
   for (const m of members) {
-    if (m.dept && m.dept !== "-") {
-      deptCounts[m.dept] = (deptCounts[m.dept] || 0) + 1;
+    if (m.department && m.department !== "-") {
+      deptCounts[m.department] = (deptCounts[m.department] || 0) + 1;
     }
   }
 
@@ -58,7 +60,17 @@ async function TeamData() {
     icon: DEPT_ICONS[name] || "👥",
   }));
 
-  return <TeamClient members={members} departments={departments} />;
+  // Stats
+  const activeCount = members.filter((m) => m.status === "active").length;
+  const probationCount = members.filter((m) => m.status === "probation").length;
+
+  return (
+    <TeamClient
+      members={serialize(members)}
+      departments={serialize(departments)}
+      stats={{ total: members.length, active: activeCount, probation: probationCount }}
+    />
+  );
 }
 
 export default function TeamPage() {
