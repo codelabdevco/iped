@@ -24,7 +24,6 @@ const personalSteps: Step[] = [
   { id: "mode", label: "เลือกโหมดใช้งาน", description: "เลือกโหมดส่วนตัว", icon: UserRoundCog, href: "/dashboard/settings" },
   { id: "drive", label: "เชื่อมต่อ Google Drive", description: "สำรอง/จัดเก็บเอกสาร", icon: HardDrive, href: "/dashboard/sync", autoKey: "drive" },
   { id: "gmail", label: "เชื่อมต่อ Gmail", description: "สแกนเอกสารจากอีเมลอัตโนมัติ", icon: Mail, href: "/dashboard/email-scanner", autoKey: "gmail" },
-  { id: "first-scan", label: "อัปโหลดใบเสร็จแรก", description: "ทดลอง AI OCR สแกนใบเสร็จจริง", icon: ScanLine, href: "/dashboard/scan", autoKey: "receipts" },
   { id: "signature", label: "ใส่ลายเซ็นรับรอง", description: "ลายเซ็นดิจิทัลสำหรับใบแทนใบเสร็จ", icon: PenTool, href: "/dashboard/settings" },
   { id: "sheets-notion", label: "เชื่อม Sheets / Notion", description: "เชื่อม Google Sheets หรือ Notion", icon: Sheet, href: "/dashboard/sync" },
   { id: "p-categories", label: "ตั้งหมวดหมู่รายจ่าย", description: "เลือกจาก preset หรือกำหนดเอง", icon: FolderOpen, href: "/dashboard/categories" },
@@ -48,7 +47,8 @@ const businessSteps: Step[] = [
 ];
 
 const STORAGE_KEY = "iped-onboarding";
-const COMMON_COUNT = 7;
+const PERSONAL_COMMON = 6;
+const BUSINESS_COMMON = 7;
 
 export default function OnboardingChecklist() {
   const { isDark } = useTheme();
@@ -202,7 +202,7 @@ export default function OnboardingChecklist() {
                     <div className={`flex-1 h-px ${isDark ? "bg-white/5" : "bg-gray-100"}`} />
                   </div>
                 )}
-                {i === COMMON_COUNT && (
+                {i === (mode === "business" ? BUSINESS_COMMON : PERSONAL_COMMON) && (
                   <div className="flex items-center gap-2 px-3 pt-3 pb-1.5">
                     <span className={`text-[10px] font-bold uppercase tracking-widest ${txtMuted}`}>{mode === "business" ? "ตั้งค่าบริษัท" : "ตั้งค่าส่วนตัว"}</span>
                     <div className={`flex-1 h-px ${isDark ? "bg-white/5" : "bg-gray-100"}`} />
