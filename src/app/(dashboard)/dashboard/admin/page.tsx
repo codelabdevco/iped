@@ -13,9 +13,12 @@ function serialize(obj: any) {
 async function AdminData() {
   const session = await getSession();
   if (!session) redirect("/login");
-  if (!canViewAdmin(session.role)) redirect("/dashboard");
 
   await connectDB();
+
+  // Check role from DB (not JWT) so role changes take effect immediately
+  const currentUser = await User.findById(session.userId).select("role").lean() as any;
+  if (!currentUser || !canViewAdmin(currentUser.role || session.role)) redirect("/dashboard");
 
   const now = new Date();
   const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1);
