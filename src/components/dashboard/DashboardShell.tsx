@@ -13,10 +13,11 @@ interface ShellProps {
   pendingReceipts?: number;
   badges?: Record<string, number>;
   hasOrg?: boolean;
+  planUsage?: any;
   children: React.ReactNode;
 }
 
-function ShellInner({ displayName, pictureUrl, badges: propBadges, hasOrg, children }: ShellProps) {
+function ShellInner({ displayName, pictureUrl, badges: propBadges, hasOrg, planUsage, children }: ShellProps) {
   const { isDark } = useTheme();
   const [mobileOpen, setMobileOpen] = useState(false);
   const toggleMobile = useCallback(() => setMobileOpen((p) => !p), []);
@@ -28,7 +29,7 @@ function ShellInner({ displayName, pictureUrl, badges: propBadges, hasOrg, child
     <div className="flex h-screen overflow-hidden shell-theme">
       {/* Desktop sidebar */}
       <div className="hidden md:flex h-full">
-        <Sidebar badges={badges} hasOrg={!!hasOrg} />
+        <Sidebar badges={badges} hasOrg={!!hasOrg} planUsage={planUsage} />
       </div>
 
       {/* Mobile overlay */}
@@ -38,7 +39,7 @@ function ShellInner({ displayName, pictureUrl, badges: propBadges, hasOrg, child
 
       {/* Mobile sidebar */}
       <div className={`fixed inset-y-0 left-0 z-50 md:hidden transition-transform duration-300 ${mobileOpen ? "translate-x-0" : "-translate-x-full"}`}>
-        <Sidebar onNavigate={closeMobile} badges={badges} hasOrg={!!hasOrg} />
+        <Sidebar onNavigate={closeMobile} badges={badges} hasOrg={!!hasOrg} planUsage={planUsage} />
       </div>
 
       <div className="flex-1 flex flex-col overflow-hidden">
@@ -49,12 +50,12 @@ function ShellInner({ displayName, pictureUrl, badges: propBadges, hasOrg, child
   );
 }
 
-export default function DashboardShell({ displayName, pictureUrl, pendingReceipts, badges, hasOrg, children }: ShellProps) {
+export default function DashboardShell({ displayName, pictureUrl, pendingReceipts, badges, hasOrg, planUsage, children }: ShellProps) {
   return (
     <ThemeProvider>
       <ModeProvider>
         <ModalProvider>
-          <ShellInner displayName={displayName} pictureUrl={pictureUrl} badges={badges} hasOrg={hasOrg}>{children}</ShellInner>
+          <ShellInner displayName={displayName} pictureUrl={pictureUrl} badges={badges} hasOrg={hasOrg} planUsage={planUsage}>{children}</ShellInner>
         </ModalProvider>
       </ModeProvider>
     </ThemeProvider>

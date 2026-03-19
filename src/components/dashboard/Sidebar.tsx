@@ -115,7 +115,7 @@ const businessNav: NavGroup[] = [
   },
 ];
 
-export default function Sidebar({ onNavigate, badges = {}, hasOrg = false }: { onNavigate?: () => void; badges?: Record<string, number>; hasOrg?: boolean }) {
+export default function Sidebar({ onNavigate, badges = {}, hasOrg = false, planUsage }: { onNavigate?: () => void; badges?: Record<string, number>; hasOrg?: boolean; planUsage?: any }) {
   const [collapsed, setCollapsed] = useState(false);
   const [collapsedGroups, setCollapsedGroups] = useState<Record<string, boolean>>({});
   const pathname = usePathname();
@@ -162,6 +162,8 @@ export default function Sidebar({ onNavigate, badges = {}, hasOrg = false }: { o
   const activeCls = "bg-[#FA3633]/10 text-[#FA3633]";
   const borderCls = isDark ? "border-[rgba(255,255,255,0.06)]" : "border-gray-200";
   const sectionLabel = isDark ? "text-white/30" : "text-gray-400";
+  const sub = isDark ? "text-white/50" : "text-gray-500";
+  const muted = isDark ? "text-white/30" : "text-gray-400";
 
   const fadeStyle = (): React.CSSProperties => ({
     opacity: collapsed ? 0 : 1,
@@ -334,6 +336,36 @@ export default function Sidebar({ onNavigate, badges = {}, hasOrg = false }: { o
           )}
           <span style={fadeStyle()}>{isDark ? "โหมดสว่าง" : "โหมดมืด"}</span>
         </button>
+
+        {/* Usage summary — show above settings */}
+        {planUsage && !collapsed && (
+          <div className={`mx-0 mb-2 p-3 rounded-xl ${isDark ? "bg-white/[0.03]" : "bg-gray-50"}`}>
+            <div className="flex items-center justify-between mb-2">
+              <span className={`text-[10px] font-bold uppercase tracking-wider ${muted}`}>{planUsage.planName}</span>
+              <a href={modeHref("/dashboard/billing")} className="text-[10px] text-[#FA3633]">อัพเกรด</a>
+            </div>
+            {/* Receipt usage bar */}
+            <div className="mb-1.5">
+              <div className="flex justify-between text-[9px] mb-0.5">
+                <span className={sub}>ใบเสร็จ</span>
+                <span className={sub}>{planUsage.usage?.receipts || 0}/{(planUsage.limits?.receiptsPerMonth ?? planUsage.limits?.documentsPerMonth) === -1 ? "\u221E" : (planUsage.limits?.receiptsPerMonth ?? planUsage.limits?.documentsPerMonth ?? 30)}</span>
+              </div>
+              <div className={`h-1 rounded-full ${isDark ? "bg-white/10" : "bg-gray-200"}`}>
+                <div className="h-full rounded-full bg-[#FA3633]" style={{ width: `${Math.min(((planUsage.usage?.receipts || 0) / (planUsage.limits?.receiptsPerMonth ?? planUsage.limits?.documentsPerMonth ?? 30)) * 100, 100)}%` }} />
+              </div>
+            </div>
+            {/* OCR usage bar */}
+            <div>
+              <div className="flex justify-between text-[9px] mb-0.5">
+                <span className={sub}>OCR</span>
+                <span className={sub}>{planUsage.usage?.ocr || 0}/{(planUsage.limits?.ocrPerMonth) === -1 ? "\u221E" : (planUsage.limits?.ocrPerMonth ?? 10)}</span>
+              </div>
+              <div className={`h-1 rounded-full ${isDark ? "bg-white/10" : "bg-gray-200"}`}>
+                <div className="h-full rounded-full bg-purple-500" style={{ width: `${Math.min(((planUsage.usage?.ocr || 0) / (planUsage.limits?.ocrPerMonth ?? 10)) * 100, 100)}%` }} />
+              </div>
+            </div>
+          </div>
+        )}
 
         <a
           href={modeHref("/dashboard/settings")}

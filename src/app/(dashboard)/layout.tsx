@@ -5,6 +5,7 @@ import { redirect } from "next/navigation";
 import { verifyToken } from "@/lib/auth";
 import { connectDB } from "@/lib/mongodb";
 import { getAccountMode } from "@/lib/mode";
+import { getUserPlan } from "@/lib/quota";
 import User from "@/models/User";
 import Receipt from "@/models/Receipt";
 import Payroll from "@/models/Payroll";
@@ -42,6 +43,8 @@ export default async function DashboardLayout({ children }: { children: React.Re
       : Promise.resolve(0),
   ]);
 
+  const userPlan = await getUserPlan(payload.userId);
+
   const displayName = user?.lineDisplayName || user?.name || "User";
   const pictureUrl = user?.lineProfilePic || "";
   const hasOrg = !!(user as any)?.orgId;
@@ -54,7 +57,7 @@ export default async function DashboardLayout({ children }: { children: React.Re
   if (hasOrg && pendingClaims > 0) badges["/dashboard/my-claims"] = pendingClaims;
 
   return (
-    <DashboardShell displayName={displayName} pictureUrl={pictureUrl} pendingReceipts={pendingReceipts} badges={badges} hasOrg={hasOrg}>
+    <DashboardShell displayName={displayName} pictureUrl={pictureUrl} pendingReceipts={pendingReceipts} badges={badges} hasOrg={hasOrg} planUsage={JSON.parse(JSON.stringify(userPlan))}>
       {children}
     </DashboardShell>
   );
