@@ -1,7 +1,6 @@
 "use client";
 
 import { useState, useEffect, useRef } from "react";
-import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import {
   LayoutDashboard, Receipt, FolderOpen, PiggyBank, BarChart3,
@@ -319,7 +318,7 @@ export default function Sidebar({ onNavigate, badges = {}, hasOrg = false, planU
                   const badgeKey = item.href.split("?")[0];
                   const badge = badges[badgeKey];
                   return (
-                    <Link
+                    <a
                       key={item.href}
                       href={modeHref(item.href)}
                       onClick={onNavigate}
@@ -343,7 +342,7 @@ export default function Sidebar({ onNavigate, badges = {}, hasOrg = false, planU
                           {badge > 99 ? "99+" : badge}
                         </span>
                       ) : null}
-                    </Link>
+                    </a>
                   );
                 })}
             </div>
@@ -366,13 +365,13 @@ export default function Sidebar({ onNavigate, badges = {}, hasOrg = false, planU
       <div className={`py-1.5 px-2 border-t ${borderCls} overflow-hidden`}>
         {/* Plan badge */}
         {planUsage && !collapsed && (
-          <Link href={modeHref("/dashboard/billing")} className={`flex items-center justify-between px-2.5 py-1 mb-1 rounded-lg ${isDark ? "bg-white/[0.03] hover:bg-white/[0.06]" : "bg-gray-50 hover:bg-gray-100"} transition-colors`}>
+          <a href={modeHref("/dashboard/billing")} className={`flex items-center justify-between px-2.5 py-1 mb-1 rounded-lg ${isDark ? "bg-white/[0.03] hover:bg-white/[0.06]" : "bg-gray-50 hover:bg-gray-100"} transition-colors`}>
             <span className={`text-[10px] font-bold ${muted}`}>{planUsage.planName?.toUpperCase()}</span>
             <span className={`text-[9px] ${sub}`}>{planUsage.usage?.receipts || 0}/{(planUsage.limits?.receiptsPerMonth ?? 30) === -1 ? "\u221E" : planUsage.limits?.receiptsPerMonth ?? 30} ใบเสร็จ</span>
-          </Link>
+          </a>
         )}
         <div className="flex gap-0.5">
-          <Link
+          <a
             href={modeHref("/dashboard/settings")}
             className={`flex-1 flex items-center gap-2 px-2.5 py-1.5 rounded-lg text-[12px] font-medium transition-colors whitespace-nowrap overflow-hidden ${
               rawPath.startsWith("/dashboard/settings") ? activeCls : txt
@@ -380,7 +379,7 @@ export default function Sidebar({ onNavigate, badges = {}, hasOrg = false, planU
           >
             <Settings size={15} className="shrink-0" />
             <span style={fadeStyle()}>ตั้งค่า</span>
-          </Link>
+          </a>
           <button
             onClick={handleLogout}
             className={`flex items-center gap-2 px-2.5 py-1.5 rounded-lg text-[12px] font-medium ${
