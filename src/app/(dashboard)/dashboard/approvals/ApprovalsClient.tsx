@@ -7,7 +7,7 @@ import { useReactiveData } from "@/hooks/useReactiveMode";
 import { useTheme } from "@/contexts/ThemeContext";
 import {
   Check, X, Clock, CheckCircle, AlertTriangle, Search,
-  Receipt, Banknote, Users, CreditCard, FileText, Loader2,
+  Receipt, Banknote, Users, CreditCard, FileText, Loader2, ImageIcon,
 } from "lucide-react";
 import PageHeader from "@/components/dashboard/PageHeader";
 import DataTable, { Column } from "@/components/dashboard/DataTable";
@@ -24,6 +24,7 @@ interface ApprovalRow {
   date: string;
   status: "pending" | "approved" | "rejected";
   source?: string;
+  hasImage?: boolean;
   month?: number;
   year?: number;
 }
@@ -57,6 +58,7 @@ export default function ApprovalsClient({ expenses: initialExpenses, payrolls: i
   const [search, setSearch] = useState("");
   const [statusFilter, setStatusFilter] = useState("all");
   const [acting, setActing] = useState<string | null>(null);
+  const [selected, setSelected] = useState<string[]>([]);
 
   const allItems = useMemo(() => [...expenses, ...payrolls], [expenses, payrolls]);
 
@@ -118,7 +120,26 @@ export default function ApprovalsClient({ expenses: initialExpenses, payrolls: i
     { value: "rejected", label: "ปฏิเสธ" },
   ];
 
+  const toggleSelect = (id: string) => setSelected((prev) => prev.includes(id) ? prev.filter((s) => s !== id) : [...prev, id]);
+
   const columns: Column<ApprovalRow>[] = useMemo(() => [
+    {
+      key: "select" as any, label: "",
+      render: (r) => (
+        <button onClick={(e) => { e.stopPropagation(); toggleSelect(r._id); }} className={`w-5 h-5 rounded border-2 flex items-center justify-center transition-all ${selected.includes(r._id) ? "bg-[#FA3633] border-[#FA3633]" : isDark ? "border-white/20 hover:border-white/40" : "border-gray-300 hover:border-gray-400"}`}>
+          {selected.includes(r._id) && <svg width="10" height="10" viewBox="0 0 12 12" fill="none"><path d="M2.5 6L5 8.5L9.5 3.5" stroke="white" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/></svg>}
+        </button>
+      ),
+      configurable: false,
+    },
+    {
+      key: "image" as any, label: "รูป",
+      render: (r) => {
+        if (r.type !== "expense" || !r.hasImage) return <div className={`w-10 h-10 rounded-lg flex items-center justify-center ${isDark ? "bg-white/5" : "bg-gray-100"}`}><ImageIcon size={14} className={isDark ? "text-white/20" : "text-gray-300"} /></div>;
+        return <img src={`/api/receipts/image?id=${r._id}`} alt="" className="w-10 h-10 rounded-lg object-cover" loading="lazy" />;
+      },
+      configurable: false,
+    },
     {
       key: "type", label: "ประเภท",
       render: (r) => {

@@ -23,7 +23,7 @@ async function ApprovalsData() {
     userId,
     status: { $in: ["pending", "confirmed", "cancelled"] },
   })
-    .select("merchant amount category date status source direction type createdAt")
+    .select("merchant amount category date status source direction type createdAt imageHash")
     .sort({ createdAt: -1 })
     .limit(100)
     .lean();
@@ -37,6 +37,7 @@ async function ApprovalsData() {
     date: r.date ? new Date(r.date).toISOString() : r.createdAt ? new Date(r.createdAt).toISOString() : "",
     status: r.status === "pending" ? "pending" : r.status === "confirmed" ? "approved" : "rejected",
     source: r.source || "web",
+    hasImage: !!r.imageHash,
   }));
 
   // ── Payroll approvals ──

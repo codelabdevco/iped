@@ -1,10 +1,10 @@
 "use client";
 
-import { useState, useMemo, useCallback, useRef } from "react";
+import { useState, useMemo, useCallback } from "react";
 import { useTheme } from "@/contexts/ThemeContext";
 import { useModal } from "@/components/dashboard/ConfirmModal";
 import {
-  Clock, CheckCircle, XCircle, Search, Loader2, CreditCard, Banknote, Upload, X,
+  Clock, CheckCircle, XCircle, Search, Loader2, CreditCard, Banknote, ImageIcon,
 } from "lucide-react";
 import PageHeader from "@/components/dashboard/PageHeader";
 import StatsCard from "@/components/dashboard/StatsCard";
@@ -23,6 +23,23 @@ interface ReceiptRow {
   note: string;
   direction: string;
   hasImage: boolean;
+  paymentMethod: string;
+}
+
+/* ── Lazy image thumbnail ── */
+function Thumb({ id, hasImage, isDark }: { id: string; hasImage: boolean; isDark: boolean }) {
+  const [src, setSrc] = useState<string | null>(null);
+  const [err, setErr] = useState(false);
+  if (!hasImage) return <div className={`w-10 h-10 rounded-lg flex items-center justify-center ${isDark ? "bg-white/5" : "bg-gray-100"}`}><ImageIcon size={14} className={isDark ? "text-white/20" : "text-gray-300"} /></div>;
+  if (!src && !err) {
+    const img = new Image();
+    img.src = `/api/receipts/image?id=${id}`;
+    img.onload = () => setSrc(img.src);
+    img.onerror = () => setErr(true);
+  }
+  if (err) return <div className={`w-10 h-10 rounded-lg flex items-center justify-center ${isDark ? "bg-white/5" : "bg-gray-100"}`}><ImageIcon size={14} className={isDark ? "text-white/20" : "text-gray-300"} /></div>;
+  if (!src) return <div className={`w-10 h-10 rounded-lg ${isDark ? "bg-white/5" : "bg-gray-100"} animate-pulse`} />;
+  return <img src={src} alt="" className="w-10 h-10 rounded-lg object-cover" />;
 }
 
 export default function ReimbursementClient({ receipts: initial }: { receipts: ReceiptRow[] }) {
@@ -33,8 +50,9 @@ export default function ReimbursementClient({ receipts: initial }: { receipts: R
   const [search, setSearch] = useState("");
   const [statusFilter, setStatusFilter] = useState("all");
   const [acting, setActing] = useState<string | null>(null);
+  const [selected, setSelected] = useState<string[]>([]);
 
-  // Pay modal state
+  // Pay modal
   const [payTarget, setPayTarget] = useState<ReceiptRow | null>(null);
   const [payRef, setPayRef] = useState("");
   const [payNote, setPayNote] = useState("");
@@ -59,52 +77,59 @@ export default function ReimbursementClient({ receipts: initial }: { receipts: R
     return data;
   }, [receipts, statusFilter, search]);
 
+  // ── Selection ──
+  const toggleSelect = (id: string) => setSelected((prev) => prev.includes(id) ? prev.filter((s) => s !== id) : [...prev, id]);
+  const toggleAll = () => {
+    const ids = filtered.map((r) => r._id);
+    setSelected((prev) => prev.length === ids.length ? [] : ids);
+  };
+
   // ── Actions ──
   const handleApprove = useCallback(async (id: string) => {
     setActing(id);
     try {
-      const res = await fetch(`/api/receipts/${id}/reimburse`, {
-        method: "POST", headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ action: "approve" }),
-      });
+      const res = await fetch(`/api/receipts/${id}/reimburse`, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ action: "approve" }) });
       if (res.ok) {
         setReceipts((prev) => prev.map((r) => r._id === id ? { ...r, status: "confirmed" } : r));
-        await modal.alert({ title: "อนุมัติแล้ว", message: "อนุมัติเบิกจ่ายแล้ว ระบบแจ้งเตือนไปยังผู้ขอเบิกแล้ว", type: "success" });
+        await modal.alert({ title: "อนุมัติแล้ว", message: "อนุมัติเบิกจ่ายแล้ว แจ้งเตือน LINE ไปยังผู้ขอเบิกแล้ว", type: "success" });
       }
     } catch {} finally { setActing(null); }
   }, [modal]);
+
+  const handleBulkApprove = useCallback(async () => {
+    const pendingIds = selected.filter((id) => { const r = receipts.find((x) => x._id === id); return r && r.status === "pending"; });
+    if (pendingIds.length === 0) return;
+    const ok = await modal.confirm({ title: "อนุมัติทั้งหมด", message: `อนุมัติ ${pendingIds.length} รายการ?` });
+    if (!ok) return;
+    for (const id of pendingIds) {
+      try { await fetch(`/api/receipts/${id}/reimburse`, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ action: "approve" }) }); } catch {}
+    }
+    setReceipts((prev) => prev.map((r) => pendingIds.includes(r._id) ? { ...r, status: "confirmed" } : r));
+    setSelected([]);
+    await modal.alert({ title: "สำเร็จ", message: `อนุมัติ ${pendingIds.length} รายการแล้ว`, type: "success" });
+  }, [selected, receipts, modal]);
 
   const handleReject = useCallback(async (id: string) => {
     const ok = await modal.confirm({ title: "ปฏิเสธเบิกจ่าย", message: "ต้องการปฏิเสธรายการนี้?" });
     if (!ok) return;
     setActing(id);
     try {
-      await fetch(`/api/receipts/${id}/reimburse`, {
-        method: "POST", headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ action: "reject" }),
-      });
+      await fetch(`/api/receipts/${id}/reimburse`, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ action: "reject" }) });
       setReceipts((prev) => prev.map((r) => r._id === id ? { ...r, status: "cancelled" } : r));
     } catch {} finally { setActing(null); }
   }, [modal]);
 
-  const openPayModal = (r: ReceiptRow) => {
-    setPayTarget(r);
-    setPayRef("");
-    setPayNote("");
-  };
+  const openPayModal = (r: ReceiptRow) => { setPayTarget(r); setPayRef(""); setPayNote(""); };
 
   const handlePay = useCallback(async () => {
     if (!payTarget) return;
     setPaying(true);
     try {
-      const res = await fetch(`/api/receipts/${payTarget._id}/reimburse`, {
-        method: "POST", headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ action: "pay", bankTransferRef: payRef, note: payNote }),
-      });
+      const res = await fetch(`/api/receipts/${payTarget._id}/reimburse`, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ action: "pay", bankTransferRef: payRef, note: payNote }) });
       if (res.ok) {
         setReceipts((prev) => prev.map((r) => r._id === payTarget._id ? { ...r, status: "paid" } : r));
         setPayTarget(null);
-        await modal.alert({ title: "จ่ายเงินสำเร็จ", message: "จ่ายเงินเบิกจ่ายแล้ว ระบบส่งบิลกลับไปยังส่วนตัวของผู้ขอเบิก + แจ้งเตือน LINE แล้ว", type: "success" });
+        await modal.alert({ title: "จ่ายเงินสำเร็จ", message: "ส่งบิลกลับไปยังส่วนตัว + แจ้งเตือน LINE แล้ว", type: "success" });
       }
     } catch {} finally { setPaying(false); }
   }, [payTarget, payRef, payNote, modal]);
@@ -118,6 +143,20 @@ export default function ReimbursementClient({ receipts: initial }: { receipts: R
   ];
 
   const columns: Column<ReceiptRow>[] = useMemo(() => [
+    {
+      key: "select" as any, label: "",
+      render: (r) => (
+        <button onClick={(e) => { e.stopPropagation(); toggleSelect(r._id); }} className={`w-5 h-5 rounded border-2 flex items-center justify-center transition-all ${selected.includes(r._id) ? "bg-[#FA3633] border-[#FA3633]" : isDark ? "border-white/20 hover:border-white/40" : "border-gray-300 hover:border-gray-400"}`}>
+          {selected.includes(r._id) && <svg width="10" height="10" viewBox="0 0 12 12" fill="none"><path d="M2.5 6L5 8.5L9.5 3.5" stroke="white" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/></svg>}
+        </button>
+      ),
+      configurable: false,
+    },
+    {
+      key: "image" as any, label: "รูป",
+      render: (r) => <Thumb id={r._id} hasImage={r.hasImage} isDark={isDark} />,
+      configurable: false,
+    },
     {
       key: "merchant", label: "รายการ",
       render: (r) => (
@@ -168,7 +207,7 @@ export default function ReimbursementClient({ receipts: initial }: { receipts: R
         return <span className={`text-[11px] ${c("text-white/30", "text-gray-400")}`}>—</span>;
       },
     },
-  ], [handleApprove, handleReject, acting, isDark]);
+  ], [handleApprove, handleReject, acting, selected, isDark]);
 
   const inputCls = c("bg-white/5 border-white/10 text-white placeholder-white/30", "bg-white border-gray-200 text-gray-900 placeholder-gray-400");
   const inp = `w-full h-9 px-3 ${c("bg-white/5 border-white/10 text-white", "bg-gray-50 border-gray-200 text-gray-900")} border rounded-lg text-sm focus:outline-none focus:border-[#FA3633]/50`;
@@ -191,33 +230,16 @@ export default function ReimbursementClient({ receipts: initial }: { receipts: R
                   <p className={`text-xs ${c("text-white/50", "text-gray-500")}`}>{payTarget.merchant}</p>
                 </div>
               </div>
-
-              {/* Amount */}
               <div className={`rounded-xl ${cardBg} border p-4 text-center`}>
                 <p className={`text-xs ${c("text-white/40", "text-gray-500")}`}>ยอดที่ต้องจ่าย</p>
                 <p className="text-2xl font-bold text-green-400 mt-1">฿{payTarget.amount.toLocaleString("th-TH", { minimumFractionDigits: 2 })}</p>
               </div>
-
-              {/* Bank transfer ref */}
-              <div>
-                <label className={lbl}>เลขอ้างอิงการโอน / Ref</label>
-                <input value={payRef} onChange={(e) => setPayRef(e.target.value)} placeholder="เช่น 2026031900001" className={inp} />
-              </div>
-
-              {/* Note */}
-              <div>
-                <label className={lbl}>หมายเหตุ</label>
-                <input value={payNote} onChange={(e) => setPayNote(e.target.value)} placeholder="รายละเอียดเพิ่มเติม (ไม่บังคับ)" className={inp} />
-              </div>
-
-              <p className={`text-[10px] ${c("text-white/30", "text-gray-400")}`}>
-                เมื่อกดจ่ายเงิน ระบบจะ: อัพเดทสถานะเป็น "จ่ายแล้ว" + ส่งบิลกลับไปยังส่วนตัวของผู้ขอเบิก + แจ้งเตือน LINE
-              </p>
-
+              <div><label className={lbl}>เลขอ้างอิงการโอน / Ref</label><input value={payRef} onChange={(e) => setPayRef(e.target.value)} placeholder="เช่น 2026031900001" className={inp} /></div>
+              <div><label className={lbl}>หมายเหตุ</label><input value={payNote} onChange={(e) => setPayNote(e.target.value)} placeholder="รายละเอียดเพิ่มเติม (ไม่บังคับ)" className={inp} /></div>
+              <p className={`text-[10px] ${c("text-white/30", "text-gray-400")}`}>เมื่อกดจ่ายเงิน ระบบจะส่งบิลกลับไปยังส่วนตัว + แจ้งเตือน LINE</p>
               <div className="flex gap-2 pt-2">
                 <button onClick={handlePay} disabled={paying} className="flex-1 py-2.5 rounded-xl text-sm font-medium bg-[#FA3633] text-white hover:bg-[#e0302d] transition-colors disabled:opacity-40 flex items-center justify-center gap-2">
-                  {paying ? <Loader2 size={14} className="animate-spin" /> : <Banknote size={14} />}
-                  {paying ? "กำลังจ่าย..." : "ยืนยันจ่ายเงิน"}
+                  {paying ? <Loader2 size={14} className="animate-spin" /> : <Banknote size={14} />}{paying ? "กำลังจ่าย..." : "ยืนยันจ่ายเงิน"}
                 </button>
                 <button onClick={() => setPayTarget(null)} className={`flex-1 py-2.5 rounded-xl text-sm font-medium ${c("bg-white/5 text-white/60", "bg-gray-100 text-gray-600")} transition-colors`}>ยกเลิก</button>
               </div>
@@ -235,24 +257,29 @@ export default function ReimbursementClient({ receipts: initial }: { receipts: R
         <StatsCard label="จ่ายแล้ว" value={`${stats.paid} รายการ`} icon={<CheckCircle size={20} />} color="text-green-500" />
       </div>
 
+      {/* ── Bulk actions ── */}
+      {selected.length > 0 && (
+        <div className={`flex items-center gap-3 px-4 py-3 rounded-xl ${c("bg-white/[0.04] border border-white/[0.06]", "bg-gray-50 border border-gray-200")}`}>
+          <button onClick={toggleAll} className={`w-5 h-5 rounded border-2 flex items-center justify-center ${selected.length === filtered.length ? "bg-[#FA3633] border-[#FA3633]" : isDark ? "border-white/20" : "border-gray-300"}`}>
+            {selected.length === filtered.length && <svg width="10" height="10" viewBox="0 0 12 12" fill="none"><path d="M2.5 6L5 8.5L9.5 3.5" stroke="white" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/></svg>}
+          </button>
+          <span className={`text-sm font-medium ${c("text-white", "text-gray-900")}`}>เลือก {selected.length} รายการ</span>
+          <button onClick={handleBulkApprove} className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium transition-colors ${isDark ? "bg-green-500/10 text-green-400 hover:bg-green-500/20" : "bg-green-50 text-green-600 hover:bg-green-100"}`}>
+            <CheckCircle size={12} /> อนุมัติที่เลือก
+          </button>
+          <button onClick={() => setSelected([])} className={`text-xs ${c("text-white/40", "text-gray-400")}`}>ยกเลิก</button>
+        </div>
+      )}
+
       <div className="flex flex-wrap items-center gap-3">
         <div className="relative flex-1 min-w-[200px] max-w-sm">
           <Search size={16} className={`absolute left-3 top-1/2 -translate-y-1/2 ${c("text-white/30", "text-gray-400")}`} />
           <input type="text" placeholder="ค้นหาร้านค้า, หมวดหมู่..." value={search} onChange={(e) => setSearch(e.target.value)} className={`w-full h-10 pl-9 pr-4 ${inputCls} border rounded-lg text-sm focus:outline-none focus:border-[#FA3633]/50`} />
         </div>
-        <div className="w-40">
-          <Select value={statusFilter} onChange={setStatusFilter} options={statusOptions} />
-        </div>
+        <div className="w-40"><Select value={statusFilter} onChange={setStatusFilter} options={statusOptions} /></div>
       </div>
 
-      <DataTable
-        columns={columns}
-        data={filtered}
-        rowKey={(r) => r._id}
-        dateField="date"
-        emptyText="ยังไม่มีค่าใช้จ่ายบริษัทที่ส่งมาจากส่วนตัว"
-        columnConfigKey="reimbursement"
-      />
+      <DataTable columns={columns} data={filtered} rowKey={(r) => r._id} dateField="date" emptyText="ยังไม่มีค่าใช้จ่ายบริษัทที่ส่งมาจากส่วนตัว" columnConfigKey="reimbursement" />
     </div>
   );
 }

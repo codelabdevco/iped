@@ -38,6 +38,7 @@ async function ReimbursementData() {
     note: r.note || "",
     direction: r.direction || "expense",
     hasImage: !!r.imageHash,
+    paymentMethod: r.paymentMethod || "",
   }));
 
   return <ReimbursementClient receipts={serialize(data)} />;
