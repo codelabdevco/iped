@@ -125,14 +125,13 @@ export default function MobileApp({ data }: { data: MobileData }) {
 }
 
 // ════════════════════════════════════════
-//  HOME TAB — finance dashboard
+//  HOME TAB — quick glance + actions
+//  (ไม่ซ้ำกับ สรุป: ไม่มี chart/donut/categories/stats cards)
 // ════════════════════════════════════════
 function HomeTab({ data, isDark, onScan, onReceipts, onReports }: { data: MobileData; isDark: boolean; onScan: () => void; onReceipts: () => void; onReports: () => void }) {
   const { card, border, txt, sub, muted } = useS(isDark);
   const net = data.monthIncome - data.monthExpense;
   const budgetPct = data.profile.monthlyBudget > 0 ? Math.min(100, (data.monthExpense / data.profile.monthlyBudget) * 100) : 0;
-  const maxMonthly = Math.max(...data.monthlyData.map((m) => Math.max(m.expense, m.income)), 1);
-  const dailyAvg = data.daysInMonth > 0 ? Math.round(data.totalExpense / Math.min(new Date().getDate(), data.daysInMonth)) : 0;
 
   return (
     <div className="space-y-4 pt-3">
@@ -200,72 +199,11 @@ function HomeTab({ data, isDark, onScan, onReceipts, onReports }: { data: Mobile
         </div>
       </div>
 
-      {/* Goals — donut charts */}
-      <div className={`${card} border ${border} rounded-2xl p-4`}>
-        <p className={`text-xs font-semibold ${txt} mb-4`}>เป้าหมายเดือนนี้</p>
-        <div className="grid grid-cols-2 gap-4">
-          <DonutGoal label="เป้ารายจ่าย" current={data.monthExpense} storageKey="goal-expense" color="#EF4444" isDark={isDark} />
-          <DonutGoal label="เป้ารายรับ" current={data.monthIncome} storageKey="goal-income" color="#22C55E" isDark={isDark} />
-        </div>
-      </div>
-
-      {/* Set goals (GoalCard) */}
+      {/* Goals — set/track (unique to Home) */}
       <div className="grid grid-cols-2 gap-3">
         <GoalCard storageKey="goal-expense" current={data.monthExpense} label="เป้ารายจ่าย" color="red" />
         <GoalCard storageKey="goal-income" current={data.monthIncome} label="เป้ารายรับ" color="green" />
       </div>
-
-      {/* Mini chart — 6 months */}
-      <div className={`${card} border ${border} rounded-2xl p-4`}>
-        <p className={`text-xs font-semibold ${txt} mb-3`}>แนวโน้ม 6 เดือน</p>
-        <div className="flex items-end justify-between gap-1 h-20 mb-1.5">
-          {data.monthlyData.map((m, i) => {
-            const isLast = i === data.monthlyData.length - 1;
-            const expH = maxMonthly > 0 ? (m.expense / maxMonthly) * 100 : 0;
-            const incH = maxMonthly > 0 ? (m.income / maxMonthly) * 100 : 0;
-            return (
-              <div key={m.month} className="flex-1 flex flex-col items-center gap-0.5">
-                <div className="flex items-end gap-px w-full justify-center h-14">
-                  <div className={`rounded-t ${isLast ? "bg-red-500" : "bg-red-500/30"}`} style={{ width: 6, height: `${Math.max(m.expense > 0 ? 3 : 0, expH)}%` }} />
-                  <div className={`rounded-t ${isLast ? "bg-green-500" : "bg-green-500/30"}`} style={{ width: 6, height: `${Math.max(m.income > 0 ? 3 : 0, incH)}%` }} />
-                </div>
-                <span className={`text-[8px] ${isLast ? txt : muted}`}>{m.month}</span>
-              </div>
-            );
-          })}
-        </div>
-        <div className="flex justify-between items-center">
-          <div className="flex gap-3">
-            <div className="flex items-center gap-1"><div className="w-1.5 h-1.5 rounded-sm bg-red-500" /><span className={`text-[8px] ${muted}`}>จ่าย</span></div>
-            <div className="flex items-center gap-1"><div className="w-1.5 h-1.5 rounded-sm bg-green-500" /><span className={`text-[8px] ${muted}`}>รับ</span></div>
-          </div>
-          <span className={`text-[9px] ${muted}`}>เฉลี่ย/วัน: <span className="text-red-500 font-semibold">-฿{fmt(dailyAvg)}</span></span>
-        </div>
-      </div>
-
-      {/* Top categories — compact */}
-      {data.categories.length > 0 && (
-        <div className={`${card} border ${border} rounded-2xl p-4`}>
-          <div className="flex items-center justify-between mb-3">
-            <p className={`text-xs font-semibold ${txt}`}>จ่ายเยอะสุด</p>
-            <button onClick={onReports} className="text-[10px] text-[#FA3633] font-medium">ดูทั้งหมด →</button>
-          </div>
-          {data.categories.slice(0, 3).map((c: any) => {
-            const pct = data.totalExpense > 0 ? Math.round((c.total / data.totalExpense) * 100) : 0;
-            return (
-              <div key={c.name} className="flex items-center gap-2.5 py-1.5">
-                <span className="text-base w-6 text-center">{c.icon}</span>
-                <span className={`text-xs flex-1 ${txt}`}>{c.name}</span>
-                <div className={`w-14 h-1.5 rounded-full ${isDark ? "bg-white/10" : "bg-gray-100"}`}>
-                  <div className="h-full rounded-full bg-red-500" style={{ width: `${pct}%` }} />
-                </div>
-                <span className={`text-[10px] ${muted} w-7 text-right`}>{pct}%</span>
-                <span className="text-xs font-semibold text-red-500 w-16 text-right">-฿{fmt(c.total)}</span>
-              </div>
-            );
-          })}
-        </div>
-      )}
 
       {/* Recent receipts */}
       <div>
@@ -280,13 +218,11 @@ function HomeTab({ data, isDark, onScan, onReceipts, onReports }: { data: Mobile
       </div>
 
       {/* Scan prompt — bottom CTA */}
-      {data.receipts.length > 0 && (
-        <button onClick={onScan} className={`w-full flex items-center justify-center gap-2 py-4 rounded-2xl ${isDark ? "bg-white/[0.03] border border-white/[0.06]" : "bg-gray-50 border border-gray-200"} active:scale-[0.98] transition-all`}>
-          <Camera size={18} className="text-[#FA3633]" />
-          <span className={`text-sm font-medium ${txt}`}>บันทึกสลิปเพิ่ม</span>
-          <span className={`text-[10px] ${muted}`}>ถ่ายรูป / เลือกจากอัลบั้ม</span>
-        </button>
-      )}
+      <button onClick={onScan} className={`w-full flex items-center justify-center gap-2 py-4 rounded-2xl ${isDark ? "bg-white/[0.03] border border-white/[0.06]" : "bg-gray-50 border border-gray-200"} active:scale-[0.98] transition-all`}>
+        <Camera size={18} className="text-[#FA3633]" />
+        <span className={`text-sm font-medium ${txt}`}>บันทึกสลิปเพิ่ม</span>
+        <span className={`text-[10px] ${muted}`}>ถ่ายรูป / เลือกจากอัลบั้ม</span>
+      </button>
     </div>
   );
 }
