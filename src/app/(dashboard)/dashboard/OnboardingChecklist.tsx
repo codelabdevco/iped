@@ -24,7 +24,6 @@ const personalSteps: Step[] = [
   { id: "mode", label: "เลือกโหมดใช้งาน", description: "เลือกโหมดส่วนตัว", icon: UserRoundCog, href: "/dashboard/settings" },
   { id: "drive", label: "เชื่อมต่อ Google Drive", description: "สำรอง/จัดเก็บเอกสาร", icon: HardDrive, href: "/dashboard/sync", autoKey: "drive" },
   { id: "gmail", label: "เชื่อมต่อ Gmail", description: "สแกนเอกสารจากอีเมลอัตโนมัติ", icon: Mail, href: "/dashboard/email-scanner", autoKey: "gmail" },
-  { id: "signature", label: "ใส่ลายเซ็นรับรอง", description: "ลายเซ็นดิจิทัลสำหรับใบแทนใบเสร็จ", icon: PenTool, href: "/dashboard/settings" },
   { id: "sheets-notion", label: "เชื่อม Sheets / Notion", description: "เชื่อม Google Sheets หรือ Notion", icon: Sheet, href: "/dashboard/sync" },
   { id: "p-categories", label: "ตั้งหมวดหมู่รายจ่าย", description: "เลือกจาก preset หรือกำหนดเอง", icon: FolderOpen, href: "/dashboard/categories" },
   { id: "p-budget", label: "ตั้งงบประมาณเดือนแรก", description: "งบรายวัน / รายเดือน / ตามหมวด", icon: Wallet, href: "/dashboard/budget", autoKey: "budget" },
@@ -47,7 +46,7 @@ const businessSteps: Step[] = [
 ];
 
 const STORAGE_KEY = "iped-onboarding";
-const PERSONAL_COMMON = 6;
+const PERSONAL_COMMON = 5;
 const BUSINESS_COMMON = 7;
 
 export default function OnboardingChecklist() {
