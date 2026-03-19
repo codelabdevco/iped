@@ -140,8 +140,8 @@ export default function SavingsClient({ savings: initial }: { savings: SavingsRo
   const confirmDelete = useCallback(async () => {
     if (!deleteTarget) return;
     try { await fetch(`/api/receipts/${deleteTarget}`, { method: "DELETE" }); setSavings((prev) => prev.filter((r) => r._id !== deleteTarget)); } catch {}
-    setDeleteTarget(null); router.refresh();
-  }, [deleteTarget, router]);
+    setDeleteTarget(null);
+  }, [deleteTarget]);
 
   const handleSave = async () => {
     if (!form.storeName || !form.amount) return;

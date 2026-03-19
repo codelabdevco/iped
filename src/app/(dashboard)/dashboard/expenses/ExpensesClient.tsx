@@ -82,7 +82,7 @@ export default function ExpensesClient({ expenses: initial }: { expenses: Expens
 
   const prevRef = useRef("");
   useEffect(() => { const ids = initial.map((r) => r._id + r.amount).join(","); if (ids === prevRef.current) return; prevRef.current = ids; setExpenses(initial); }, [initial]);
-  useEffect(() => { const i = setInterval(async () => { try { await fetch("/api/receipts/poll"); router.refresh(); } catch {} }, 5000); return () => clearInterval(i); }, [router]);
+  // Polling removed — data comes fresh from server on each page load via <a> navigation
 
   const muted = isDark ? "text-white/30" : "text-gray-400";
   const confirmed = expenses.filter((r) => r.status === "confirmed");
@@ -102,8 +102,8 @@ export default function ExpensesClient({ expenses: initial }: { expenses: Expens
   const confirmDelete = useCallback(async () => {
     if (!deleteTarget) return;
     try { await fetch(`/api/receipts/${deleteTarget}`, { method: "DELETE" }); setExpenses((prev) => prev.filter((r) => r._id !== deleteTarget)); } catch {}
-    setDeleteTarget(null); router.refresh();
-  }, [deleteTarget, router]);
+    setDeleteTarget(null);
+  }, [deleteTarget]);
 
   const handleSave = async () => {
     if (!form.storeName || !form.amount) return;

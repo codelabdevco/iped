@@ -258,8 +258,7 @@ export default function ReceiptsClient({ receipts: initialReceipts }: { receipts
       setSelected((prev) => prev.filter((s) => !ids.includes(s)));
     } catch {}
     setDeleteTarget(null);
-    router.refresh();
-  }, [deleteTarget, router]);
+  }, [deleteTarget]);
 
   const [transferring, setTransferring] = useState(false);
   const handleTransfer = useCallback(async (ids: string[]) => {
