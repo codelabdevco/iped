@@ -274,6 +274,11 @@ function ReceiptsTab({ receipts: initialReceipts, isDark }: { receipts: any[]; i
   const [deleteId, setDeleteId] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
   const [editForm, setEditForm] = useState<any>({});
+  const [editItems, setEditItems] = useState<{ name: string; qty: number; price: number }[]>([]);
+  const [vatEnabled, setVatEnabled] = useState(false);
+  const [vatInclusive, setVatInclusive] = useState(false);
+  const [whtEnabled, setWhtEnabled] = useState(false);
+  const [whtInclusive, setWhtInclusive] = useState(false);
 
   // Polling every 5s
   useEffect(() => {
@@ -323,24 +328,34 @@ function ReceiptsTab({ receipts: initialReceipts, isDark }: { receipts: any[]; i
   // Edit
   const openEdit = (r: any) => {
     setEditForm({ ...r });
+    setEditItems([{ name: r.merchant || "", qty: 1, price: r.amount || 0 }]);
+    setVatEnabled(false); setVatInclusive(false);
+    setWhtEnabled(false); setWhtInclusive(false);
     setEditId(r._id);
   };
   const saveEdit = async () => {
     if (!editId) return;
     setSaving(true);
     try {
+      const itemsTotal = editItems.reduce((s, it) => s + it.qty * it.price, 0);
+      const finalAmount = itemsTotal > 0 ? itemsTotal : Number(editForm.amount);
       const res = await fetch(`/api/receipts/${editId}`, {
         method: "PUT",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          merchant: editForm.merchant, amount: Number(editForm.amount),
-          category: editForm.category, status: editForm.status,
-          direction: editForm.direction, paymentMethod: editForm.paymentMethod,
-          time: editForm.time, note: editForm.note, type: editForm.type,
+          merchant: editForm.merchant, amount: finalAmount,
+          category: editForm.category, categoryIcon: editForm.categoryIcon,
+          status: editForm.status, direction: editForm.direction,
+          paymentMethod: editForm.paymentMethod, time: editForm.time,
+          note: editForm.note, type: editForm.type,
+          documentNumber: editForm.documentNumber, merchantTaxId: editForm.merchantTaxId,
+          lineItems: editItems.length > 1 || editItems[0]?.name ? editItems : undefined,
+          vat: vatEnabled ? (vatInclusive ? Math.round(itemsTotal * 7 / 107) : Math.round(itemsTotal * 0.07)) : undefined,
+          wht: whtEnabled ? (whtInclusive ? Math.round(itemsTotal * 3 / 103) : Math.round(itemsTotal * 0.03)) : undefined,
         }),
       });
       if (res.ok) {
-        setReceipts((prev) => prev.map((r) => r._id === editId ? { ...r, ...editForm, amount: Number(editForm.amount) } : r));
+        setReceipts((prev) => prev.map((r) => r._id === editId ? { ...r, ...editForm, amount: finalAmount } : r));
         setEditId(null);
       }
     } catch {} finally { setSaving(false); }

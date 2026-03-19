@@ -11,6 +11,7 @@ import {
   Users, Building2, CheckSquare, FileSpreadsheet, Shield,
   Package, Globe, BadgeDollarSign, ChevronDown,
   ContactRound, FileOutput, FileInput, CircleDollarSign, ShieldCheck,
+  ArrowRightLeft,
 } from "lucide-react";
 import { useTheme } from "@/contexts/ThemeContext";
 
@@ -89,6 +90,7 @@ const businessNav: NavGroup[] = [
       { label: "พนักงาน & แผนก", href: "/dashboard/team", icon: Users },
       { label: "จ่ายเงินเดือน", href: "/dashboard/payroll", icon: BadgeDollarSign },
       { label: "อนุมัติรายจ่าย", href: "/dashboard/approvals", icon: CheckSquare },
+      { label: "เบิกจ่าย", href: "/dashboard/reimbursement", icon: ArrowRightLeft },
     ],
   },
   {

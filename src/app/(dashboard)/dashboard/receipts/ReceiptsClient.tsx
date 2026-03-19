@@ -254,19 +254,24 @@ export default function ReceiptsClient({ receipts: initialReceipts }: { receipts
   const handleTransfer = useCallback(async (ids: string[]) => {
     if (ids.length === 0) return;
     const currentMode = localStorage.getItem("iped-mode") || "personal";
-    const targetMode = currentMode === "personal" ? "business" : "personal";
-    const label = targetMode === "business" ? "บริษัท" : "ส่วนตัว";
-    if (!confirm(`ส่งต่อ ${ids.length} รายการไป "${label}" ?`)) return;
+    const direction = currentMode === "personal" ? "to-business" : "to-personal";
+    const label = direction === "to-business" ? "บริษัท (เบิกจ่าย)" : "ส่วนตัว";
+    if (!confirm(`ส่ง ${ids.length} รายการไป "${label}" ?`)) return;
     setTransferring(true);
     try {
-      const res = await fetch("/api/receipts/transfer", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ ids, targetMode }),
-      });
-      if (res.ok) {
-        setReceipts((prev) => prev.filter((r) => !ids.includes(r._id)));
-        setSelected((prev) => prev.filter((s) => !ids.includes(s)));
+      let success = 0;
+      for (const id of ids) {
+        const res = await fetch(`/api/receipts/${id}/transfer`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ direction }),
+        });
+        if (res.ok) success++;
+      }
+      if (success > 0) {
+        alert(`ส่ง ${success} รายการไป${label}แล้ว`);
+        setSelected([]);
+        router.refresh();
       } else {
         alert("ส่งต่อไม่สำเร็จ");
       }
