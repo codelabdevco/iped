@@ -721,11 +721,14 @@ export default function ReceiptsClient({ receipts: initialReceipts }: { receipts
     },
     {
       key: "updatedAt",
-      label: "อัปเดตล่าสุด",
-      defaultVisible: false,
+      label: isBusiness ? "ส่งเข้ามาเมื่อ" : "อัปเดตล่าสุด",
+      defaultVisible: isBusiness,
       render: (r) => {
-        if (!r.updatedAt) return <span className={muted}>-</span>;
-        const d = new Date(r.updatedAt);
+        // Business: show createdAt (= when transferred in), Personal: show updatedAt
+        const isFromPersonal = (r.note || "").includes("ค่าใช้จ่ายบริษัท จากส่วนตัว");
+        const ts = (isBusiness && isFromPersonal) ? r.createdAt : r.updatedAt;
+        if (!ts) return <span className={muted}>-</span>;
+        const d = new Date(ts);
         const date = d.toLocaleDateString("th-TH", { day: "2-digit", month: "short", year: "2-digit" });
         const time = d.toLocaleTimeString("th-TH", { hour: "2-digit", minute: "2-digit" });
         return <span className={`text-xs ${muted}`}>{date} {time}</span>;

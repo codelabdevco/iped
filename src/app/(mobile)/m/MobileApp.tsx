@@ -84,7 +84,7 @@ export default function MobileApp({ data }: { data: MobileData }) {
       <main className="px-4 pb-24 max-w-lg mx-auto">
         <div className="animate-in fade-in duration-200">
           {tab === "home" && <HomeTab data={data} isDark={isDark} onScan={() => setTab("scan")} onReceipts={() => setTab("receipts")} onReports={() => setTab("reports")} />}
-          {tab === "receipts" && <ReceiptsTab receipts={data.receipts} isDark={isDark} />}
+          {tab === "receipts" && <ReceiptsTab receipts={data.receipts} isDark={isDark} orgName={data.profile.orgName} orgId={data.profile.orgId} />}
           {tab === "scan" && <ScanTab isDark={isDark} onDone={() => setTab("home")} />}
           {tab === "reports" && <ReportsTab data={data} isDark={isDark} />}
           {tab === "profile" && <ProfileTab data={data} isDark={isDark} toggleTheme={toggleTheme} />}

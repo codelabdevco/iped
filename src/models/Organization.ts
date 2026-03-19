@@ -25,6 +25,7 @@ export interface IOrganization extends Document {
     role: "owner" | "admin" | "manager" | "accountant" | "viewer";
     joinedAt: Date;
   }[];
+  inviteCode?: string;
   packageId?: mongoose.Types.ObjectId;
   packageExpiry?: Date;
   status: "active" | "inactive" | "suspended";
@@ -60,6 +61,7 @@ const OrganizationSchema = new Schema<IOrganization>(
         joinedAt: { type: Date, default: Date.now },
       },
     ],
+    inviteCode: { type: String, unique: true, sparse: true },
     packageId: { type: Schema.Types.ObjectId, ref: "Package" },
     packageExpiry: Date,
     status: { type: String, enum: ["active", "inactive", "suspended"], default: "active" },

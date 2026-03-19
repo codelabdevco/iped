@@ -4,6 +4,7 @@ import { redirect } from "next/navigation";
 import { connectDB } from "@/lib/mongodb";
 import Receipt from "@/models/Receipt";
 import User from "@/models/User";
+import Organization from "@/models/Organization";
 import MobileApp from "./MobileApp";
 
 async function MobileData() {
@@ -134,6 +135,8 @@ async function MobileData() {
       status: user.status || "active",
       loginCount: user.loginCount || 0,
       onboardingComplete: user.onboardingComplete || false,
+      orgId: user.orgId ? String(user.orgId) : "",
+      orgName: "",
       settings: {
         dailySummary: user.settings?.notifications?.dailySummary ?? true,
         dailySummaryTime: user.settings?.notifications?.dailySummaryTime || "20:00",
@@ -180,6 +183,14 @@ async function MobileData() {
       lastLogin: user.lastLogin ? new Date(user.lastLogin).toLocaleDateString("th-TH", { day: "numeric", month: "short", year: "numeric", hour: "2-digit", minute: "2-digit" }) : "",
     },
   };
+
+  // Fetch org name if connected
+  if (user.orgId) {
+    try {
+      const org = await Organization.findById(user.orgId).select("name").lean() as any;
+      if (org) data.profile.orgName = org.name;
+    } catch {}
+  }
 
   return <MobileApp data={data} />;
 }
