@@ -16,6 +16,26 @@ export interface RateLimitResult {
   retryAfter?: number;
 }
 
+// Preset rate limit configs
+export const RATE_LIMITS = {
+  auth: { limit: 5, windowMs: 60000 },      // 5/min for login
+  api: { limit: 100, windowMs: 60000 },      // 100/min for general API
+  admin: { limit: 30, windowMs: 60000 },     // 30/min for admin
+  ocr: { limit: 20, windowMs: 60000 },       // 20/min for OCR
+  upload: { limit: 10, windowMs: 60000 },     // 10/min for file upload
+} as const;
+
+export function rateLimitByUser(userId: string, tier: keyof typeof RATE_LIMITS): RateLimitResult {
+  const config = RATE_LIMITS[tier];
+  return checkRateLimit(`${tier}:${userId}`, config.limit, config.windowMs);
+}
+
+export function rateLimitByIP(request: { headers: { get(name: string): string | null } }, tier: keyof typeof RATE_LIMITS): RateLimitResult {
+  const ip = request.headers.get("x-forwarded-for")?.split(",")[0]?.trim() || "unknown";
+  const config = RATE_LIMITS[tier];
+  return checkRateLimit(`${tier}:${ip}`, config.limit, config.windowMs);
+}
+
 export function checkRateLimit(
   key: string,
   limit: number = 60,

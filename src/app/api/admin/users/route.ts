@@ -3,10 +3,19 @@ import { connectDB } from "@/lib/mongodb";
 import { withAdmin, apiSuccess, apiError, getPagination } from "@/lib/api-helpers";
 import { JWTPayload } from "@/lib/auth";
 import User from "@/models/User";
-import { sanitizeString, validateEmail } from "@/lib/validate";
+import { validateBody, ValidationSchema } from "@/lib/validate";
+import { rateLimitByUser } from "@/lib/rate-limit";
 
 const VALID_ROLES = ["superadmin", "admin", "manager", "accountant", "user"];
 const VALID_ACCOUNT_TYPES = ["personal", "business"];
+
+const createUserSchema: ValidationSchema = {
+  name: { required: true, type: "string", maxLength: 200, sanitize: true },
+  email: { type: "email", maxLength: 200 },
+  role: { type: "string", enum: VALID_ROLES },
+  accountType: { type: "string", enum: VALID_ACCOUNT_TYPES },
+  occupation: { type: "string", maxLength: 200, sanitize: true },
+};
 
 const USER_SELECT_FIELDS =
   "_id name email lineUserId lineDisplayName lineProfilePic role accountType status onboardingComplete lastLogin loginCount documentsCount createdAt";
@@ -65,37 +74,24 @@ export async function GET(request: NextRequest) {
 
 export async function POST(request: NextRequest) {
   return withAdmin(request, async (_session: JWTPayload, req: NextRequest) => {
+    // Rate limit: 30 admin operations per minute
+    const rl = rateLimitByUser(_session.userId, "admin");
+    if (!rl.allowed) {
+      return apiError("Too many requests, please wait", 429);
+    }
+
     await connectDB();
     const body = await req.json();
 
-    const { name, email, role, accountType, status, occupation } = body;
-
-    if (!name || !name.trim()) {
-      return apiError("กรุณาระบุชื่อ", 400);
+    // Schema validation + sanitization
+    const validation = validateBody(body, createUserSchema);
+    if (!validation.valid) {
+      return apiError(validation.errors.join(", "), 400);
     }
 
-    // Sanitize inputs
-    const sanitizedName = sanitizeString(name, 200);
-    const sanitizedOccupation = occupation ? sanitizeString(occupation, 200) : undefined;
-
-    if (role && !VALID_ROLES.includes(role)) {
-      return apiError(
-        `role ไม่ถูกต้อง ต้องเป็น: ${VALID_ROLES.join(", ")}`,
-        400
-      );
-    }
-
-    if (accountType && !VALID_ACCOUNT_TYPES.includes(accountType)) {
-      return apiError(
-        `accountType ไม่ถูกต้อง ต้องเป็น: ${VALID_ACCOUNT_TYPES.join(", ")}`,
-        400
-      );
-    }
+    const { email, role, accountType, status, occupation } = body;
 
     if (email) {
-      const emailErr = validateEmail(email);
-      if (emailErr) return apiError(emailErr, 400);
-
       const existing = await User.findOne({ email });
       if (existing) {
         return apiError("อีเมลนี้ถูกใช้งานแล้ว", 409);
@@ -103,12 +99,12 @@ export async function POST(request: NextRequest) {
     }
 
     const user = await User.create({
-      name: sanitizedName,
+      name: body.name,
       email: email || undefined,
       role: role || "user",
       accountType: accountType || "personal",
       status: status || "active",
-      occupation: sanitizedOccupation,
+      occupation: body.occupation || undefined,
     });
 
     const created = await User.findById(user._id)

@@ -3,6 +3,20 @@ import { connectDB } from "@/lib/mongodb";
 import { withAuth, apiSuccess, apiError, getPagination } from "@/lib/api-helpers";
 import { JWTPayload } from "@/lib/auth";
 import Employee from "@/models/Employee";
+import { validateBody, ValidationSchema } from "@/lib/validate";
+
+const employeeSchema: ValidationSchema = {
+  employeeCode: { required: true, type: "string", maxLength: 50, sanitize: true },
+  name: { required: true, type: "string", maxLength: 200, sanitize: true },
+  baseSalary: { required: true, type: "number", min: 0, max: 9999999 },
+  nickname: { type: "string", maxLength: 100, sanitize: true },
+  position: { type: "string", maxLength: 200, sanitize: true },
+  department: { type: "string", maxLength: 200, sanitize: true },
+  employmentType: { type: "string", enum: ["full-time", "part-time", "contract", "freelance"] },
+  bankName: { type: "string", maxLength: 100, sanitize: true },
+  bankAccount: { type: "string", maxLength: 50, sanitize: true },
+  taxId: { type: "string", maxLength: 20, sanitize: true },
+};
 
 export async function GET(request: NextRequest) {
   return withAuth(request, async (session: JWTPayload) => {
@@ -35,8 +49,10 @@ export async function POST(request: NextRequest) {
     await connectDB();
     const body = await req.json();
 
-    if (!body.employeeCode || !body.name || body.baseSalary == null) {
-      return apiError("กรุณากรอก employeeCode, name, baseSalary", 400);
+    // Schema validation + sanitization
+    const validation = validateBody(body, employeeSchema);
+    if (!validation.valid) {
+      return apiError(validation.errors.join(", "), 400);
     }
 
     // Quota check — count active employees against package limit

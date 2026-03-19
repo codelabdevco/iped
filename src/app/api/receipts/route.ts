@@ -4,8 +4,17 @@ import { withAuth, apiSuccess, apiError, getPagination } from "@/lib/api-helpers
 import { JWTPayload } from "@/lib/auth";
 import Receipt from "@/models/Receipt";
 import User from "@/models/User";
-import { checkRateLimit } from "@/lib/rate-limit";
-import { sanitizeString, validateNumber } from "@/lib/validate";
+import { rateLimitByUser } from "@/lib/rate-limit";
+import { validateBody, ValidationSchema } from "@/lib/validate";
+
+const receiptSchema: ValidationSchema = {
+  merchant: { required: true, type: "string", maxLength: 200, sanitize: true },
+  date: { required: true },
+  amount: { required: true, type: "number", min: 0, max: 999999999 },
+  note: { type: "string", maxLength: 1000, sanitize: true },
+  category: { type: "string", maxLength: 100 },
+  status: { type: "string", enum: ["pending", "confirmed", "duplicate", "rejected", "paid"] },
+};
 
 export async function GET(request: NextRequest) {
   return withAuth(request, async (session: JWTPayload, req: NextRequest) => {
@@ -68,8 +77,8 @@ export async function POST(request: NextRequest) {
   return withAuth(request, async (session: JWTPayload, req: NextRequest) => {
     await connectDB();
 
-    // Rate limit: 30 receipt creates per minute per user
-    const rl = checkRateLimit(`receipts:${session.userId}`, 30, 60000);
+    // Rate limit: 100 receipt creates per minute per user
+    const rl = rateLimitByUser(session.userId, "api");
     if (!rl.allowed) {
       return NextResponse.json({ error: "Too many requests, please wait" }, { status: 429 });
     }
@@ -83,15 +92,11 @@ export async function POST(request: NextRequest) {
 
     const body = await req.json();
 
-    if (!body.merchant || !body.date || body.amount == null) {
-      return apiError("กรุณากรอก merchant, date, amount", 400);
+    // Schema validation + sanitization
+    const validation = validateBody(body, receiptSchema);
+    if (!validation.valid) {
+      return apiError(validation.errors.join(", "), 400);
     }
-
-    // Sanitize and validate inputs
-    body.merchant = sanitizeString(body.merchant, 200);
-    body.note = sanitizeString(body.note || "", 1000);
-    const amtErr = validateNumber(body.amount, "amount", { min: 0, max: 999999999 });
-    if (amtErr) return apiError(amtErr, 400);
 
     // Check for duplicate by imageHash
     if (body.imageHash) {

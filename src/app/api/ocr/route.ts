@@ -4,7 +4,7 @@ import { getSession } from "@/lib/auth";
 import { connectDB } from "@/lib/mongodb";
 import Receipt from "@/models/Receipt";
 import crypto from "crypto";
-import { checkRateLimit } from "@/lib/rate-limit";
+import { rateLimitByUser } from "@/lib/rate-limit";
 
 export async function POST(request: NextRequest) {
   try {
@@ -15,7 +15,7 @@ export async function POST(request: NextRequest) {
     }
 
     // Rate limit: 20 OCR requests per minute per user
-    const rl = checkRateLimit(`ocr:${session.userId}`, 20, 60000);
+    const rl = rateLimitByUser(session.userId, "ocr");
     if (!rl.allowed) {
       return NextResponse.json({ error: "Too many OCR requests, please wait" }, { status: 429 });
     }

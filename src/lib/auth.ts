@@ -62,6 +62,33 @@ export function clearTokenCookie() {
   };
 }
 
+/**
+ * Check if token is close to expiry and issue a new one.
+ * Call this on each authenticated request to implement sliding window.
+ */
+export async function refreshTokenIfNeeded(token: string): Promise<string | null> {
+  try {
+    const { payload } = await jwtVerify(token, JWT_SECRET);
+    const exp = (payload.exp || 0) * 1000;
+    const now = Date.now();
+    const daysLeft = (exp - now) / (1000 * 60 * 60 * 24);
+
+    // Refresh if less than 2 days left
+    if (daysLeft < 2 && daysLeft > 0) {
+      const newToken = await createToken({
+        userId: payload.userId as string,
+        role: payload.role as string,
+        accountType: payload.accountType as string,
+        orgId: payload.orgId as string | undefined,
+      });
+      return newToken;
+    }
+    return null;
+  } catch {
+    return null;
+  }
+}
+
 // LINE Login helpers
 export function getLineLoginUrl(state: string): string {
   const clientId = process.env.LINE_LOGIN_CHANNEL_ID || process.env.LINE_CHANNEL_ID || "";
