@@ -2,7 +2,7 @@
 
 import { useState, useRef } from "react";
 import { useTheme } from "@/contexts/ThemeContext";
-import { Home, Receipt, ScanLine, BarChart3, User, Camera, Image as ImageIcon, Loader2, Check, X, Bell, Pencil, Moon, Sun, ChevronRight, TrendingUp, Calculator, FolderOpen, ArrowUpRight, ArrowDownLeft, Wallet, AlertTriangle } from "lucide-react";
+import { Home, Receipt, ScanLine, BarChart3, User, Camera, Image as ImageIcon, Loader2, Check, X, Bell, Pencil, Moon, Sun, ChevronRight, TrendingUp, Calculator, FolderOpen, ArrowUpRight, ArrowDownLeft, AlertTriangle, PiggyBank } from "lucide-react";
 import BrandIcon from "@/components/dashboard/BrandIcon";
 import StatsCard from "@/components/dashboard/StatsCard";
 import GoalCard from "@/components/dashboard/GoalCard";
@@ -57,10 +57,8 @@ export default function MobileApp({ data }: { data: MobileData }) {
 
   return (
     <div className="min-h-screen shell-theme">
-      {/* ── Status bar safe area ── */}
       <div className="h-[env(safe-area-inset-top)]" />
 
-      {/* ── Top bar ── */}
       <header className="sticky top-0 z-40 flex items-center justify-between px-4 h-12 shell-theme backdrop-blur-xl border-b border-transparent" style={{ opacity: 0.98 }}>
         <div className="flex items-center gap-2">
           <img src="/logo-cropped.png" alt="" className="w-6 h-6 rounded-md object-cover" />
@@ -82,10 +80,9 @@ export default function MobileApp({ data }: { data: MobileData }) {
         </div>
       </header>
 
-      {/* ── Content ── */}
       <main className="px-4 pb-24 max-w-lg mx-auto">
         <div className="animate-in fade-in duration-200">
-          {tab === "home" && <HomeTab data={data} isDark={isDark} onScan={() => setTab("scan")} onReceipts={() => setTab("receipts")} />}
+          {tab === "home" && <HomeTab data={data} isDark={isDark} onScan={() => setTab("scan")} onReceipts={() => setTab("receipts")} onReports={() => setTab("reports")} />}
           {tab === "receipts" && <ReceiptsTab receipts={data.receipts} isDark={isDark} />}
           {tab === "scan" && <ScanTab isDark={isDark} onDone={() => setTab("home")} />}
           {tab === "reports" && <ReportsTab data={data} isDark={isDark} />}
@@ -93,7 +90,6 @@ export default function MobileApp({ data }: { data: MobileData }) {
         </div>
       </main>
 
-      {/* ── Bottom Tab Bar ── */}
       <nav className={`fixed bottom-0 left-0 right-0 z-50 border-t backdrop-blur-xl ${isDark ? "bg-[#0a0a0a]/90 border-white/[0.06]" : "bg-white/90 border-gray-200"}`} style={{ paddingBottom: "env(safe-area-inset-bottom)" }}>
         <div className="flex items-center justify-around h-14 max-w-lg mx-auto">
           {([
@@ -129,52 +125,38 @@ export default function MobileApp({ data }: { data: MobileData }) {
 }
 
 // ════════════════════════════════════════
-//  HOME TAB
+//  HOME TAB — compact overview
 // ════════════════════════════════════════
-function HomeTab({ data, isDark, onScan, onReceipts }: { data: MobileData; isDark: boolean; onScan: () => void; onReceipts: () => void }) {
+function HomeTab({ data, isDark, onScan, onReceipts, onReports }: { data: MobileData; isDark: boolean; onScan: () => void; onReceipts: () => void; onReports: () => void }) {
   const { card, border, txt, sub, muted } = useS(isDark);
   const net = data.monthIncome - data.monthExpense;
   const budgetPct = data.profile.monthlyBudget > 0 ? Math.min(100, (data.monthExpense / data.profile.monthlyBudget) * 100) : 0;
-  const avgPerDay = data.daysInMonth > 0 ? Math.round(data.totalExpense / Math.min(new Date().getDate(), data.daysInMonth)) : 0;
-  const avgPerReceipt = data.stats.monthReceipts > 0 ? Math.round(data.totalExpense / data.stats.monthReceipts) : 0;
 
   return (
     <div className="space-y-4 pt-3">
       {/* Greeting */}
-      <div className="flex items-center justify-between">
-        <div>
-          <p className={`text-lg font-bold ${txt}`}>สวัสดี, {(data.profile.firstNameTh || data.profile.lineDisplayName || data.profile.name).split(" ")[0]} 👋</p>
-          <p className={`text-[11px] ${sub}`}>{new Date().toLocaleDateString("th-TH", { weekday: "long", day: "numeric", month: "long" })}</p>
-        </div>
+      <div>
+        <p className={`text-lg font-bold ${txt}`}>สวัสดี, {(data.profile.firstNameTh || data.profile.lineDisplayName || data.profile.name).split(" ")[0]} 👋</p>
+        <p className={`text-[11px] ${sub}`}>{new Date().toLocaleDateString("th-TH", { weekday: "long", day: "numeric", month: "long" })}</p>
       </div>
 
-      {/* Hero card */}
-      <div className="rounded-2xl bg-gradient-to-br from-[#FA3633] to-[#e62e2e] p-5 text-white shadow-lg shadow-[#FA3633]/20">
-        <div className="flex items-center justify-between mb-4">
-          <p className="text-xs text-white/60 font-medium">รายจ่ายวันนี้</p>
-          <div className="flex items-center gap-1.5">
-            {[
-              { brand: "line", on: true },
-              { brand: "gmail", on: !!data.profile.googleEmail },
-            ].map((s) => (
-              <div key={s.brand} className={`w-5 h-5 rounded-full flex items-center justify-center ${s.on ? "bg-white/20" : "bg-white/5"}`}>
-                <BrandIcon brand={s.brand} size={10} />
-              </div>
-            ))}
+      {/* Today summary — expense + income side by side */}
+      <div className="grid grid-cols-2 gap-3">
+        <div className="rounded-2xl bg-gradient-to-br from-red-500 to-red-600 p-4 text-white shadow-lg shadow-red-500/20">
+          <div className="flex items-center gap-1.5 mb-2">
+            <ArrowUpRight size={14} className="text-white/60" />
+            <p className="text-[10px] text-white/60 font-medium">จ่ายวันนี้</p>
           </div>
+          <p className="text-2xl font-extrabold tracking-tight">฿{fmt(data.todayExpense)}</p>
+          <p className="text-[10px] text-white/50 mt-1">{data.todayCount} รายการ</p>
         </div>
-        <p className="text-4xl font-extrabold tracking-tight">฿{fmt(data.todayExpense)}</p>
-        <div className="flex items-center gap-4 mt-3">
-          <div className="flex items-center gap-1">
-            <ArrowUpRight size={12} className="text-white/60" />
-            <span className="text-xs text-white/60">{data.todayCount} รายการ</span>
+        <div className="rounded-2xl bg-gradient-to-br from-green-500 to-green-600 p-4 text-white shadow-lg shadow-green-500/20">
+          <div className="flex items-center gap-1.5 mb-2">
+            <ArrowDownLeft size={14} className="text-white/60" />
+            <p className="text-[10px] text-white/60 font-medium">รับวันนี้</p>
           </div>
-          {data.todayIncome > 0 && (
-            <div className="flex items-center gap-1">
-              <ArrowDownLeft size={12} className="text-green-300" />
-              <span className="text-xs text-green-200">รับ +฿{fmt(data.todayIncome)}</span>
-            </div>
-          )}
+          <p className="text-2xl font-extrabold tracking-tight">฿{fmt(data.todayIncome)}</p>
+          <p className="text-[10px] text-white/50 mt-1">รายรับ</p>
         </div>
       </div>
 
@@ -188,12 +170,12 @@ function HomeTab({ data, isDark, onScan, onReceipts }: { data: MobileData; isDar
         </button>
       </div>
 
-      {/* Stats */}
+      {/* Stats — 4 cards with expense/income */}
       <div className="grid grid-cols-2 gap-3">
-        <StatsCard label="ยอดรวมเดือนนี้" value={`฿${fmt(data.totalExpense)}`} icon={<TrendingUp size={18} />} />
+        <StatsCard label="รายจ่ายเดือนนี้" value={`฿${fmt(data.monthExpense)}`} icon={<ArrowUpRight size={18} className="text-red-500" />} />
+        <StatsCard label="รายรับเดือนนี้" value={`฿${fmt(data.monthIncome)}`} icon={<ArrowDownLeft size={18} className="text-green-500" />} />
         <StatsCard label="จำนวนใบเสร็จ" value={`${data.stats.monthReceipts} ใบ`} icon={<Receipt size={18} />} />
-        <StatsCard label="เฉลี่ย/วัน" value={`฿${fmt(avgPerDay)}`} icon={<Calculator size={18} />} />
-        <StatsCard label="หมวดหมู่" value={`${data.categories.length} หมวด`} icon={<FolderOpen size={18} />} />
+        <StatsCard label="คงเหลือ" value={`${net >= 0 ? "+" : ""}฿${fmt(Math.abs(net))}`} icon={<PiggyBank size={18} className={net >= 0 ? "text-green-500" : "text-red-500"} />} />
       </div>
 
       {/* Goals */}
@@ -202,13 +184,13 @@ function HomeTab({ data, isDark, onScan, onReceipts }: { data: MobileData; isDar
         <GoalCard storageKey="goal-income" current={data.monthIncome} label="เป้ารายรับ" color="green" />
       </div>
 
-      {/* Month summary */}
+      {/* Month summary bar */}
       <div className={`${card} border ${border} rounded-2xl p-4`}>
         <p className={`text-xs font-semibold ${txt} mb-3`}>สรุปเดือนนี้</p>
         <div className="grid grid-cols-3 gap-2">
-          <MiniCard label="รายจ่าย" value={`฿${fmt(data.monthExpense)}`} color="red" isDark={isDark} />
-          <MiniCard label="รายรับ" value={`฿${fmt(data.monthIncome)}`} color="green" isDark={isDark} />
-          <MiniCard label="คงเหลือ" value={`${net >= 0 ? "+" : ""}฿${fmt(Math.abs(net))}`} color={net >= 0 ? "blue" : "red"} isDark={isDark} />
+          <MiniCard label="รายจ่าย" value={`-฿${fmt(data.monthExpense)}`} color="red" isDark={isDark} />
+          <MiniCard label="รายรับ" value={`+฿${fmt(data.monthIncome)}`} color="green" isDark={isDark} />
+          <MiniCard label="คงเหลือ" value={`${net >= 0 ? "+" : "-"}฿${fmt(Math.abs(net))}`} color={net >= 0 ? "green" : "red"} isDark={isDark} />
         </div>
         {data.profile.monthlyBudget > 0 && (
           <div className="mt-3">
@@ -223,42 +205,6 @@ function HomeTab({ data, isDark, onScan, onReceipts }: { data: MobileData; isDar
         )}
       </div>
 
-      {/* Categories */}
-      {data.categories.length > 0 && (
-        <div className={`${card} border ${border} rounded-2xl p-4`}>
-          <p className={`text-xs font-semibold ${txt} mb-3`}>หมวดหมู่</p>
-          {data.categories.slice(0, 5).map((c: any) => {
-            const pct = data.totalExpense > 0 ? Math.round((c.total / data.totalExpense) * 100) : 0;
-            return (
-              <div key={c.name} className="flex items-center gap-3 py-1.5">
-                <span className="text-sm w-6 text-center">{c.icon}</span>
-                <span className={`text-xs flex-1 ${txt}`}>{c.name}</span>
-                <div className={`w-16 h-1.5 rounded-full ${isDark ? "bg-white/10" : "bg-gray-100"}`}>
-                  <div className="h-full rounded-full bg-[#FA3633]" style={{ width: `${pct}%` }} />
-                </div>
-                <span className={`text-[10px] w-8 text-right ${muted}`}>{pct}%</span>
-                <span className={`text-xs font-semibold w-16 text-right ${txt}`}>฿{fmt(c.total)}</span>
-              </div>
-            );
-          })}
-        </div>
-      )}
-
-      {/* Payment methods */}
-      {data.paymentMethods?.length > 0 && (
-        <div className={`${card} border ${border} rounded-2xl p-4`}>
-          <p className={`text-xs font-semibold ${txt} mb-3`}>วิธีชำระ</p>
-          {data.paymentMethods.slice(0, 4).map((p: any) => (
-            <div key={p.method} className="flex items-center gap-3 py-1.5">
-              <BrandIcon brand={p.method} size={28} className="rounded-lg" />
-              <span className={`text-xs flex-1 ${txt}`}>{PAY_LABELS[p.method] || p.method}</span>
-              <span className={`text-[10px] ${muted}`}>{p.count}x</span>
-              <span className={`text-xs font-semibold ${txt}`}>฿{fmt(p.total)}</span>
-            </div>
-          ))}
-        </div>
-      )}
-
       {/* Recent receipts */}
       <div>
         <div className="flex items-center justify-between mb-2">
@@ -266,9 +212,14 @@ function HomeTab({ data, isDark, onScan, onReceipts }: { data: MobileData; isDar
           <button onClick={onReceipts} className="text-[10px] text-[#FA3633] font-medium">ดูทั้งหมด ({data.stats.totalReceipts})</button>
         </div>
         <div className="space-y-1.5">
-          {data.receipts.slice(0, 8).map((r: any) => <ReceiptRow key={r._id} r={r} isDark={isDark} />)}
+          {data.receipts.slice(0, 6).map((r: any) => <ReceiptRow key={r._id} r={r} isDark={isDark} />)}
           {data.receipts.length === 0 && <EmptyState isDark={isDark} />}
         </div>
+        {data.receipts.length > 6 && (
+          <button onClick={onReports} className={`w-full mt-2 py-2.5 rounded-xl text-xs font-medium ${isDark ? "bg-white/5 text-white/50" : "bg-gray-50 text-gray-500"}`}>
+            ดูสรุปทั้งหมด →
+          </button>
+        )}
       </div>
     </div>
   );
@@ -299,10 +250,13 @@ function EmptyState({ isDark }: { isDark: boolean }) {
 //  RECEIPTS TAB
 // ════════════════════════════════════════
 function ReceiptsTab({ receipts, isDark }: { receipts: any[]; isDark: boolean }) {
-  const { txt, sub, card, border, muted } = useS(isDark);
+  const { txt, card, border, muted } = useS(isDark);
   const [filter, setFilter] = useState<"all" | "expense" | "income">("all");
   const [lightbox, setLightbox] = useState<string | null>(null);
   const filtered = filter === "all" ? receipts : receipts.filter((r) => r.direction === filter);
+
+  const expenseCount = receipts.filter((r) => r.direction === "expense").length;
+  const incomeCount = receipts.filter((r) => r.direction === "income").length;
 
   const statusLabel: Record<string, { text: string; cls: string }> = {
     pending: { text: "รอยืนยัน", cls: "bg-amber-500/10 text-amber-500" },
@@ -313,19 +267,27 @@ function ReceiptsTab({ receipts, isDark }: { receipts: any[]; isDark: boolean })
     cancelled: { text: "ยกเลิก", cls: "bg-gray-500/10 text-gray-500" },
   };
 
+  const filterTabs: { key: "all" | "expense" | "income"; label: string; activeClass: string }[] = [
+    { key: "all", label: `ทั้งหมด (${receipts.length})`, activeClass: "bg-[#FA3633] text-white" },
+    { key: "expense", label: `รายจ่าย (${expenseCount})`, activeClass: "bg-red-500 text-white" },
+    { key: "income", label: `รายรับ (${incomeCount})`, activeClass: "bg-green-500 text-white" },
+  ];
+
   return (
     <div className="space-y-3 pt-3">
       <p className={`text-lg font-bold ${txt}`}>ใบเสร็จ</p>
+      {/* Filter tabs — color coded */}
       <div className={`flex p-1 rounded-xl ${isDark ? "bg-white/5" : "bg-gray-100"}`}>
-        {([["all", `ทั้งหมด (${receipts.length})`], ["expense", "รายจ่าย"], ["income", "รายรับ"]] as const).map(([key, label]) => (
-          <button key={key} onClick={() => setFilter(key)} className={`flex-1 py-2 rounded-lg text-xs font-semibold transition-all ${filter === key ? "bg-[#FA3633] text-white shadow-sm" : isDark ? "text-white/40" : "text-gray-500"}`}>
-            {label}
+        {filterTabs.map((t) => (
+          <button key={t.key} onClick={() => setFilter(t.key)} className={`flex-1 py-2 rounded-lg text-xs font-semibold transition-all ${filter === t.key ? `${t.activeClass} shadow-sm` : isDark ? "text-white/40" : "text-gray-500"}`}>
+            {t.label}
           </button>
         ))}
       </div>
       <div className="space-y-2">
         {filtered.map((r) => {
           const st = statusLabel[r.status] || statusLabel.pending;
+          const isIncome = r.direction === "income";
           return (
             <div key={r._id} className={`${card} border ${border} rounded-xl overflow-hidden`}>
               <div className="px-3.5 py-3 flex items-center gap-3">
@@ -342,14 +304,19 @@ function ReceiptsTab({ receipts, isDark }: { receipts: any[]; isDark: boolean })
                 )}
                 {/* Info */}
                 <div className="flex-1 min-w-0">
-                  <p className={`text-sm font-medium ${txt} truncate`}>{r.merchant}</p>
+                  <div className="flex items-center gap-1.5">
+                    <span className={`text-[8px] px-1.5 py-0.5 rounded font-bold leading-none ${isIncome ? "bg-green-500/15 text-green-500" : "bg-red-500/15 text-red-500"}`}>
+                      {isIncome ? "รับ" : "จ่าย"}
+                    </span>
+                    <p className={`text-sm font-medium ${txt} truncate`}>{r.merchant}</p>
+                  </div>
                   <div className="flex items-center gap-1.5 mt-0.5">
                     <span className={`text-[10px] ${muted}`}>{r.date}{r.time ? ` · ${r.time}` : ""}</span>
                     {r.source === "line" && <BrandIcon brand="line" size={10} />}
                     <span className={`text-[8px] px-1.5 py-0.5 rounded-full font-semibold ${st.cls}`}>{st.text}</span>
                   </div>
                 </div>
-                {/* Amount */}
+                {/* Amount — colored */}
                 <div className="text-right shrink-0">
                   <Baht value={r.amount} direction={r.direction} className="text-sm font-bold" />
                   <p className={`text-[10px] ${muted}`}>{r.category}</p>
@@ -469,7 +436,7 @@ function ScanTab({ isDark, onDone }: { isDark: boolean; onDone: () => void }) {
 }
 
 // ════════════════════════════════════════
-//  REPORTS TAB
+//  REPORTS TAB — full dashboard view
 // ════════════════════════════════════════
 function ReportsTab({ data, isDark }: { data: MobileData; isDark: boolean }) {
   const { card, border, txt, sub, muted } = useS(isDark);
@@ -480,7 +447,6 @@ function ReportsTab({ data, isDark }: { data: MobileData; isDark: boolean }) {
   const avgPerReceipt = data.stats.monthReceipts > 0 ? Math.round(data.totalExpense / data.stats.monthReceipts) : 0;
   const budgetPct = data.profile.monthlyBudget > 0 ? Math.min(100, (data.totalExpense / data.profile.monthlyBudget) * 100) : 0;
 
-  // Budget alerts from localStorage
   const [budgetAlerts] = useState<{ cat: string; spent: number; budget: number; pct: number }[]>(() => {
     try {
       const s = typeof window !== "undefined" ? localStorage.getItem("iped-budgets") : null;
@@ -502,7 +468,6 @@ function ReportsTab({ data, isDark }: { data: MobileData; isDark: boolean }) {
   });
   const [alertsDismissed, setAlertsDismissed] = useState(false);
 
-  // Recurring items from localStorage
   const [recurring] = useState<{ name: string; type: string; amount: number; cycle: string; active: boolean }[]>(() => {
     try {
       const s = typeof window !== "undefined" ? localStorage.getItem("iped-recurring") : null;
@@ -515,7 +480,6 @@ function ReportsTab({ data, isDark }: { data: MobileData; isDark: boolean }) {
     ];
   });
 
-  // Budget limits from localStorage
   const [budgetLimits] = useState<Record<string, number>>(() => {
     try {
       const s = typeof window !== "undefined" ? localStorage.getItem("iped-budgets") : null;
@@ -575,37 +539,32 @@ function ReportsTab({ data, isDark }: { data: MobileData; isDark: boolean }) {
         </div>
       )}
 
-      {/* Stats cards */}
+      {/* Stats cards — expense red, income green */}
       <div className="grid grid-cols-2 gap-3">
-        <StatsCard label="ยอดรวมเดือนนี้" value={`฿${fmt(data.totalExpense)}`} icon={<TrendingUp size={18} />} />
-        <StatsCard label="จำนวนใบเสร็จ" value={`${data.stats.monthReceipts} ใบ`} icon={<Receipt size={18} />} />
+        <StatsCard label="รายจ่ายเดือนนี้" value={`-฿${fmt(data.totalExpense)}`} icon={<ArrowUpRight size={18} className="text-red-500" />} />
+        <StatsCard label="รายรับเดือนนี้" value={`+฿${fmt(data.monthIncome)}`} icon={<ArrowDownLeft size={18} className="text-green-500" />} />
         <StatsCard label="เฉลี่ยต่อใบ" value={`฿${fmt(avgPerReceipt)}`} icon={<Calculator size={18} />} />
-        <StatsCard label="หมวดหมู่" value={`${data.categories.length} หมวด`} icon={<FolderOpen size={18} />} />
+        <StatsCard label="คงเหลือ" value={`${net >= 0 ? "+" : "-"}฿${fmt(Math.abs(net))}`} icon={<PiggyBank size={18} className={net >= 0 ? "text-green-500" : "text-red-500"} />} />
       </div>
 
-      {/* Chart — balanced */}
+      {/* Chart — balanced with Y-axis */}
       <div className={`${card} border ${border} rounded-2xl p-4`}>
         <p className={`text-xs font-semibold ${txt} mb-4`}>ภาพรวมค่าใช้จ่ายรายเดือน</p>
-        {/* Y-axis + bars */}
         {(() => {
           const niceMax = Math.ceil(maxMonthly / 1000) * 1000 || 1000;
           const yTicks = [0, 0.25, 0.5, 0.75, 1].map((p) => Math.round(niceMax * p));
           const fmtY = (v: number) => v >= 1000 ? `${(v / 1000).toFixed(0)}k` : `${v}`;
           return (
             <div className="flex gap-0" style={{ height: 160 }}>
-              {/* Y labels */}
               <div className="flex flex-col justify-between pr-1.5 py-0" style={{ width: 32 }}>
                 {[...yTicks].reverse().map((v, i) => (
                   <span key={i} className={`text-[8px] text-right leading-none ${muted}`}>{fmtY(v)}</span>
                 ))}
               </div>
-              {/* Chart area */}
               <div className="flex-1 relative">
-                {/* Grid lines */}
                 {[0, 0.25, 0.5, 0.75, 1].map((p, i) => (
                   <div key={i} className={`absolute left-0 right-0 border-t ${isDark ? "border-white/5" : "border-gray-100"}`} style={{ top: `${(1 - p) * 100}%` }} />
                 ))}
-                {/* Bars */}
                 <div className="absolute inset-0 flex items-end justify-around px-0.5 pb-5">
                   {data.monthlyData.map((m, i) => {
                     const isLast = i === data.monthlyData.length - 1;
@@ -636,7 +595,7 @@ function ReportsTab({ data, isDark }: { data: MobileData; isDark: boolean }) {
       <div className={`${card} border ${border} rounded-2xl p-4`}>
         <p className={`text-xs font-semibold ${txt} mb-4`}>เป้าหมาย</p>
         <div className="grid grid-cols-2 gap-4">
-          <DonutGoal label="เป้ารายจ่าย" current={data.monthExpense} storageKey="goal-expense" color="#FA3633" isDark={isDark} />
+          <DonutGoal label="เป้ารายจ่าย" current={data.monthExpense} storageKey="goal-expense" color="#EF4444" isDark={isDark} />
           <DonutGoal label="เป้ารายรับ" current={data.monthIncome} storageKey="goal-income" color="#22C55E" isDark={isDark} />
         </div>
       </div>
@@ -645,12 +604,12 @@ function ReportsTab({ data, isDark }: { data: MobileData; isDark: boolean }) {
       <div className={`${card} border ${border} rounded-2xl p-4`}>
         <p className={`text-xs font-semibold ${txt} mb-3`}>สรุปเดือนนี้</p>
         <div className="grid grid-cols-3 gap-2">
-          <MiniCard label="รายจ่าย" value={`฿${fmt(data.monthExpense)}`} color="red" isDark={isDark} />
-          <MiniCard label="รายรับ" value={`฿${fmt(data.monthIncome)}`} color="green" isDark={isDark} />
-          <MiniCard label="คงเหลือ" value={`${net >= 0 ? "+" : ""}฿${fmt(Math.abs(net))}`} color={net >= 0 ? "blue" : "red"} isDark={isDark} />
+          <MiniCard label="รายจ่าย" value={`-฿${fmt(data.monthExpense)}`} color="red" isDark={isDark} />
+          <MiniCard label="รายรับ" value={`+฿${fmt(data.monthIncome)}`} color="green" isDark={isDark} />
+          <MiniCard label="คงเหลือ" value={`${net >= 0 ? "+" : "-"}฿${fmt(Math.abs(net))}`} color={net >= 0 ? "green" : "red"} isDark={isDark} />
         </div>
         <div className="flex gap-4 mt-3 pt-3 border-t" style={{ borderColor: isDark ? "rgba(255,255,255,0.06)" : "rgba(0,0,0,0.06)" }}>
-          <div><p className={`text-[10px] ${muted}`}>เฉลี่ย/วัน</p><p className={`text-xs font-semibold ${txt}`}>฿{fmt(dailyAvg)}</p></div>
+          <div><p className={`text-[10px] ${muted}`}>เฉลี่ย/วัน</p><p className={`text-xs font-semibold text-red-500`}>-฿{fmt(dailyAvg)}</p></div>
           <div><p className={`text-[10px] ${muted}`}>รายการ</p><p className={`text-xs font-semibold ${txt}`}>{data.stats.monthReceipts}</p></div>
           {data.profile.monthlyBudget > 0 && <div><p className={`text-[10px] ${muted}`}>งบ</p><p className={`text-xs font-semibold ${budgetPct > 80 ? "text-red-500" : txt}`}>{Math.round(budgetPct)}%</p></div>}
         </div>
@@ -686,7 +645,7 @@ function ReportsTab({ data, isDark }: { data: MobileData; isDark: boolean }) {
                     <span className={`text-xs ${txt}`}>{c.name}</span>
                   </div>
                   <span className={`text-xs font-medium ${isOver ? "text-red-500" : txt}`}>
-                    ฿{fmt(c.total)}
+                    -฿{fmt(c.total)}
                     {budget ? <span className={sub}> / ฿{fmt(budget)}</span> : ""}
                   </span>
                 </div>
@@ -716,13 +675,16 @@ function ReportsTab({ data, isDark }: { data: MobileData; isDark: boolean }) {
                 <span className={`px-1.5 py-0.5 rounded text-[8px] font-bold leading-none ${item.type === "income" ? "bg-green-500/15 text-green-500" : "bg-red-500/15 text-red-500"}`}>{item.type === "income" ? "รับ" : "จ่าย"}</span>
                 <span className={`text-xs ${txt}`}>{item.name}</span>
               </div>
-              <span className={`text-xs font-medium ${txt}`}>฿{fmt(item.amount)}<span className={`text-[9px] ${muted} ml-0.5`}>/{item.cycle.replace("ราย", "")}</span></span>
+              <span className={`text-xs font-medium ${item.type === "income" ? "text-green-500" : "text-red-500"}`}>
+                {item.type === "income" ? "+" : "-"}฿{fmt(item.amount)}
+                <span className={`text-[9px] ${muted} ml-0.5`}>/{item.cycle.replace("ราย", "")}</span>
+              </span>
             </div>
           ))}
           {recurringTotal > 0 && (
-            <div className={`mt-2 pt-2 flex justify-between`} style={{ borderTop: `1px solid ${isDark ? "rgba(255,255,255,0.06)" : "rgba(0,0,0,0.06)"}` }}>
+            <div className="mt-2 pt-2 flex justify-between" style={{ borderTop: `1px solid ${isDark ? "rgba(255,255,255,0.06)" : "rgba(0,0,0,0.06)"}` }}>
               <span className={`text-[10px] ${sub}`}>รายจ่ายประจำ/เดือน</span>
-              <span className="text-[10px] font-semibold text-red-500">฿{fmt(recurringTotal)}</span>
+              <span className="text-[10px] font-semibold text-red-500">-฿{fmt(recurringTotal)}</span>
             </div>
           )}
         </div>
@@ -740,10 +702,10 @@ function ReportsTab({ data, isDark }: { data: MobileData; isDark: boolean }) {
                 <div className="flex-1">
                   <div className="flex justify-between mb-0.5">
                     <span className={`text-xs ${txt}`}>{c.name}</span>
-                    <span className={`text-xs font-bold ${txt}`}>฿{fmt(c.total)} <span className={`font-normal ${muted}`}>{pct}%</span></span>
+                    <span className="text-xs font-bold text-red-500">-฿{fmt(c.total)} <span className={`font-normal ${muted}`}>{pct}%</span></span>
                   </div>
                   <div className={`h-1.5 rounded-full ${isDark ? "bg-white/10" : "bg-gray-100"}`}>
-                    <div className="h-full rounded-full bg-[#FA3633]" style={{ width: `${(c.total / maxCat) * 100}%`, opacity: 1 - i * 0.08 }} />
+                    <div className="h-full rounded-full bg-red-500" style={{ width: `${(c.total / maxCat) * 100}%`, opacity: 1 - i * 0.08 }} />
                   </div>
                 </div>
               </div>
@@ -782,10 +744,10 @@ function ReportsTab({ data, isDark }: { data: MobileData; isDark: boolean }) {
           <p className={`text-xs font-semibold ${txt} mb-3`}>จ่ายบ่อย</p>
           {data.topMerchants.map((m, i) => (
             <div key={m.name} className="flex items-center gap-3 py-1.5">
-              <span className={`w-5 h-5 rounded-full flex items-center justify-center text-[10px] font-bold ${i === 0 ? "bg-[#FA3633] text-white" : isDark ? "bg-white/10 text-white/40" : "bg-gray-100 text-gray-400"}`}>{i + 1}</span>
+              <span className={`w-5 h-5 rounded-full flex items-center justify-center text-[10px] font-bold ${i === 0 ? "bg-red-500 text-white" : isDark ? "bg-white/10 text-white/40" : "bg-gray-100 text-gray-400"}`}>{i + 1}</span>
               <span className={`text-xs flex-1 truncate ${txt}`}>{m.name}</span>
               <span className={`text-[10px] ${muted}`}>{m.count}x</span>
-              <span className={`text-xs font-bold ${txt}`}>฿{fmt(m.total)}</span>
+              <span className="text-xs font-bold text-red-500">-฿{fmt(m.total)}</span>
             </div>
           ))}
         </div>
@@ -835,7 +797,6 @@ function ProfileTab({ data, isDark, toggleTheme }: { data: MobileData; isDark: b
 
   return (
     <div className="space-y-4 pt-3">
-      {/* Avatar */}
       <div className={`${card} border ${border} rounded-2xl p-5`}>
         <div className="flex items-center gap-4">
           <div className="relative">
@@ -854,7 +815,6 @@ function ProfileTab({ data, isDark, toggleTheme }: { data: MobileData; isDark: b
         </div>
       </div>
 
-      {/* Streak */}
       <div className={`${card} border ${border} rounded-2xl p-4`}>
         <div className="flex items-end gap-2 mb-2">
           <span className={`text-3xl font-bold ${txt}`}>{s.streak}</span>
@@ -865,7 +825,6 @@ function ProfileTab({ data, isDark, toggleTheme }: { data: MobileData; isDark: b
         </div>
       </div>
 
-      {/* Personal info */}
       <div className={`${card} border ${border} rounded-2xl p-4`}>
         <div className="flex items-center justify-between mb-3">
           <p className={`text-xs font-semibold ${txt}`}>ข้อมูลส่วนตัว</p>
@@ -904,7 +863,6 @@ function ProfileTab({ data, isDark, toggleTheme }: { data: MobileData; isDark: b
         )}
       </div>
 
-      {/* Budget */}
       <div className={`${card} border ${border} rounded-2xl p-4`}>
         <div className="flex items-center justify-between mb-2">
           <p className={`text-xs font-semibold ${txt}`}>งบประมาณ</p>
@@ -927,7 +885,6 @@ function ProfileTab({ data, isDark, toggleTheme }: { data: MobileData; isDark: b
         )}
       </div>
 
-      {/* Settings toggles */}
       <div className={`${card} border ${border} rounded-2xl overflow-hidden divide-y ${isDark ? "divide-white/[0.04]" : "divide-gray-100"}`}>
         <ToggleItem icon={<Bell size={16} />} label="สรุปรายวัน" value={p.settings.dailySummary} onChange={(v) => saveSettings({ "settings.notifications.dailySummary": v })} isDark={isDark} />
         <button onClick={toggleTheme} className={`w-full flex items-center gap-3 px-4 py-3 ${isDark ? "active:bg-white/5" : "active:bg-gray-50"}`}>
@@ -944,7 +901,6 @@ function ProfileTab({ data, isDark, toggleTheme }: { data: MobileData; isDark: b
         )}
       </div>
 
-      {/* Account */}
       <div className={`${card} border ${border} rounded-2xl p-4`}>
         <p className={`text-[10px] font-semibold ${sub} mb-2`}>บัญชี</p>
         <InfoRow l="สมาชิกตั้งแต่" v={s.memberSince} d={isDark} />
@@ -980,16 +936,13 @@ function DonutGoal({ label, current, storageKey, color, isDark }: { label: strin
     <div className="flex flex-col items-center">
       <div className="relative" style={{ width: 100, height: 100 }}>
         <svg width="100" height="100" viewBox="0 0 100 100" className="-rotate-90">
-          {/* Background ring */}
           <circle cx="50" cy="50" r={r} fill="none" stroke={isDark ? "rgba(255,255,255,0.06)" : "rgba(0,0,0,0.06)"} strokeWidth={stroke} />
-          {/* Progress ring */}
           {target > 0 && (
             <circle cx="50" cy="50" r={r} fill="none" stroke={overBudget ? "#EF4444" : color} strokeWidth={stroke} strokeLinecap="round"
               strokeDasharray={circumference} strokeDashoffset={dashOffset}
               style={{ transition: "stroke-dashoffset 0.8s ease" }} />
           )}
         </svg>
-        {/* Center text */}
         <div className="absolute inset-0 flex flex-col items-center justify-center">
           {target > 0 ? (
             <>
@@ -1012,6 +965,7 @@ function DonutGoal({ label, current, storageKey, color, isDark }: { label: strin
 // ════════════════════════════════════════
 function ReceiptRow({ r, isDark }: { r: any; isDark: boolean }) {
   const { card, border, txt, muted } = useS(isDark);
+  const isIncome = r.direction === "income";
   return (
     <div className={`${card} border ${border} rounded-xl px-3.5 py-2.5 flex items-center gap-3`}>
       {r.paymentMethod && (r.paymentMethod.startsWith("bank-") || r.paymentMethod === "promptpay") ? (
@@ -1020,7 +974,12 @@ function ReceiptRow({ r, isDark }: { r: any; isDark: boolean }) {
         <div className={`w-8 h-8 rounded-lg flex items-center justify-center text-sm ${isDark ? "bg-white/5" : "bg-gray-50"}`}>{r.categoryIcon}</div>
       )}
       <div className="flex-1 min-w-0">
-        <p className={`text-[13px] font-medium ${txt} truncate`}>{r.merchant}</p>
+        <div className="flex items-center gap-1.5">
+          <span className={`text-[7px] px-1 py-0.5 rounded font-bold leading-none ${isIncome ? "bg-green-500/15 text-green-500" : "bg-red-500/15 text-red-500"}`}>
+            {isIncome ? "รับ" : "จ่าย"}
+          </span>
+          <p className={`text-[13px] font-medium ${txt} truncate`}>{r.merchant}</p>
+        </div>
         <p className={`text-[10px] ${muted}`}>{r.date}{r.time ? ` · ${r.time}` : ""}</p>
       </div>
       <Baht value={r.amount} direction={r.direction} className="text-[13px] font-bold" />
