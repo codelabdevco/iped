@@ -276,7 +276,7 @@ export default function Sidebar({ onNavigate, badges = {}, hasOrg = false, planU
       )}
 
       {/* Nav Groups */}
-      <nav ref={navRef} className="flex-1 py-1 px-2 space-y-0 overflow-y-auto overflow-x-hidden">
+      <nav ref={navRef} className="flex-1 py-2 px-3 space-y-0.5 overflow-y-auto overflow-x-hidden scroll-smooth">
         {navGroups.map((group, gi) => {
           const isGroupCollapsed = collapsedGroups[group.label];
           return (
@@ -285,7 +285,7 @@ export default function Sidebar({ onNavigate, badges = {}, hasOrg = false, planU
               {!collapsed && (
                 <button
                   onClick={() => toggleGroup(group.label)}
-                  className={`flex items-center justify-between w-full px-3 ${gi === 0 ? "pt-1" : "pt-2.5"} pb-1 ${sectionLabel}`}
+                  className={`flex items-center justify-between w-full px-3 ${gi === 0 ? "pt-2" : "pt-4"} pb-1.5 ${sectionLabel}`}
                 >
                   <span className="text-[10px] font-bold uppercase tracking-widest">
                     {group.label}
@@ -323,13 +323,13 @@ export default function Sidebar({ onNavigate, badges = {}, hasOrg = false, planU
                       href={modeHref(item.href)}
                       onClick={onNavigate}
                       data-active={active ? "true" : undefined}
-                      className={`flex items-center gap-2.5 px-2.5 py-1.5 rounded-lg text-[12.5px] font-medium transition-colors whitespace-nowrap overflow-hidden ${
+                      className={`flex items-center gap-3 px-3 py-2 rounded-lg text-[13px] font-medium transition-colors whitespace-nowrap overflow-hidden ${
                         active ? activeCls : txt
                       }`}
                       title={collapsed ? `${item.label}${badge ? ` (${badge})` : ""}` : undefined}
                     >
                       <div className="relative shrink-0">
-                        <Icon size={16} />
+                        <Icon size={18} />
                         {collapsed && badge ? (
                           <span className="absolute -top-1.5 -right-1.5 min-w-[16px] h-4 px-1 flex items-center justify-center rounded-full bg-[#FA3633] text-white text-[9px] font-bold leading-none">
                             {badge > 99 ? "99+" : badge}
@@ -352,45 +352,47 @@ export default function Sidebar({ onNavigate, badges = {}, hasOrg = false, planU
         <div className="pt-2">
           <button
             onClick={toggleTheme}
-            className={`flex items-center gap-2.5 px-2.5 py-1.5 rounded-lg text-[12.5px] font-medium ${txt} w-full whitespace-nowrap overflow-hidden`}
+            className={`flex items-center gap-3 px-3 py-2 rounded-lg text-[13px] font-medium ${txt} w-full whitespace-nowrap overflow-hidden`}
             title={collapsed ? (isDark ? "โหมดสว่าง" : "โหมดมืด") : undefined}
           >
-            {isDark ? <Sun size={16} className="shrink-0" /> : <Moon size={16} className="shrink-0" />}
+            {isDark ? <Sun size={18} className="shrink-0" /> : <Moon size={18} className="shrink-0" />}
             <span style={fadeStyle()}>{isDark ? "โหมดสว่าง" : "โหมดมืด"}</span>
           </button>
         </div>
-      </nav>
+        {/* Divider */}
+        <div className={`my-3 mx-2 border-t ${borderCls}`} />
 
-      {/* Bottom */}
-      <div className={`py-1.5 px-2 border-t ${borderCls} overflow-hidden`}>
         {/* Plan badge */}
         {planUsage && !collapsed && (
-          <a href={modeHref("/dashboard/billing")} className={`flex items-center justify-between px-2.5 py-1 mb-1 rounded-lg ${isDark ? "bg-white/[0.03] hover:bg-white/[0.06]" : "bg-gray-50 hover:bg-gray-100"} transition-colors`}>
+          <a href={modeHref("/dashboard/billing")} className={`flex items-center justify-between mx-1 px-2.5 py-1.5 mb-1 rounded-lg ${isDark ? "bg-white/[0.03] hover:bg-white/[0.06]" : "bg-gray-50 hover:bg-gray-100"} transition-colors`}>
             <span className={`text-[10px] font-bold ${muted}`}>{planUsage.planName?.toUpperCase()}</span>
             <span className={`text-[9px] ${sub}`}>{planUsage.usage?.receipts || 0}/{(planUsage.limits?.receiptsPerMonth ?? 30) === -1 ? "\u221E" : planUsage.limits?.receiptsPerMonth ?? 30} ใบเสร็จ</span>
           </a>
         )}
-        <div className="flex gap-0.5">
-          <a
-            href={modeHref("/dashboard/settings")}
-            className={`flex-1 flex items-center gap-2 px-2.5 py-1.5 rounded-lg text-[12px] font-medium transition-colors whitespace-nowrap overflow-hidden ${
-              rawPath.startsWith("/dashboard/settings") ? activeCls : txt
-            }`}
-          >
-            <Settings size={15} className="shrink-0" />
-            <span style={fadeStyle()}>ตั้งค่า</span>
-          </a>
-          <button
-            onClick={handleLogout}
-            className={`flex items-center gap-2 px-2.5 py-1.5 rounded-lg text-[12px] font-medium ${
-              isDark ? "text-white/40 hover:text-red-400 hover:bg-white/[0.04]" : "text-gray-400 hover:text-red-500 hover:bg-gray-100"
-            } transition-colors whitespace-nowrap overflow-hidden`}
-          >
-            <LogOut size={15} className="shrink-0" />
-            <span style={fadeStyle()}>ออก</span>
-          </button>
-        </div>
 
+        {/* Settings */}
+        <a
+          href={modeHref("/dashboard/settings")}
+          className={`flex items-center gap-3 px-3 py-2 rounded-lg text-[13px] font-medium transition-colors whitespace-nowrap overflow-hidden ${
+            rawPath.startsWith("/dashboard/settings") ? activeCls : txt
+          }`}
+        >
+          <Settings size={18} className="shrink-0" />
+          <span style={fadeStyle()}>ตั้งค่า</span>
+        </a>
+
+        {/* Logout */}
+        <button
+          onClick={handleLogout}
+          className={`flex items-center gap-3 px-3 py-2 rounded-lg text-[13px] font-medium ${
+            isDark ? "text-white/60 hover:text-red-400 hover:bg-[rgba(255,255,255,0.04)]" : "text-gray-500 hover:text-red-500 hover:bg-gray-100"
+          } transition-colors w-full whitespace-nowrap overflow-hidden`}
+        >
+          <LogOut size={18} className="shrink-0" />
+          <span style={fadeStyle()}>ออกจากระบบ</span>
+        </button>
+
+        {/* Collapse toggle */}
         <button
           onClick={() => setCollapsed(!collapsed)}
           className={`flex items-center gap-3 px-3 py-2 rounded-lg text-[13px] ${txt} w-full whitespace-nowrap overflow-hidden`}
@@ -402,7 +404,7 @@ export default function Sidebar({ onNavigate, badges = {}, hasOrg = false, planU
           )}
           <span style={fadeStyle()}>ย่อเมนู</span>
         </button>
-      </div>
+      </nav>
     </aside>
   );
 }
