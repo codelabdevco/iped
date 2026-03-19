@@ -159,10 +159,11 @@ export default function Sidebar({ onNavigate, badges = {} }: { onNavigate?: () =
     localStorage.setItem("iped-mode", m);
     document.cookie = `iped-mode=${m}; path=/; max-age=${365 * 24 * 60 * 60}; SameSite=Lax`;
     window.dispatchEvent(new CustomEvent("iped-mode-change", { detail: m }));
+    // Hard reload to ensure server components re-read the cookie
     if (!isValidRoute(pathname, m)) {
-      router.push("/dashboard");
+      window.location.href = "/dashboard";
     } else {
-      router.refresh(); // Re-fetch server component data with new mode
+      window.location.reload();
     }
   };
 
