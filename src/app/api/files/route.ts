@@ -1,21 +1,32 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getSession } from "@/lib/auth";
 import { connectDB } from "@/lib/mongodb";
+import { getPagination } from "@/lib/api-helpers";
 import FileModel from "@/models/File";
 
-// GET — list files (metadata only, no data)
+// GET — list files (metadata only, no data) with pagination
 export async function GET(request: NextRequest) {
   const session = await getSession();
   if (!session) return NextResponse.json({ error: "unauthorized" }, { status: 401 });
 
   await connectDB();
-  const files = await FileModel.find({ userId: session.userId })
-    .select("-data")
-    .sort({ createdAt: -1 })
-    .limit(200)
-    .lean();
+  const { page, limit, skip } = getPagination(request);
+  const filter = { userId: session.userId };
 
-  return NextResponse.json({ files: files.map((f: any) => ({ ...f, _id: String(f._id) })) });
+  const [files, total] = await Promise.all([
+    FileModel.find(filter)
+      .select("-data")
+      .sort({ createdAt: -1 })
+      .skip(skip)
+      .limit(limit)
+      .lean(),
+    FileModel.countDocuments(filter),
+  ]);
+
+  return NextResponse.json({
+    files: files.map((f: any) => ({ ...f, _id: String(f._id) })),
+    pagination: { page, limit, total, totalPages: Math.ceil(total / limit) },
+  });
 }
 
 // POST — upload file

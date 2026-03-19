@@ -17,6 +17,7 @@ const GoogleAccountSchema = new Schema<IGoogleAccount>(
   {
     userId: { type: Schema.Types.ObjectId, ref: "User", required: true, index: true },
     email: { type: String, required: true },
+    // TODO: Encrypt tokens before storage using src/lib/encrypt.ts (encrypt/decrypt helpers)
     accessToken: { type: String, required: true },
     refreshToken: String,
     connectedAt: { type: Date, default: Date.now },

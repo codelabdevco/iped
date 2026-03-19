@@ -50,34 +50,49 @@ async function getDashboardData(userId: string) {
         )
       : 0;
 
-  // Monthly trend (12 months) with per-category breakdown
+  // Monthly trend (12 months) with per-category breakdown — single aggregation
   const allCategoryMap: Record<string, number> = {};
-  const monthlyTrend = await Promise.all(
-    Array.from({ length: 12 }, (_, i) => 11 - i).map(async (i) => {
-      const ms = new Date(now.getFullYear(), now.getMonth() - i, 1);
-      const me = new Date(now.getFullYear(), now.getMonth() - i + 1, 0);
-      const recs = await Receipt.find({
-        userId, accountType,
-        createdAt: { $gte: ms, $lte: me },
-      }).lean();
+  const monthlyAgg = await Receipt.aggregate([
+    {
+      $match: {
+        userId,
+        accountType,
+        createdAt: {
+          $gte: new Date(now.getFullYear(), now.getMonth() - 11, 1),
+        },
+      },
+    },
+    {
+      $group: {
+        _id: {
+          month: { $month: "$createdAt" },
+          year: { $year: "$createdAt" },
+          category: "$category",
+        },
+        total: { $sum: "$amount" },
+      },
+    },
+  ]);
 
-      const categories: Record<string, number> = {};
-      let total = 0;
-      recs.forEach((r) => {
-        const cat = r.category || "ไม่ระบุ";
-        const amt = r.amount || 0;
-        categories[cat] = (categories[cat] || 0) + amt;
-        allCategoryMap[cat] = (allCategoryMap[cat] || 0) + amt;
-        total += amt;
+  const monthlyTrend = Array.from({ length: 12 }, (_, i) => 11 - i).map((i) => {
+    const ms = new Date(now.getFullYear(), now.getMonth() - i, 1);
+    const monthNum = ms.getMonth() + 1;
+    const yearNum = ms.getFullYear();
+    const monthName = ms.toLocaleDateString("th-TH", { month: "short" });
+
+    const categories: Record<string, number> = {};
+    let total = 0;
+    monthlyAgg
+      .filter((r: any) => r._id.month === monthNum && r._id.year === yearNum)
+      .forEach((r: any) => {
+        const cat = r._id.category || "ไม่ระบุ";
+        categories[cat] = (categories[cat] || 0) + r.total;
+        allCategoryMap[cat] = (allCategoryMap[cat] || 0) + r.total;
+        total += r.total;
       });
 
-      return {
-        month: ms.toLocaleDateString("th-TH", { month: "short" }),
-        categories,
-        total,
-      };
-    })
-  );
+    return { month: monthName, categories, total };
+  });
 
   const serialize = (recs: typeof recentReceipts) =>
     recs.map((r) => ({
