@@ -3,6 +3,8 @@ import { connectDB } from "@/lib/mongodb";
 import { withAuth, apiSuccess, apiError } from "@/lib/api-helpers";
 import { JWTPayload } from "@/lib/auth";
 import Payroll from "@/models/Payroll";
+import Employee from "@/models/Employee";
+import { sendPayrollNotification } from "@/lib/payroll-notify";
 
 function recalculateTotals(payroll: Record<string, unknown>) {
   const baseSalary = (payroll.baseSalary as number) || 0;
@@ -90,6 +92,45 @@ export async function PUT(
       { $set: { ...body, ...totals } },
       { new: true, runValidators: true }
     ).lean();
+
+    // Send notifications on status change
+    if (body.status === "approved" || body.status === "paid") {
+      try {
+        const employee = await Employee.findById(payroll!.employeeId).select("lineUserId email").lean() as any;
+        if (employee?.lineUserId || employee?.email) {
+          const p = payroll as any;
+          sendPayrollNotification(
+            {
+              employeeName: p.employeeName,
+              employeeCode: p.employeeCode,
+              department: p.department || "",
+              position: p.position || "",
+              month: p.month,
+              year: p.year,
+              baseSalary: p.baseSalary,
+              overtime: p.overtime || { hours: 0, amount: 0 },
+              allowances: p.allowances || [],
+              bonus: p.bonus || 0,
+              grossPay: p.grossPay,
+              socialSecurity: p.socialSecurity || 0,
+              providentFund: p.providentFund || 0,
+              tax: p.tax || 0,
+              otherDeductions: p.otherDeductions || [],
+              totalDeductions: p.totalDeductions,
+              netPay: p.netPay,
+              bankName: p.bankName || "",
+              bankAccount: p.bankAccount || "",
+              bankTransferRef: p.bankTransferRef,
+              paidAt: p.paidAt,
+            },
+            body.status as "approved" | "paid",
+            { lineUserId: employee.lineUserId, email: employee.email }
+          ).catch((err) => console.error("Payroll notification failed:", err));
+        }
+      } catch (notifErr) {
+        console.error("Payroll notification lookup error:", notifErr);
+      }
+    }
 
     return apiSuccess({
       payroll: { ...payroll, _id: String(payroll!._id), employeeId: String(payroll!.employeeId) },

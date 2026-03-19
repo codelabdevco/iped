@@ -78,7 +78,8 @@ interface EmployeeRow {
   position: string; department: string; employmentType: string;
   startDate: string; baseSalary: number; allowances: Allowance[];
   socialSecurity: boolean; providentFund: number;
-  bankName: string; bankAccount: string; taxId: string; status: string;
+  bankName: string; bankAccount: string; taxId: string;
+  lineUserId: string; email: string; status: string;
 }
 
 interface PayrollRow {
@@ -108,7 +109,7 @@ const defaultEmpForm = {
   employmentType: "full-time", startDate: new Date().toISOString().slice(0, 10),
   baseSalary: "", allowances: [] as { type: string; amount: string }[],
   socialSecurity: true, providentFund: "", bankName: "กสิกร",
-  bankAccount: "", taxId: "",
+  bankAccount: "", taxId: "", lineUserId: "", email: "",
 };
 
 export default function PayrollClient({ employees: initialEmp, payrolls: initialPay, stats: initialStats, currentMonth, currentYear }: Props) {
@@ -206,6 +207,8 @@ export default function PayrollClient({ employees: initialEmp, payrolls: initial
       bankName: emp.bankName || "กสิกร",
       bankAccount: emp.bankAccount,
       taxId: emp.taxId,
+      lineUserId: emp.lineUserId || "",
+      email: emp.email || "",
     });
     setShowAddEmployee(true);
   };
@@ -243,6 +246,8 @@ export default function PayrollClient({ employees: initialEmp, payrolls: initial
       bankName: empForm.bankName,
       bankAccount: empForm.bankAccount,
       taxId: empForm.taxId,
+      lineUserId: empForm.lineUserId || undefined,
+      email: empForm.email || undefined,
     };
     try {
       if (editingEmpId) {
@@ -354,6 +359,16 @@ export default function PayrollClient({ employees: initialEmp, payrolls: initial
     },
     { key: "bankName", label: "ธนาคาร", render: (r) => <span className="text-xs">{r.bankName || "-"}</span> },
     {
+      key: "lineUserId", label: "แจ้งเตือน",
+      render: (r) => (
+        <div className="flex items-center gap-1">
+          {r.lineUserId ? <span className="w-5 h-5 rounded-full bg-[#06C755] flex items-center justify-center" title="LINE"><svg width="12" height="12" viewBox="0 0 24 24" fill="white"><path d="M19.365 9.863c.349 0 .63.285.63.631 0 .345-.281.63-.63.63H17.61v1.125h1.755c.349 0 .63.283.63.63 0 .344-.281.629-.63.629h-2.386c-.345 0-.627-.285-.627-.629V8.108c0-.345.282-.63.63-.63h2.386c.346 0 .627.285.627.63 0 .349-.281.63-.63.63H17.61v1.125h1.755zm-3.855 3.016c0 .27-.174.51-.432.596-.064.021-.133.031-.199.031-.211 0-.391-.09-.51-.25l-2.443-3.317v2.94c0 .344-.279.629-.631.629-.346 0-.626-.285-.626-.629V8.108c0-.27.173-.51.43-.595.06-.023.136-.033.194-.033.195 0 .375.104.495.254l2.462 3.33V8.108c0-.345.282-.63.63-.63.345 0 .63.285.63.63v4.771zm-5.741 0c0 .344-.282.629-.631.629-.345 0-.627-.285-.627-.629V8.108c0-.345.282-.63.63-.63.346 0 .628.285.628.63v4.771zm-2.466.629H4.917c-.345 0-.63-.285-.63-.629V8.108c0-.345.285-.63.63-.63.348 0 .63.285.63.63v4.141h1.756c.348 0 .629.283.629.63 0 .344-.282.629-.629.629M24 10.314C24 4.943 18.615.572 12 .572S0 4.943 0 10.314c0 4.811 4.27 8.842 10.035 9.608.391.082.923.258 1.058.59.12.301.079.766.038 1.08l-.164 1.02c-.045.301-.24 1.186 1.049.645 1.291-.539 6.916-4.078 9.436-6.975C23.176 14.393 24 12.458 24 10.314"/></svg></span> : null}
+          {r.email ? <span className="w-5 h-5 rounded-full bg-blue-500 flex items-center justify-center" title={r.email}><svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="2.5"><path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"/><polyline points="22,6 12,13 2,6"/></svg></span> : null}
+          {!r.lineUserId && !r.email ? <span className="text-[10px] text-gray-400">—</span> : null}
+        </div>
+      ),
+    },
+    {
       key: "status", label: "สถานะ",
       render: (r) => {
         const st = empStatusLabel[r.status] || empStatusLabel.active;
@@ -449,6 +464,14 @@ export default function PayrollClient({ employees: initialEmp, payrolls: initial
               <div><label className={lbl}>ธนาคาร</label><Select value={empForm.bankName} onChange={(v) => setEmpForm({ ...empForm, bankName: v })} options={BANK_OPTIONS} /></div>
               <div><label className={lbl}>เลขบัญชี</label><input value={empForm.bankAccount} onChange={(e) => setEmpForm({ ...empForm, bankAccount: e.target.value })} placeholder="เลขบัญชีธนาคาร" className={inp} /></div>
               <div><label className={lbl}>เลขประจำตัวผู้เสียภาษี</label><input value={empForm.taxId} onChange={(e) => setEmpForm({ ...empForm, taxId: e.target.value })} placeholder="เลข 13 หลัก" className={inp} /></div>
+            </div>
+
+            {/* ── Notifications ── */}
+            <div className="space-y-3">
+              <p className="text-xs font-semibold text-[#FA3633]/70">แจ้งเตือนเงินเดือน</p>
+              <div><label className={lbl}>LINE User ID</label><input value={empForm.lineUserId} onChange={(e) => setEmpForm({ ...empForm, lineUserId: e.target.value })} placeholder="Uxxxxxxxxx (จาก LINE Bot)" className={inp} /></div>
+              <div><label className={lbl}>Email</label><input type="email" value={empForm.email} onChange={(e) => setEmpForm({ ...empForm, email: e.target.value })} placeholder="employee@email.com" className={inp} /></div>
+              <p className={`text-[10px] ${c("text-white/30", "text-gray-400")}`}>เมื่ออนุมัติหรือจ่ายเงินเดือน ระบบจะส่ง Flex สลิปเงินเดือนผ่าน LINE และ/หรือ Email อัตโนมัติ</p>
             </div>
 
             {/* ── Save buttons ── */}

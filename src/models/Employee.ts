@@ -27,6 +27,9 @@ export interface IEmployee extends Document {
   bankAccount: string;
   // Tax
   taxId?: string;
+  // Notifications
+  lineUserId?: string;
+  email?: string;
   // Status
   status: "active" | "resigned" | "terminated" | "probation";
   createdAt: Date;
@@ -56,6 +59,8 @@ const EmployeeSchema = new Schema<IEmployee>(
     bankName: { type: String, default: "" },
     bankAccount: { type: String, default: "" },
     taxId: String,
+    lineUserId: String,
+    email: String,
     status: {
       type: String,
       enum: ["active", "resigned", "terminated", "probation"],
