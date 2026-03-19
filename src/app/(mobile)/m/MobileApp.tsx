@@ -471,9 +471,9 @@ function ScanTab({ isDark, onDone }: { isDark: boolean; onDone: () => void }) {
             </div>
 
             {/* Link to desktop receipts */}
-            <a href={`/dashboard/receipts`} className={`flex items-center justify-center gap-2 py-2.5 rounded-xl text-xs font-medium ${isDark ? "bg-white/5 text-white/60" : "bg-gray-100 text-gray-600"}`}>
+            <a href="/dashboard/receipts" target="_blank" className={`flex items-center justify-center gap-2 py-2.5 rounded-xl text-xs font-medium ${isDark ? "bg-white/5 text-white/60" : "bg-gray-100 text-gray-600"}`}>
               <Receipt size={14} />
-              ดู/แก้ไขในหน้าใบเสร็จ →
+              ดู/แก้ไขในหน้าใบเสร็จ ↗
             </a>
 
             {/* Action buttons */}
@@ -722,7 +722,7 @@ function ReportsTab({ data, isDark }: { data: MobileData; isDark: boolean }) {
         <div className={`${card} border ${border} rounded-2xl p-4`}>
           <div className="flex items-center justify-between mb-3">
             <p className={`text-xs font-semibold ${txt}`}>งบประมาณ</p>
-            <a href="/dashboard/budget" className="text-[10px] text-[#FA3633] font-medium">จัดการ →</a>
+            <a href="/dashboard/budget" target="_blank" className="text-[10px] text-[#FA3633] font-medium">จัดการ ↗</a>
           </div>
           {data.categories.slice(0, 5).map((c: any) => {
             const budget = budgetLimits[c.name];
@@ -758,7 +758,7 @@ function ReportsTab({ data, isDark }: { data: MobileData; isDark: boolean }) {
         <div className={`${card} border ${border} rounded-2xl p-4`}>
           <div className="flex items-center justify-between mb-3">
             <p className={`text-xs font-semibold ${txt}`}>รายการประจำ</p>
-            <a href="/dashboard/recurring" className="text-[10px] text-[#FA3633] font-medium">จัดการ →</a>
+            <a href="/dashboard/recurring" target="_blank" className="text-[10px] text-[#FA3633] font-medium">จัดการ ↗</a>
           </div>
           {recurring.filter((i) => i.active).slice(0, 5).map((item, i) => (
             <div key={i} className="flex items-center justify-between py-1">
@@ -810,7 +810,7 @@ function ReportsTab({ data, isDark }: { data: MobileData; isDark: boolean }) {
         <div className={`${card} border ${border} rounded-2xl p-4`}>
           <div className="flex items-center justify-between mb-3">
             <p className={`text-xs font-semibold ${txt}`}>วิธีจ่าย</p>
-            <a href="/dashboard/payments" className="text-[10px] text-[#FA3633] font-medium">ดูทั้งหมด →</a>
+            <a href="/dashboard/payments" target="_blank" className="text-[10px] text-[#FA3633] font-medium">ดูทั้งหมด ↗</a>
           </div>
           {data.paymentMethods.map((p) => {
             const pmMax = Math.max(...data.paymentMethods.map((pm) => pm.total), 1);
@@ -848,7 +848,7 @@ function ReportsTab({ data, isDark }: { data: MobileData; isDark: boolean }) {
       <div>
         <div className="flex items-center justify-between mb-2">
           <p className={`text-xs font-semibold ${txt}`}>ใบเสร็จล่าสุด</p>
-          <a href="/dashboard/receipts" className="text-[10px] text-[#FA3633] font-medium">ดูทั้งหมด ({data.stats.totalReceipts}) →</a>
+          <a href="/dashboard/receipts" target="_blank" className="text-[10px] text-[#FA3633] font-medium">ดูทั้งหมด ({data.stats.totalReceipts}) ↗</a>
         </div>
         <div className="space-y-1.5">
           {data.receipts.slice(0, 8).map((r: any) => <ReceiptRow key={r._id} r={r} isDark={isDark} />)}
@@ -1012,7 +1012,8 @@ function DonutGoal({ label, current, storageKey, color, isDark }: { label: strin
   const [target] = useState<number>(() => {
     try {
       const s = typeof window !== "undefined" ? localStorage.getItem(storageKey) : null;
-      return s ? Number(JSON.parse(s).target) || 0 : 0;
+      // GoalCard saves as plain number string e.g. "50000"
+      return s ? Number(s) || 0 : 0;
     } catch { return 0; }
   });
 
