@@ -23,7 +23,7 @@ export default async function DashboardLayout({ children }: { children: React.Re
   const userId = payload.userId;
 
   const [user, pendingReceipts, pendingApprovals, pendingReimbursement, pendingPayroll, pendingClaims] = await Promise.all([
-    User.findById(userId).select("lineDisplayName lineProfilePic name orgId").lean(),
+    User.findById(userId).select("lineDisplayName lineProfilePic name orgId role").lean(),
     Receipt.countDocuments({ userId, accountType, status: "pending" }),
     // Business: approvals — confirmed items waiting to be paid
     accountType === "business"
@@ -47,7 +47,8 @@ export default async function DashboardLayout({ children }: { children: React.Re
 
   const displayName = user?.lineDisplayName || user?.name || "User";
   const pictureUrl = user?.lineProfilePic || "";
-  const hasOrg = !!(user as any)?.orgId;
+  const isSuperAdmin = ["superadmin", "admin"].includes((user as any)?.role);
+  const hasOrg = !!(user as any)?.orgId || isSuperAdmin;
 
   const badges: Record<string, number> = {};
   if (pendingReceipts > 0) badges["/dashboard/receipts"] = pendingReceipts;

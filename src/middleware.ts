@@ -31,20 +31,7 @@ export function middleware(request: NextRequest) {
 
     if (!token) return NextResponse.redirect(new URL("/login", request.url));
 
-    // Route guard: block /business/ if JWT doesn't have orgId
-    // (JWT orgId is set during LINE login when user has joined a company)
-    if (mode === "business") {
-      try {
-        const payload = JSON.parse(atob(token.split(".")[1]));
-        if (!payload.orgId) {
-          return NextResponse.redirect(new URL("/personal/dashboard", request.url));
-        }
-      } catch {
-        return NextResponse.redirect(new URL("/personal/dashboard", request.url));
-      }
-    }
-
-    // Route guard
+    // Route guard: personal mode blocks business-only pages
     if (mode === "personal") {
       const pagePath = rest.replace(/\/$/, "") || "/dashboard";
       for (const bp of businessOnlyPages) {
