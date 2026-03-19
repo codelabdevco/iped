@@ -39,7 +39,7 @@ export async function GET(req: NextRequest) {
         lineProfilePic: profile.pictureUrl || "",
         name: profile.displayName || "",
         role: "user",
-        accountType: "individual",
+        accountType: "personal",
         onboardingStep: 0,
         onboardingComplete: false,
       });
