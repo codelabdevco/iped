@@ -60,10 +60,8 @@ export async function GET(req: NextRequest) {
       orgId: user.orgId?.toString(),
     });
 
-    // Set cookie and redirect - send to register if onboarding not complete
-      const redirectUrl = !user.onboardingComplete
-      ? new URL(`/register?lineUserId=${user.lineUserId}`, baseUrl)
-      : new URL("/", baseUrl);
+    // Set cookie and redirect to dashboard (onboarding checklist is inside dashboard)
+    const redirectUrl = new URL("/dashboard", baseUrl);
     const response = NextResponse.redirect(redirectUrl);
     const cookie = setTokenCookie(token);
     response.headers.set("Set-Cookie", cookie["Set-Cookie"]);

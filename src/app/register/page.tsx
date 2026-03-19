@@ -52,11 +52,11 @@ function RegisterForm() {
             <div className="w-16 h-16 rounded-full mx-auto mb-3 flex items-center justify-center" style={{ backgroundColor: '#06C755' }}>
               <svg className="w-8 h-8 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M5 13l4 4L19 7" /></svg>
             </div>
-            <h1 className="text-xl font-bold text-gray-800">ลงทะเปียนสำเร็จ!</h1>
-            <p className="text-gray-500 text-sm mt-2">ยินดีต้อนรัป, {resultData?.name || ''}!</p>
-            <p className="text-gray-400 text-sm mt-1">คุณสามารถเริ่มใช้งานผ่าน LINE ได้แล้ว</p>
-            <button onClick={handleBackToLine} className="block w-full py-3.5 rounded-xl text-white font-semibold text-base transition-all mt-6" style={{ backgroundColor: '#06C755' }}>กลัปไป LINE</button>
-            <p className="text-gray-400 text-xs mt-4">ตอนนี้คุณสามารถปิดหน้าต่างนี้และกลัปไปใช้งาน LINE ได้เลย</p>
+            <h1 className="text-xl font-bold text-gray-800">ลงทะเบียนสำเร็จ!</h1>
+            <p className="text-gray-500 text-sm mt-2">ยินดีต้อนรับ, {resultData?.name || ''}!</p>
+            <p className="text-gray-400 text-sm mt-1">พร้อมเริ่มใช้งานระบบจัดการใบเสร็จอัจฉริยะ</p>
+            <a href="/dashboard" className="block w-full py-3.5 rounded-xl text-white font-semibold text-base transition-all mt-6 text-center" style={{ backgroundColor: '#FA3633' }}>เข้าสู่ Dashboard</a>
+            <button onClick={handleBackToLine} className="block w-full py-3 rounded-xl text-sm text-gray-400 hover:text-gray-600 transition-all mt-2">กลับไป LINE</button>
           </div>
         </div>
       </div>
