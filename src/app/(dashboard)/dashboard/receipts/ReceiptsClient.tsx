@@ -4,6 +4,7 @@ import { useState, useMemo, useCallback, useRef, useEffect } from "react";
 import { useSearchParams } from "next/navigation";
 import { useReactiveData } from "@/hooks/useReactiveMode";
 import { useModal } from "@/components/dashboard/ConfirmModal";
+import { useMode } from "@/contexts/ModeContext";
 import { Search, Filter, Receipt, FileText, CheckCircle, Clock, Pencil, Trash2, ImageIcon, Cloud, CloudOff, HardDrive, Upload, X, MessageCircle, Globe, User, Plus, Loader2, Mail, Link2, ArrowRightLeft, Building2 } from "lucide-react";
 import BrandIcon from "@/components/dashboard/BrandIcon";
 import Select from "@/components/dashboard/Select";
@@ -146,6 +147,8 @@ const typeLabel: Record<string, string> = {
 export default function ReceiptsClient({ receipts: initialReceipts }: { receipts: ReceiptRow[] }) {
   const { isDark } = useTheme();
   const modal = useModal();
+  const { mode } = useMode();
+  const isBusiness = mode === "business";
   const [receipts, setReceipts] = useReactiveData(initialReceipts);
   const pollRef = useRef<{ count: number; latestId: string | null }>({
     count: initialReceipts.length,
@@ -817,31 +820,69 @@ export default function ReceiptsClient({ receipts: initialReceipts }: { receipts
     {
       key: "status",
       label: "สถานะ",
-      render: (r) => <span className={`px-2.5 py-1 rounded-lg text-xs font-medium ${statusStyle[r.status] || statusStyle.pending}`}>{statusLabel[r.status] || r.status}</span>,
+      render: (r) => {
+        const isFromPersonal = (r.note || "").includes("ค่าใช้จ่ายบริษัท จากส่วนตัว");
+        // Business mode: show reimbursement-specific status
+        if (isBusiness && isFromPersonal) {
+          if (r.status === "pending") return <span className="px-2.5 py-1 rounded-lg text-xs font-medium bg-orange-500/10 text-orange-400">รอเบิกจ่าย</span>;
+          if (r.status === "confirmed") return <span className="px-2.5 py-1 rounded-lg text-xs font-medium bg-green-500/10 text-green-400">เบิกจ่ายสำเร็จ</span>;
+          if (r.status === "cancelled") return <span className="px-2.5 py-1 rounded-lg text-xs font-medium bg-red-500/10 text-red-400">ปฏิเสธเบิกจ่าย</span>;
+        }
+        return <span className={`px-2.5 py-1 rounded-lg text-xs font-medium ${statusStyle[r.status] || statusStyle.pending}`}>{statusLabel[r.status] || r.status}</span>;
+      },
     },
     {
       key: "actions",
       label: "",
       configurable: false,
-      render: (r, dark) => (
+      render: (r, dark) => {
+        const isFromPersonal = (r.note || "").includes("ค่าใช้จ่ายบริษัท จากส่วนตัว");
+        const isSent = (r.note || "").includes("ส่งเป็นค่าใช้จ่ายบริษัทแล้ว");
+
+        // Business mode: reimbursement actions
+        if (isBusiness && isFromPersonal && r.status === "pending") {
+          return (
+            <div className="flex items-center gap-1" onClick={(e) => e.stopPropagation()}>
+              <button onClick={async () => {
+                await fetch(`/api/receipts/${r._id}`, { method: "PUT", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ status: "confirmed" }) });
+                setReceipts((prev) => prev.map((x) => x._id === r._id ? { ...x, status: "confirmed" } : x));
+              }} className={`px-2.5 py-1 rounded-lg text-[11px] font-medium transition-colors ${dark ? "bg-green-500/15 text-green-400 hover:bg-green-500/25" : "bg-green-50 text-green-600 hover:bg-green-100"}`}>
+                <CheckCircle size={12} className="inline mr-1" />อนุมัติ
+              </button>
+              <button onClick={async () => {
+                await fetch(`/api/receipts/${r._id}`, { method: "PUT", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ status: "cancelled" }) });
+                setReceipts((prev) => prev.map((x) => x._id === r._id ? { ...x, status: "cancelled" } : x));
+              }} className={`px-2.5 py-1 rounded-lg text-[11px] font-medium transition-colors ${dark ? "bg-red-500/15 text-red-400 hover:bg-red-500/25" : "bg-red-50 text-red-600 hover:bg-red-100"}`}>
+                <X size={12} className="inline mr-1" />ปฏิเสธ
+              </button>
+            </div>
+          );
+        }
+
+        return (
         <div className="flex items-center gap-1" onClick={(e) => e.stopPropagation()}>
-          {(r.note || "").includes("ส่งเป็นค่าใช้จ่ายบริษัทแล้ว") ? (
+          {/* Personal mode: transfer button or "ส่งแล้ว" badge */}
+          {!isBusiness && (isSent ? (
             <span className={`px-2 py-1 rounded-lg text-[10px] font-medium ${dark ? "bg-green-500/10 text-green-400" : "bg-green-50 text-green-600"}`}>ส่งแล้ว</span>
           ) : (
             <button onClick={() => handleTransfer([r._id])} className={`p-2 rounded-lg transition-colors ${dark ? "hover:bg-white/5 text-white/40 hover:text-blue-400" : "hover:bg-gray-100 text-gray-400 hover:text-blue-500"}`} title="ส่งเป็นค่าใช้จ่ายบริษัท">
               <ArrowRightLeft size={14} />
             </button>
+          ))}
+          {/* Edit — disabled for transferred business receipts */}
+          {!(isBusiness && isFromPersonal) && (
+            <button onClick={() => handleEdit(r)} className={`p-2 rounded-lg transition-colors ${dark ? "hover:bg-white/5 text-white/40 hover:text-blue-400" : "hover:bg-gray-100 text-gray-400 hover:text-blue-500"}`} title="แก้ไข">
+              <Pencil size={14} />
+            </button>
           )}
-          <button onClick={() => handleEdit(r)} className={`p-2 rounded-lg transition-colors ${dark ? "hover:bg-white/5 text-white/40 hover:text-blue-400" : "hover:bg-gray-100 text-gray-400 hover:text-blue-500"}`} title="แก้ไข">
-            <Pencil size={14} />
-          </button>
           <button onClick={() => handleDelete(r._id)} className={`p-2 rounded-lg transition-colors ${dark ? "hover:bg-white/5 text-white/40 hover:text-red-400" : "hover:bg-gray-100 text-gray-400 hover:text-red-500"}`} title="ลบ">
             <Trash2 size={14} />
           </button>
         </div>
-      ),
+        );
+      },
     },
-  ], [handleDelete, handleTransfer, selected]);
+  ], [handleDelete, handleTransfer, selected, isBusiness]);
 
   const expandRender = (r: ReceiptRow, dark: boolean) => {
     const items = r.items && r.items.length > 0 ? r.items : [{ name: r.storeName, qty: 1, price: r.amount }];
