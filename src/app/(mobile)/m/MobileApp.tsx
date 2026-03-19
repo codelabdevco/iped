@@ -7,6 +7,7 @@ import BrandIcon from "@/components/dashboard/BrandIcon";
 import StatsCard from "@/components/dashboard/StatsCard";
 import GoalCard from "@/components/dashboard/GoalCard";
 import Baht from "@/components/dashboard/Baht";
+import Select from "@/components/dashboard/Select";
 import { formatNumber as fmt } from "@/lib/utils";
 
 type Tab = "home" | "receipts" | "scan" | "reports" | "profile";
@@ -707,31 +708,26 @@ function ReceiptsTab({ receipts: initialReceipts, isDark }: { receipts: any[]; i
                     <div><label className={lbl}>วันที่</label><input type="date" value={editForm.rawDate ? new Date(editForm.rawDate).toISOString().slice(0, 10) : ""} onChange={(e) => setEditForm({ ...editForm, rawDate: e.target.value })} className={field} /></div>
                     <div><label className={lbl}>เวลา</label><input type="time" value={editForm.time || ""} onChange={(e) => setEditForm({ ...editForm, time: e.target.value })} className={field} /></div>
                   </div>
-                  <div><label className={lbl}>ประเภทเอกสาร</label><select value={editForm.type || "receipt"} onChange={(e) => setEditForm({ ...editForm, type: e.target.value })} className={field}>{[["receipt","ใบเสร็จ"],["invoice","ใบแจ้งหนี้"],["billing","บิล"],["debit_note","ใบลดหนี้"],["credit_note","ใบเพิ่มหนี้"]].map(([v,l]) => <option key={v} value={v}>{l}</option>)}</select></div>
+                  <div><label className={lbl}>ประเภทเอกสาร</label>
+                    <Select value={editForm.type || "receipt"} onChange={(v) => setEditForm({ ...editForm, type: v })} searchable={false} options={[
+                      { value: "receipt", label: "ใบเสร็จ" }, { value: "invoice", label: "ใบแจ้งหนี้" }, { value: "billing", label: "บิล" }, { value: "debit_note", label: "ใบลดหนี้" }, { value: "credit_note", label: "ใบเพิ่มหนี้" },
+                    ]} />
+                  </div>
                   <div className="grid grid-cols-2 gap-3">
                     <div><label className={lbl}>เลขที่เอกสาร</label><input value={editForm.documentNumber || ""} onChange={(e) => setEditForm({ ...editForm, documentNumber: e.target.value })} placeholder="RCP-2026-0001" className={field} /></div>
                     <div><label className={lbl}>เลขผู้เสียภาษี</label><input value={editForm.merchantTaxId || ""} onChange={(e) => setEditForm({ ...editForm, merchantTaxId: e.target.value })} placeholder="0107536000269" className={field} /></div>
                   </div>
-                </div>
-                {/* Category + Status + Payment — dropdowns */}
-                <div className="grid grid-cols-2 gap-3">
-                  <div><label className={lbl}>หมวดหมู่</label>
-                    <select value={editForm.category || ""} onChange={(e) => { const c = cats.find((x) => x.name === e.target.value); setEditForm({ ...editForm, category: e.target.value, categoryIcon: c?.icon || "📦" }); }} className={field}>
-                      <option value="">เลือกหมวดหมู่</option>
-                      {cats.map((c) => <option key={c.name} value={c.name}>{c.icon} {c.name}</option>)}
-                    </select>
+                  <div className="grid grid-cols-2 gap-3">
+                    <div><label className={lbl}>หมวดหมู่</label>
+                      <Select value={editForm.category || ""} onChange={(v) => { const c = cats.find((x) => x.name === v); setEditForm({ ...editForm, category: v, categoryIcon: c?.icon || "📦" }); }} placeholder="เลือกหมวดหมู่" options={cats.map((c) => ({ value: c.name, label: `${c.icon} ${c.name}` }))} />
+                    </div>
+                    <div><label className={lbl}>สถานะ</label>
+                      <Select value={editForm.status || "pending"} onChange={(v) => setEditForm({ ...editForm, status: v })} searchable={false} options={ALL_STATUSES.map((s) => ({ value: s, label: STATUS_MAP[s].text }))} />
+                    </div>
                   </div>
-                  <div><label className={lbl}>สถานะ</label>
-                    <select value={editForm.status || "pending"} onChange={(e) => setEditForm({ ...editForm, status: e.target.value })} className={field}>
-                      {ALL_STATUSES.map((s) => <option key={s} value={s}>{STATUS_MAP[s].text}</option>)}
-                    </select>
+                  <div><label className={lbl}>วิธีจ่าย</label>
+                    <Select value={editForm.paymentMethod || ""} onChange={(v) => setEditForm({ ...editForm, paymentMethod: v })} placeholder="เลือกวิธีจ่าย" options={PM_OPTIONS.map((pm) => ({ value: pm.value, label: pm.label }))} />
                   </div>
-                </div>
-                <div><label className={lbl}>วิธีจ่าย</label>
-                  <select value={editForm.paymentMethod || ""} onChange={(e) => setEditForm({ ...editForm, paymentMethod: e.target.value })} className={field}>
-                    <option value="">เลือกวิธีจ่าย</option>
-                    {PM_OPTIONS.map((pm) => <option key={pm.value} value={pm.value}>{pm.label}</option>)}
-                  </select>
                 </div>
                 {/* Line items */}
                 <div className={section}>
@@ -772,21 +768,14 @@ function ReceiptsTab({ receipts: initialReceipts, isDark }: { receipts: any[]; i
                   </div>
                   <div><label className={lbl}>หมายเหตุ</label><textarea rows={2} value={editForm.note || ""} onChange={(e) => setEditForm({ ...editForm, note: e.target.value })} placeholder="รายละเอียดเพิ่มเติม..." className={`${field} h-auto py-2`} /></div>
                 </div>
-                {/* Category + Payment — dropdowns */}
-                <div className="grid grid-cols-2 gap-3">
-                  <div><label className={lbl}>หมวดรายรับ</label>
-                    <select value={editForm.category || ""} onChange={(e) => { const c = cats.find((x) => x.name === e.target.value); setEditForm({ ...editForm, category: e.target.value, categoryIcon: c?.icon || "📋" }); }} className={field}>
-                      <option value="">เลือกหมวด</option>
-                      {cats.map((c) => <option key={c.name} value={c.name}>{c.icon} {c.name}</option>)}
-                    </select>
+                  <div className="grid grid-cols-2 gap-3">
+                    <div><label className={lbl}>หมวดรายรับ</label>
+                      <Select value={editForm.category || ""} onChange={(v) => { const c = cats.find((x) => x.name === v); setEditForm({ ...editForm, category: v, categoryIcon: c?.icon || "📋" }); }} placeholder="เลือกหมวด" options={cats.map((c) => ({ value: c.name, label: `${c.icon} ${c.name}` }))} />
+                    </div>
+                    <div><label className={lbl}>วิธีรับเงิน</label>
+                      <Select value={editForm.paymentMethod || ""} onChange={(v) => setEditForm({ ...editForm, paymentMethod: v })} placeholder="เลือกวิธีรับ" options={PM_OPTIONS.map((pm) => ({ value: pm.value, label: pm.label }))} />
+                    </div>
                   </div>
-                  <div><label className={lbl}>วิธีรับเงิน</label>
-                    <select value={editForm.paymentMethod || ""} onChange={(e) => setEditForm({ ...editForm, paymentMethod: e.target.value })} className={field}>
-                      <option value="">เลือกวิธีรับ</option>
-                      {PM_OPTIONS.map((pm) => <option key={pm.value} value={pm.value}>{pm.label}</option>)}
-                    </select>
-                  </div>
-                </div>
               </>)}
 
               {/* ═══ SAVINGS ═══ */}
@@ -797,15 +786,16 @@ function ReceiptsTab({ receipts: initialReceipts, isDark }: { receipts: any[]; i
                   <div><label className={lbl}>จำนวนที่ออม (฿)</label><input type="number" inputMode="decimal" value={editForm.amount || ""} onChange={(e) => setEditForm({ ...editForm, amount: e.target.value })} className={`${field} text-lg font-bold`} placeholder="0.00" /></div>
                   <div className="grid grid-cols-2 gap-3">
                     <div><label className={lbl}>วันที่ออม</label><input type="date" value={editForm.rawDate ? new Date(editForm.rawDate).toISOString().slice(0, 10) : ""} onChange={(e) => setEditForm({ ...editForm, rawDate: e.target.value })} className={field} /></div>
-                    <div><label className={lbl}>วิธีออม</label><select value={editForm.paymentMethod || "transfer"} onChange={(e) => setEditForm({ ...editForm, paymentMethod: e.target.value })} className={field}>{[["transfer","โอนเข้าบัญชีออม"],["cash","หยอดกระปุก"],["debit","ตัดบัตรอัตโนมัติ"],["other","อื่นๆ"]].map(([v,l]) => <option key={v} value={v}>{l}</option>)}</select></div>
+                    <div><label className={lbl}>วิธีออม</label>
+                      <Select value={editForm.paymentMethod || "transfer"} onChange={(v) => setEditForm({ ...editForm, paymentMethod: v })} searchable={false} options={[
+                        { value: "transfer", label: "โอนเข้าบัญชีออม" }, { value: "cash", label: "หยอดกระปุก" }, { value: "debit", label: "ตัดบัตรอัตโนมัติ" }, { value: "other", label: "อื่นๆ" },
+                      ]} />
+                    </div>
+                  </div>
+                  <div><label className={lbl}>หมวดออม</label>
+                    <Select value={editForm.category || ""} onChange={(v) => { const c = cats.find((x) => x.name === v); setEditForm({ ...editForm, category: v, categoryIcon: c?.icon || "📋" }); }} placeholder="เลือกหมวด" options={cats.map((c) => ({ value: c.name, label: `${c.icon} ${c.name}` }))} />
                   </div>
                   <div><label className={lbl}>หมายเหตุ</label><textarea rows={2} value={editForm.note || ""} onChange={(e) => setEditForm({ ...editForm, note: e.target.value })} placeholder="เช่น ออมจากเงินทอน, โบนัส..." className={`${field} h-auto py-2`} /></div>
-                </div>
-                <div><label className={lbl}>หมวดออม</label>
-                  <select value={editForm.category || ""} onChange={(e) => { const c = cats.find((x) => x.name === e.target.value); setEditForm({ ...editForm, category: e.target.value, categoryIcon: c?.icon || "📋" }); }} className={field}>
-                    <option value="">เลือกหมวด</option>
-                    {cats.map((c) => <option key={c.name} value={c.name}>{c.icon} {c.name}</option>)}
-                  </select>
                 </div>
               </>)}
 
