@@ -4,6 +4,8 @@ import { withAuth, apiSuccess, apiError, getPagination } from "@/lib/api-helpers
 import { JWTPayload } from "@/lib/auth";
 import Receipt from "@/models/Receipt";
 import User from "@/models/User";
+import { checkRateLimit } from "@/lib/rate-limit";
+import { sanitizeString, validateNumber } from "@/lib/validate";
 
 export async function GET(request: NextRequest) {
   return withAuth(request, async (session: JWTPayload, req: NextRequest) => {
@@ -66,6 +68,12 @@ export async function POST(request: NextRequest) {
   return withAuth(request, async (session: JWTPayload, req: NextRequest) => {
     await connectDB();
 
+    // Rate limit: 30 receipt creates per minute per user
+    const rl = checkRateLimit(`receipts:${session.userId}`, 30, 60000);
+    if (!rl.allowed) {
+      return NextResponse.json({ error: "Too many requests, please wait" }, { status: 429 });
+    }
+
     // Quota check
     const { checkQuota, incrementUsage } = await import("@/lib/quota");
     const quota = await checkQuota(session.userId, "receipts");
@@ -78,6 +86,12 @@ export async function POST(request: NextRequest) {
     if (!body.merchant || !body.date || body.amount == null) {
       return apiError("กรุณากรอก merchant, date, amount", 400);
     }
+
+    // Sanitize and validate inputs
+    body.merchant = sanitizeString(body.merchant, 200);
+    body.note = sanitizeString(body.note || "", 1000);
+    const amtErr = validateNumber(body.amount, "amount", { min: 0, max: 999999999 });
+    if (amtErr) return apiError(amtErr, 400);
 
     // Check for duplicate by imageHash
     if (body.imageHash) {

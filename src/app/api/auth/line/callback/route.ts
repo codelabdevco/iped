@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { exchangeLineCode, getLineProfile, createToken, setTokenCookie } from "@/lib/auth";
 import { connectDB } from "@/lib/mongodb";
 import User from "@/models/User";
+import { checkRateLimit } from "@/lib/rate-limit";
 
 export async function GET(req: NextRequest) {
   try {
@@ -12,6 +13,13 @@ export async function GET(req: NextRequest) {
 
     if (error || !code) {
       return NextResponse.redirect(new URL("/login?error=auth_failed", baseUrl));
+    }
+
+    // Rate limit: 10 login attempts per minute per IP
+    const ip = req.headers.get("x-forwarded-for") || "unknown";
+    const rl = checkRateLimit(`login:${ip}`, 10, 60000);
+    if (!rl.allowed) {
+      return NextResponse.json({ error: "Too many login attempts" }, { status: 429 });
     }
 
     // Exchange code for tokens

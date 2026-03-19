@@ -4,6 +4,7 @@ import { getSession } from "@/lib/auth";
 import { connectDB } from "@/lib/mongodb";
 import Receipt from "@/models/Receipt";
 import crypto from "crypto";
+import { checkRateLimit } from "@/lib/rate-limit";
 
 export async function POST(request: NextRequest) {
   try {
@@ -11,6 +12,12 @@ export async function POST(request: NextRequest) {
     const session = await getSession();
     if (!session) {
       return NextResponse.json({ error: "กรุณาเข้าสู่ระบบ" }, { status: 401 });
+    }
+
+    // Rate limit: 20 OCR requests per minute per user
+    const rl = checkRateLimit(`ocr:${session.userId}`, 20, 60000);
+    if (!rl.allowed) {
+      return NextResponse.json({ error: "Too many OCR requests, please wait" }, { status: 429 });
     }
 
     // Quota check

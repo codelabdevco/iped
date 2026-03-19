@@ -3,6 +3,7 @@ import { connectDB } from "@/lib/mongodb";
 import { withAdmin, apiSuccess, apiError, getPagination } from "@/lib/api-helpers";
 import { JWTPayload } from "@/lib/auth";
 import User from "@/models/User";
+import { sanitizeString, validateEmail } from "@/lib/validate";
 
 const VALID_ROLES = ["superadmin", "admin", "manager", "accountant", "user"];
 const VALID_ACCOUNT_TYPES = ["personal", "business"];
@@ -73,6 +74,10 @@ export async function POST(request: NextRequest) {
       return apiError("กรุณาระบุชื่อ", 400);
     }
 
+    // Sanitize inputs
+    const sanitizedName = sanitizeString(name, 200);
+    const sanitizedOccupation = occupation ? sanitizeString(occupation, 200) : undefined;
+
     if (role && !VALID_ROLES.includes(role)) {
       return apiError(
         `role ไม่ถูกต้อง ต้องเป็น: ${VALID_ROLES.join(", ")}`,
@@ -88,6 +93,9 @@ export async function POST(request: NextRequest) {
     }
 
     if (email) {
+      const emailErr = validateEmail(email);
+      if (emailErr) return apiError(emailErr, 400);
+
       const existing = await User.findOne({ email });
       if (existing) {
         return apiError("อีเมลนี้ถูกใช้งานแล้ว", 409);
@@ -95,12 +103,12 @@ export async function POST(request: NextRequest) {
     }
 
     const user = await User.create({
-      name: name.trim(),
+      name: sanitizedName,
       email: email || undefined,
       role: role || "user",
       accountType: accountType || "personal",
       status: status || "active",
-      occupation: occupation || undefined,
+      occupation: sanitizedOccupation,
     });
 
     const created = await User.findById(user._id)

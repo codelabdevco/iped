@@ -512,10 +512,13 @@ export async function sendPayrollNotification(
     }
   }
 
-  // Send Email (via simple SMTP or skip if not configured)
+  // Send Email (skip if nodemailer not installed or SMTP not configured)
   if (channels.email && process.env.SMTP_HOST) {
     try {
-      const nodemailer = await import("nodemailer");
+      // Dynamic import — only works if nodemailer is installed
+      let nodemailer: any;
+      try { nodemailer = require("nodemailer"); } catch { nodemailer = null; }
+      if (!nodemailer) { results.email = false; return results; }
       const transporter = nodemailer.createTransport({
         host: process.env.SMTP_HOST,
         port: Number(process.env.SMTP_PORT || 587),
