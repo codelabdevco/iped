@@ -121,21 +121,36 @@ export default function Sidebar({ onNavigate, badges = {} }: { onNavigate?: () =
   const businessOnly = ["/dashboard/tax","/dashboard/customers","/dashboard/quotations","/dashboard/invoices","/dashboard/receivables","/dashboard/team","/dashboard/payroll","/dashboard/approvals","/dashboard/reimbursement","/dashboard/accounting","/dashboard/admin","/dashboard/billing"];
 
   const switchMode = (m: Mode) => {
-    // Show overlay
-    window.dispatchEvent(new Event("iped-mode-switching"));
-    // Update mode (localStorage + cookie + event)
+    // 1) Create a persistent full-screen overlay OUTSIDE React (survives during reload)
+    const overlay = document.createElement("div");
+    overlay.id = "mode-switch-overlay";
+    const isDarkNow = document.documentElement.getAttribute("data-theme") === "dark";
+    overlay.style.cssText = `
+      position:fixed;inset:0;z-index:99999;
+      display:flex;align-items:center;justify-content:center;gap:12px;
+      background:${isDarkNow ? "rgba(10,10,10,0.92)" : "rgba(247,247,247,0.92)"};
+      backdrop-filter:blur(4px);
+      transition:opacity 0.15s;
+    `;
+    overlay.innerHTML = `
+      <div style="width:20px;height:20px;border:2px solid #FA3633;border-top-color:transparent;border-radius:50%;animation:spin .6s linear infinite"></div>
+      <span style="font-size:14px;font-weight:500;color:${isDarkNow ? "rgba(255,255,255,0.6)" : "rgba(0,0,0,0.5)"}">กำลังสลับโหมด...</span>
+      <style>@keyframes spin{to{transform:rotate(360deg)}}</style>
+    `;
+    document.body.appendChild(overlay);
+
+    // 2) Update mode
     ctxSwitchMode(m);
 
+    // 3) Navigate after brief delay
     const needsRedirect = m === "personal" && businessOnly.some((p) => pathname === p || pathname.startsWith(p + "/"));
-
-    // Delay slightly to show overlay, then hard navigate
     setTimeout(() => {
       if (needsRedirect) {
         window.location.href = "/dashboard";
       } else {
         window.location.reload();
       }
-    }, 200);
+    }, 100);
   };
 
   const toggleGroup = (label: string) => {
