@@ -518,6 +518,53 @@ function ReceiptsTab({ receipts: initialReceipts, isDark }: { receipts: any[]; i
         ))}
       </div>
 
+      {/* Summary cards — ยอดเงินตาม tab */}
+      {(() => {
+        const expTotal = receipts.filter((r) => r.direction === "expense").reduce((s, r) => s + r.amount, 0);
+        const incTotal = receipts.filter((r) => r.direction === "income").reduce((s, r) => s + r.amount, 0);
+        const savTotal = receipts.filter((r) => r.direction === "savings").reduce((s, r) => s + r.amount, 0);
+        const net = incTotal - expTotal;
+
+        if (dirFilter === "all") return (
+          <div className="grid grid-cols-3 gap-2">
+            <div className={`${card} border ${border} rounded-xl p-3 text-center`}>
+              <p className={`text-[10px] ${muted} mb-1`}>รายจ่าย</p>
+              <p className="text-sm font-bold text-red-500">-฿{fmt(expTotal)}</p>
+              <p className={`text-[10px] ${muted}`}>{expenseCount} รายการ</p>
+            </div>
+            <div className={`${card} border ${border} rounded-xl p-3 text-center`}>
+              <p className={`text-[10px] ${muted} mb-1`}>รายรับ</p>
+              <p className="text-sm font-bold text-green-500">+฿{fmt(incTotal)}</p>
+              <p className={`text-[10px] ${muted}`}>{incomeCount} รายการ</p>
+            </div>
+            <div className={`${card} border ${border} rounded-xl p-3 text-center`}>
+              <p className={`text-[10px] ${muted} mb-1`}>คงเหลือ</p>
+              <p className={`text-sm font-bold ${net >= 0 ? "text-green-500" : "text-red-500"}`}>{net >= 0 ? "+" : "-"}฿{fmt(Math.abs(net))}</p>
+              <p className={`text-[10px] ${muted}`}>{savingsCount > 0 ? `ออม ฿${fmt(savTotal)}` : ""}</p>
+            </div>
+          </div>
+        );
+
+        const dirData = dirFilter === "expense"
+          ? { label: "รายจ่ายทั้งหมด", total: expTotal, count: expenseCount, color: "text-red-500", prefix: "-", bg: isDark ? "bg-red-500/5 border-red-500/10" : "bg-red-50 border-red-100" }
+          : dirFilter === "income"
+          ? { label: "รายรับทั้งหมด", total: incTotal, count: incomeCount, color: "text-green-500", prefix: "+", bg: isDark ? "bg-green-500/5 border-green-500/10" : "bg-green-50 border-green-100" }
+          : { label: "เงินออมทั้งหมด", total: savTotal, count: savingsCount, color: "text-pink-500", prefix: "", bg: isDark ? "bg-pink-500/5 border-pink-500/10" : "bg-pink-50 border-pink-100" };
+
+        return (
+          <div className={`rounded-xl border p-4 flex items-center justify-between ${dirData.bg}`}>
+            <div>
+              <p className={`text-xs ${muted}`}>{dirData.label}</p>
+              <p className={`text-xl font-extrabold ${dirData.color}`}>{dirData.prefix}฿{fmt(dirData.total)}</p>
+            </div>
+            <div className="text-right">
+              <p className={`text-2xl font-bold ${txt}`}>{dirData.count}</p>
+              <p className={`text-xs ${muted}`}>รายการ</p>
+            </div>
+          </div>
+        );
+      })()}
+
       {/* Status pills */}
       <div className="flex gap-2 overflow-x-auto pb-1 no-scrollbar">
         {[{ key: "all", text: "ทั้งหมด", count: receipts.length }, ...ALL_STATUSES.map((s) => ({ key: s, text: STATUS_MAP[s].text, count: receipts.filter((r) => r.status === s).length }))].filter((s) => s.count > 0).map((s) => (
