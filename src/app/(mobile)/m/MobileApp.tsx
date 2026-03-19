@@ -457,9 +457,7 @@ function ReportsTab({ data, isDark }: { data: MobileData; isDark: boolean }) {
   const budgetPct = data.profile.monthlyBudget > 0 ? Math.min(100, (data.totalExpense / data.profile.monthlyBudget) * 100) : 0;
 
   // Budget alerts from localStorage
-  const [budgetAlerts, setBudgetAlerts] = useState<{ cat: string; spent: number; budget: number; pct: number }[]>([]);
-  const [alertsDismissed, setAlertsDismissed] = useState(false);
-  useState(() => {
+  const [budgetAlerts] = useState<{ cat: string; spent: number; budget: number; pct: number }[]>(() => {
     try {
       const s = typeof window !== "undefined" ? localStorage.getItem("iped-budgets") : null;
       if (s) {
@@ -473,37 +471,38 @@ function ReportsTab({ data, isDark }: { data: MobileData; isDark: boolean }) {
             if (pct >= 80) alerts.push({ cat: b.category, spent, budget: b.budget, pct });
           }
         });
-        setBudgetAlerts(alerts.sort((a, b) => b.pct - a.pct));
+        return alerts.sort((a, b) => b.pct - a.pct);
       }
     } catch {}
+    return [];
   });
+  const [alertsDismissed, setAlertsDismissed] = useState(false);
 
   // Recurring items from localStorage
-  const [recurring, setRecurring] = useState<{ name: string; type: string; amount: number; cycle: string; active: boolean }[]>([]);
-  useState(() => {
+  const [recurring] = useState<{ name: string; type: string; amount: number; cycle: string; active: boolean }[]>(() => {
     try {
       const s = typeof window !== "undefined" ? localStorage.getItem("iped-recurring") : null;
-      const items = s ? JSON.parse(s) : [
-        { name: "ค่าเช่าคอนโด", type: "expense", amount: 12000, cycle: "รายเดือน", active: true },
-        { name: "ค่าอินเทอร์เน็ต", type: "expense", amount: 599, cycle: "รายเดือน", active: true },
-        { name: "Netflix", type: "expense", amount: 419, cycle: "รายเดือน", active: true },
-      ];
-      setRecurring(items);
+      if (s) return JSON.parse(s);
     } catch {}
+    return [
+      { name: "ค่าเช่าคอนโด", type: "expense", amount: 12000, cycle: "รายเดือน", active: true },
+      { name: "ค่าอินเทอร์เน็ต", type: "expense", amount: 599, cycle: "รายเดือน", active: true },
+      { name: "Netflix", type: "expense", amount: 419, cycle: "รายเดือน", active: true },
+    ];
   });
 
   // Budget limits from localStorage
-  const [budgetLimits, setBudgetLimits] = useState<Record<string, number>>({});
-  useState(() => {
+  const [budgetLimits] = useState<Record<string, number>>(() => {
     try {
       const s = typeof window !== "undefined" ? localStorage.getItem("iped-budgets") : null;
       if (s) {
         const parsed = JSON.parse(s);
         const limits: Record<string, number> = {};
         parsed.forEach((b: any) => { if (b.category && b.budget) limits[b.category] = b.budget; });
-        setBudgetLimits(limits);
+        return limits;
       }
     } catch {}
+    return {};
   });
 
   const recurringTotal = recurring.filter((i) => i.type === "expense" && i.active).reduce((s, i) => s + i.amount, 0);
