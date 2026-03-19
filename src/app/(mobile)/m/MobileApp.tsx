@@ -494,75 +494,77 @@ function ReceiptsTab({ receipts: initialReceipts, isDark }: { receipts: any[]; i
           {!refreshing && pullY > 50 && <span className={`text-[10px] ml-2 ${isDark ? "text-white/40" : "text-gray-400"}`}>ปล่อยเพื่อรีเฟรช</span>}
         </div>
       )}
-      {/* Header + search inline */}
-      <div className="flex items-center gap-3">
-        <p className={`text-lg font-bold ${txt} shrink-0`}>ใบเสร็จ</p>
-        <div className="relative flex-1">
-          <Search size={14} className={`absolute left-2.5 top-1/2 -translate-y-1/2 ${muted}`} />
-          <input value={search} onChange={(e) => setSearch(e.target.value)} placeholder="ค้นหา..."
-            className={`w-full h-9 pl-8 pr-3 rounded-lg text-xs ${isDark ? "bg-white/5 border-white/10 text-white placeholder:text-white/25" : "bg-gray-50 border-gray-200 text-gray-900 placeholder:text-gray-400"} border focus:outline-none focus:border-[#FA3633]/50`} />
-        </div>
-        <div className={`shrink-0 text-right`}>
-          <p className={`text-sm font-bold ${totalAmount >= 0 ? "text-green-500" : "text-red-500"}`}>{totalAmount >= 0 ? "+" : ""}฿{fmt(Math.abs(totalAmount))}</p>
-          <p className={`text-[8px] ${muted}`}>{receipts.length} รายการ</p>
+      {/* Header */}
+      <div className="flex items-center justify-between">
+        <div>
+          <p className={`text-xl font-bold ${txt}`}>ใบเสร็จ</p>
+          <p className={`text-xs ${muted}`}>{receipts.length} รายการ · ยอดรวม <span className={totalAmount >= 0 ? "text-green-500" : "text-red-500"}>{totalAmount >= 0 ? "+" : ""}฿{fmt(Math.abs(totalAmount))}</span></p>
         </div>
       </div>
 
-      {/* Direction filter — compact */}
-      <div className={`flex p-0.5 rounded-lg ${isDark ? "bg-white/5" : "bg-gray-100"}`}>
+      {/* Search */}
+      <div className="relative">
+        <Search size={16} className={`absolute left-3.5 top-1/2 -translate-y-1/2 ${muted}`} />
+        <input value={search} onChange={(e) => setSearch(e.target.value)} placeholder="ค้นหาร้านค้า, หมวดหมู่..."
+          className={`w-full h-11 pl-10 pr-4 rounded-xl text-sm ${isDark ? "bg-white/5 border-white/10 text-white placeholder:text-white/30" : "bg-white border-gray-200 text-gray-900 placeholder:text-gray-400"} border focus:outline-none focus:border-[#FA3633]/50`} />
+      </div>
+
+      {/* Direction filter */}
+      <div className={`flex p-1 rounded-xl ${isDark ? "bg-white/5" : "bg-gray-100"}`}>
         {dirTabs.map((t) => (
-          <button key={t.key} onClick={() => setDirFilter(t.key)} className={`flex-1 py-1.5 rounded-md text-[11px] font-semibold transition-all ${dirFilter === t.key ? `${t.activeClass} shadow-sm` : isDark ? "text-white/40" : "text-gray-500"}`}>
+          <button key={t.key} onClick={() => setDirFilter(t.key)} className={`flex-1 py-2 rounded-lg text-xs font-semibold transition-all ${dirFilter === t.key ? `${t.activeClass} shadow-sm` : isDark ? "text-white/40" : "text-gray-500"}`}>
             {t.label}
           </button>
         ))}
       </div>
 
-      {/* Status pills — scroll horizontal */}
-      <div className="flex gap-1.5 overflow-x-auto -mx-1 px-1 no-scrollbar">
+      {/* Status pills */}
+      <div className="flex gap-2 overflow-x-auto pb-1 no-scrollbar">
         {[{ key: "all", text: "ทั้งหมด", count: receipts.length }, ...ALL_STATUSES.map((s) => ({ key: s, text: STATUS_MAP[s].text, count: receipts.filter((r) => r.status === s).length }))].filter((s) => s.count > 0).map((s) => (
-          <button key={s.key} onClick={() => setStatusFilter(statusFilter === s.key ? "all" : s.key)} className={`shrink-0 px-2.5 py-1 rounded-full text-[10px] font-medium transition-all ${statusFilter === s.key ? "bg-[#FA3633] text-white" : isDark ? "bg-white/5 text-white/40" : "bg-gray-100 text-gray-500"}`}>
+          <button key={s.key} onClick={() => setStatusFilter(statusFilter === s.key ? "all" : s.key)} className={`shrink-0 px-3 py-1.5 rounded-full text-xs font-medium transition-all ${statusFilter === s.key ? "bg-[#FA3633] text-white" : isDark ? "bg-white/5 text-white/50" : "bg-gray-100 text-gray-500"}`}>
             {s.text} {s.count}
           </button>
         ))}
       </div>
 
       {/* Receipt list */}
-      <div className="space-y-1.5">
+      <div className="space-y-2.5">
         {filtered.map((r) => {
           const st = STATUS_MAP[r.status] || STATUS_MAP.pending;
           return (
-            <div key={r._id} className={`${card} border ${border} rounded-xl active:scale-[0.99] transition-transform`} onClick={() => openEdit(r)}>
-              <div className="px-3 py-2.5 flex items-center gap-2.5">
+            <div key={r._id} className={`${card} border ${border} rounded-2xl active:scale-[0.98] transition-transform`} onClick={() => openEdit(r)}>
+              <div className="px-4 py-3.5 flex items-center gap-3">
                 {/* Icon */}
                 {r.hasImage ? (
                   <button onClick={(e) => { e.stopPropagation(); setLightbox(`/api/receipts/image?id=${r._id}`); }} className="shrink-0">
-                    <img src={`/api/receipts/image?id=${r._id}`} alt="" loading="lazy" className="w-10 h-10 rounded-lg object-cover" />
+                    <img src={`/api/receipts/image?id=${r._id}`} alt="" loading="lazy" className="w-12 h-12 rounded-xl object-cover" />
                   </button>
                 ) : (
-                  <div className={`w-10 h-10 rounded-lg flex items-center justify-center text-base shrink-0 ${isDark ? "bg-white/5" : "bg-gray-50"}`}>{r.categoryIcon || "📦"}</div>
+                  <div className={`w-12 h-12 rounded-xl flex items-center justify-center text-xl shrink-0 ${isDark ? "bg-white/5" : "bg-gray-50"}`}>{r.categoryIcon || "📦"}</div>
                 )}
                 {/* Info */}
                 <div className="flex-1 min-w-0">
-                  <p className={`text-[13px] font-medium ${txt} truncate`}>{r.merchant}</p>
-                  <div className="flex items-center gap-1 mt-0.5">
-                    <span className={`text-[9px] ${muted}`}>{r.date}</span>
-                    {r.source === "line" && <BrandIcon brand="line" size={9} />}
-                    <span className={`text-[8px] px-1 py-px rounded font-semibold ${st.cls}`}>{st.text}</span>
+                  <p className={`text-sm font-semibold ${txt} truncate`}>{r.merchant}</p>
+                  <div className="flex items-center gap-1.5 mt-1">
+                    <span className={`text-xs ${sub}`}>{r.date}{r.time ? ` · ${r.time}` : ""}</span>
+                    {r.source === "line" && <BrandIcon brand="line" size={12} />}
+                  </div>
+                  <div className="mt-1">
+                    <span className={`text-[10px] px-1.5 py-0.5 rounded-md font-semibold ${st.cls}`}>{st.text}</span>
                   </div>
                 </div>
                 {/* Amount */}
                 <div className="text-right shrink-0">
-                  <p className={`text-[13px] font-bold ${r.direction === "income" ? "text-green-500" : r.direction === "savings" ? "text-pink-500" : "text-red-500"}`}>
+                  <p className={`text-base font-bold ${r.direction === "income" ? "text-green-500" : r.direction === "savings" ? "text-pink-500" : "text-red-500"}`}>
                     {r.direction === "income" ? "+" : r.direction === "savings" ? "" : "-"}฿{fmt(r.amount)}
                   </p>
-                  <p className={`text-[9px] ${muted}`}>{r.category}</p>
+                  <p className={`text-[11px] ${muted} mt-0.5`}>{r.category}</p>
                 </div>
               </div>
             </div>
           );
         })}
         {filtered.length === 0 && <EmptyState isDark={isDark} />}
-        {filtered.length > 0 && <p className={`text-center text-[9px] ${muted} py-1`}>{filtered.length} รายการ</p>}
       </div>
 
       {/* FAB — add new receipt manually */}
