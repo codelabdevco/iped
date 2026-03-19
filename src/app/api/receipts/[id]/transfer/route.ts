@@ -23,10 +23,10 @@ export async function POST(
     const sourceAccountType = direction === "to-business" ? "personal" : "business";
     const targetAccountType = direction === "to-business" ? "business" : "personal";
     const notePrefix = direction === "to-business"
-      ? "เบิกจ่ายจากส่วนตัว"
+      ? "ค่าใช้จ่ายบริษัท จากส่วนตัว"
       : "โอนจากบริษัท";
     const noteUpdate = direction === "to-business"
-      ? "ส่งเบิกจ่ายแล้ว"
+      ? "ส่งเป็นค่าใช้จ่ายบริษัทแล้ว"
       : "โอนกลับส่วนตัวแล้ว";
 
     // Find original receipt (include imageUrl for copying)

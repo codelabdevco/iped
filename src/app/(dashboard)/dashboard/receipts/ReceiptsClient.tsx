@@ -220,7 +220,7 @@ export default function ReceiptsClient({ receipts: initialReceipts }: { receipts
       const matchStatus = statusFilter === "all" || r.status === statusFilter;
       const matchType = typeFilter === "all" || r.type === typeFilter;
       const matchDrive = driveFilter === "all" || (driveFilter === "uploaded" ? (r.hasImage || r.imageUrl) : !(r.hasImage || r.imageUrl));
-      const isReimbursement = (r.note || "").includes("เบิกจ่ายจากส่วนตัว");
+      const isReimbursement = (r.note || "").includes("ค่าใช้จ่ายบริษัท จากส่วนตัว");
       const matchSource = sourceFilter === "all" || (sourceFilter === "reimbursement" ? isReimbursement : r.source === sourceFilter);
       return matchSearch && matchStatus && matchType && matchDrive && matchSource;
     });
@@ -265,8 +265,8 @@ export default function ReceiptsClient({ receipts: initialReceipts }: { receipts
     if (ids.length === 0) return;
     const currentMode = localStorage.getItem("iped-mode") || "personal";
     const direction = currentMode === "personal" ? "to-business" : "to-personal";
-    const label = direction === "to-business" ? "บริษัท (เบิกจ่าย)" : "ส่วนตัว";
-    const ok = await modal.confirm({ title: "ส่งเบิกจ่าย", message: `ส่ง ${ids.length} รายการไป "${label}" ?` });
+    const label = direction === "to-business" ? "ค่าใช้จ่ายบริษัท" : "ส่วนตัว";
+    const ok = await modal.confirm({ title: "ส่งเป็นค่าใช้จ่ายบริษัท", message: `ส่ง ${ids.length} รายการไป "${label}" ?` });
     if (!ok) return;
     setTransferring(true);
     try {
@@ -699,9 +699,9 @@ export default function ReceiptsClient({ receipts: initialReceipts }: { receipts
         const time = r.time || "";
         const isLine = r.source === "line";
         const isEmail = r.source === "email";
-        const isReimbursement = (r.note || "").includes("เบิกจ่ายจากส่วนตัว");
+        const isReimbursement = (r.note || "").includes("ค่าใช้จ่ายบริษัท จากส่วนตัว");
         const sourceBrand = isReimbursement ? "personal" : isLine ? "line" : isEmail ? "gmail" : "web";
-        const sourceLabel = isReimbursement ? "เบิกจ่าย" : isLine ? "LINE" : isEmail ? "Email" : "เว็บ";
+        const sourceLabel = isReimbursement ? "ค่าใช้จ่ายบริษัท" : isLine ? "LINE" : isEmail ? "Email" : "เว็บ";
         const sourceColor = isReimbursement ? "text-orange-400" : isLine ? "text-green-500" : isEmail ? "text-purple-400" : "text-blue-400";
         return (
           <div className="leading-tight">
@@ -1254,7 +1254,7 @@ export default function ReceiptsClient({ receipts: initialReceipts }: { receipts
           <Select value={statusFilter} onChange={setStatusFilter} className="w-44" options={[{ value: "all", label: "สถานะทั้งหมด" }, ...STATUS_OPTIONS]} />
           <Select value={typeFilter} onChange={setTypeFilter} className="w-40" options={[{ value: "all", label: "ประเภททั้งหมด" }, ...Object.entries(typeLabel).map(([k, v]) => ({ value: k, label: v }))]} />
           <Select value={driveFilter} onChange={setDriveFilter} className="w-44" options={[{ value: "all", label: "Drive ทั้งหมด" }, { value: "uploaded", label: "อัปโหลดแล้ว" }, { value: "not_uploaded", label: "ยังไม่อัปโหลด" }]} />
-          <Select value={sourceFilter} onChange={setSourceFilter} className="w-40" options={[{ value: "all", label: "แหล่งทั้งหมด" }, { value: "line", label: "LINE" }, { value: "web", label: "เว็บ" }, { value: "email", label: "Email" }, { value: "reimbursement", label: "เบิกจ่าย" }]} />
+          <Select value={sourceFilter} onChange={setSourceFilter} className="w-40" options={[{ value: "all", label: "แหล่งทั้งหมด" }, { value: "line", label: "LINE" }, { value: "web", label: "เว็บ" }, { value: "email", label: "Email" }, { value: "reimbursement", label: "ค่าใช้จ่ายบริษัท" }]} />
         </div>
       </div>
 
