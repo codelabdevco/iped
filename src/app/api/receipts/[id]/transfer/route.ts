@@ -21,11 +21,17 @@ export async function POST(
       );
     }
 
-    // Check if user has joined a company before allowing transfer to business
+    // Check if user has joined a company + quota
     if (direction === "to-business") {
       const user = await User.findById(session.userId).select("orgId").lean() as any;
       if (!user?.orgId) {
         return NextResponse.json({ success: false, error: "กรุณาเชื่อมต่อบริษัทก่อนส่งค่าใช้จ่าย" }, { status: 403 });
+      }
+      // Quota check
+      const { checkQuota } = await import("@/lib/quota");
+      const quota = await checkQuota(session.userId, "transfers");
+      if (!quota.allowed) {
+        return NextResponse.json({ success: false, error: quota.message, quota }, { status: 402 });
       }
     }
 
@@ -72,6 +78,12 @@ export async function POST(
     await Receipt.findByIdAndUpdate(original._id, {
       note: `${existingNote}${noteUpdate} • ref: ${newReceipt._id}`,
     });
+
+    // Track transfer usage
+    if (direction === "to-business") {
+      const { incrementUsage } = await import("@/lib/quota");
+      await incrementUsage(session.userId, "transfers");
+    }
 
     return NextResponse.json({ success: true, data: newReceipt });
   });

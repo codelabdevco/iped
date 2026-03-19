@@ -1,0 +1,413 @@
+import { NextRequest, NextResponse } from "next/server";
+import { connectDB } from "@/lib/mongodb";
+import Package from "@/models/Package";
+import Subscription from "@/models/Subscription";
+import User from "@/models/User";
+
+const GB = 1073741824;
+const MB = 1048576;
+
+const packages = [
+  // ===== Personal Plans =====
+  {
+    name: "Free",
+    nameEn: "Free",
+    tier: "free",
+    type: "personal",
+    price: { monthly: 0, yearly: 0, currency: "THB" },
+    limits: {
+      receiptsPerMonth: 30,
+      documentsPerMonth: 30,
+      ocrPerMonth: 10,
+      storageBytes: 100 * MB,
+      gmailAccounts: 0,
+      driveAccounts: 0,
+      employees: 0,
+      departments: 0,
+      transferPerMonth: 0,
+      aiChatPerMonth: 0,
+      historyMonths: 3,
+      invoicesPerMonth: 0,
+      quotationsPerMonth: 0,
+      apiCalls: 0,
+      usersPerOrg: 1,
+    },
+    features: {
+      aiOcr: true,
+      lineBot: true,
+      emailScanner: false,
+      gmail: false,
+      googleDrive: false,
+      documentMatching: false,
+      budgetAlerts: true,
+      multiCurrency: false,
+      recurring: false,
+      approval: false,
+      export: false,
+      googleSync: false,
+      notionSync: false,
+      googleSheets: false,
+      apiAccess: false,
+      whiteLabel: false,
+      prioritySupport: false,
+      sso: false,
+      reimbursement: false,
+      payroll: false,
+      vat: false,
+      accounting: false,
+      lineNotify: "daily",
+      emailNotify: false,
+      aiChat: false,
+      ads: true,
+    },
+    trialDays: 0,
+    isPopular: false,
+    sortOrder: 1,
+    status: "active",
+  },
+  {
+    name: "Plus",
+    nameEn: "Plus",
+    tier: "plus",
+    type: "personal",
+    price: { monthly: 99, yearly: 899, currency: "THB" },
+    limits: {
+      receiptsPerMonth: 300,
+      documentsPerMonth: 300,
+      ocrPerMonth: 100,
+      storageBytes: 2 * GB,
+      gmailAccounts: 1,
+      driveAccounts: 1,
+      employees: 0,
+      departments: 0,
+      transferPerMonth: 10,
+      aiChatPerMonth: 10,
+      historyMonths: 12,
+      invoicesPerMonth: 0,
+      quotationsPerMonth: 0,
+      apiCalls: 0,
+      usersPerOrg: 1,
+    },
+    features: {
+      aiOcr: true,
+      lineBot: true,
+      emailScanner: true,
+      gmail: true,
+      googleDrive: true,
+      documentMatching: true,
+      budgetAlerts: true,
+      multiCurrency: false,
+      recurring: true,
+      approval: false,
+      export: true,
+      googleSync: true,
+      notionSync: false,
+      googleSheets: false,
+      apiAccess: false,
+      whiteLabel: false,
+      prioritySupport: false,
+      sso: false,
+      reimbursement: true,
+      payroll: false,
+      vat: false,
+      accounting: false,
+      lineNotify: "daily+budget",
+      emailNotify: true,
+      aiChat: true,
+      ads: false,
+    },
+    trialDays: 14,
+    isPopular: true,
+    sortOrder: 2,
+    status: "active",
+  },
+  {
+    name: "Pro",
+    nameEn: "Pro",
+    tier: "pro",
+    type: "personal",
+    price: { monthly: 249, yearly: 2249, currency: "THB" },
+    limits: {
+      receiptsPerMonth: -1,
+      documentsPerMonth: -1,
+      ocrPerMonth: -1,
+      storageBytes: 20 * GB,
+      gmailAccounts: 3,
+      driveAccounts: 3,
+      employees: 0,
+      departments: 0,
+      transferPerMonth: -1,
+      aiChatPerMonth: -1,
+      historyMonths: -1,
+      invoicesPerMonth: 0,
+      quotationsPerMonth: 0,
+      apiCalls: 0,
+      usersPerOrg: 1,
+    },
+    features: {
+      aiOcr: true,
+      lineBot: true,
+      emailScanner: true,
+      gmail: true,
+      googleDrive: true,
+      documentMatching: true,
+      budgetAlerts: true,
+      multiCurrency: true,
+      recurring: true,
+      approval: false,
+      export: true,
+      googleSync: true,
+      notionSync: true,
+      googleSheets: true,
+      apiAccess: false,
+      whiteLabel: false,
+      prioritySupport: true,
+      sso: false,
+      reimbursement: true,
+      payroll: false,
+      vat: false,
+      accounting: false,
+      lineNotify: "all",
+      emailNotify: true,
+      aiChat: true,
+      ads: false,
+    },
+    trialDays: 14,
+    isPopular: false,
+    sortOrder: 3,
+    status: "active",
+  },
+  // ===== Business Plans =====
+  {
+    name: "Starter",
+    nameEn: "Starter",
+    tier: "starter",
+    type: "business",
+    price: { monthly: 499, yearly: 4499, currency: "THB" },
+    limits: {
+      receiptsPerMonth: 500,
+      documentsPerMonth: 500,
+      ocrPerMonth: 200,
+      storageBytes: 5 * GB,
+      gmailAccounts: 1,
+      driveAccounts: 1,
+      employees: 5,
+      departments: 3,
+      transferPerMonth: 20,
+      aiChatPerMonth: 20,
+      historyMonths: 12,
+      invoicesPerMonth: 10,
+      quotationsPerMonth: 10,
+      apiCalls: 0,
+      usersPerOrg: 5,
+    },
+    features: {
+      aiOcr: true,
+      lineBot: true,
+      emailScanner: true,
+      gmail: true,
+      googleDrive: true,
+      documentMatching: true,
+      budgetAlerts: true,
+      multiCurrency: false,
+      recurring: true,
+      approval: "single",
+      export: true,
+      googleSync: true,
+      notionSync: false,
+      googleSheets: false,
+      apiAccess: false,
+      whiteLabel: false,
+      prioritySupport: false,
+      sso: false,
+      reimbursement: true,
+      payroll: false,
+      vat: true,
+      accounting: false,
+      lineNotify: "daily+budget",
+      emailNotify: true,
+      aiChat: true,
+      ads: false,
+    },
+    trialDays: 30,
+    isPopular: false,
+    sortOrder: 4,
+    status: "active",
+  },
+  {
+    name: "Business",
+    nameEn: "Business",
+    tier: "business",
+    type: "business",
+    price: { monthly: 1499, yearly: 13499, currency: "THB" },
+    limits: {
+      receiptsPerMonth: 5000,
+      documentsPerMonth: 5000,
+      ocrPerMonth: 2000,
+      storageBytes: 50 * GB,
+      gmailAccounts: 5,
+      driveAccounts: 5,
+      employees: 30,
+      departments: 10,
+      transferPerMonth: -1,
+      aiChatPerMonth: -1,
+      historyMonths: -1,
+      invoicesPerMonth: -1,
+      quotationsPerMonth: -1,
+      apiCalls: 1000,
+      usersPerOrg: 30,
+    },
+    features: {
+      aiOcr: true,
+      lineBot: true,
+      emailScanner: true,
+      gmail: true,
+      googleDrive: true,
+      documentMatching: true,
+      budgetAlerts: true,
+      multiCurrency: true,
+      recurring: true,
+      approval: "multi",
+      export: true,
+      googleSync: true,
+      notionSync: true,
+      googleSheets: true,
+      apiAccess: true,
+      whiteLabel: false,
+      prioritySupport: true,
+      sso: false,
+      reimbursement: true,
+      payroll: true,
+      vat: true,
+      accounting: true,
+      lineNotify: "all",
+      emailNotify: true,
+      aiChat: true,
+      ads: false,
+    },
+    trialDays: 30,
+    isPopular: true,
+    sortOrder: 5,
+    status: "active",
+  },
+  {
+    name: "Enterprise",
+    nameEn: "Enterprise",
+    tier: "enterprise",
+    type: "business",
+    price: { monthly: 0, yearly: 0, currency: "THB" }, // custom pricing
+    limits: {
+      receiptsPerMonth: -1,
+      documentsPerMonth: -1,
+      ocrPerMonth: -1,
+      storageBytes: -1,
+      gmailAccounts: -1,
+      driveAccounts: -1,
+      employees: -1,
+      departments: -1,
+      transferPerMonth: -1,
+      aiChatPerMonth: -1,
+      historyMonths: -1,
+      invoicesPerMonth: -1,
+      quotationsPerMonth: -1,
+      apiCalls: -1,
+      usersPerOrg: -1,
+    },
+    features: {
+      aiOcr: true,
+      lineBot: true,
+      emailScanner: true,
+      gmail: true,
+      googleDrive: true,
+      documentMatching: true,
+      budgetAlerts: true,
+      multiCurrency: true,
+      recurring: true,
+      approval: "custom",
+      export: true,
+      googleSync: true,
+      notionSync: true,
+      googleSheets: true,
+      apiAccess: true,
+      whiteLabel: true,
+      prioritySupport: true,
+      sso: true,
+      reimbursement: true,
+      payroll: true,
+      vat: true,
+      accounting: true,
+      lineNotify: "all",
+      emailNotify: true,
+      aiChat: true,
+      ads: false,
+    },
+    trialDays: 0,
+    isPopular: false,
+    sortOrder: 6,
+    status: "active",
+  },
+];
+
+export async function POST(request: NextRequest) {
+  // Auth check
+  const seedKey = request.headers.get("x-seed-key");
+  if (seedKey !== process.env.CRON_SECRET) {
+    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  }
+
+  await connectDB();
+
+  // Upsert all packages
+  const results = [];
+  for (const pkg of packages) {
+    const result = await Package.findOneAndUpdate(
+      { tier: pkg.tier },
+      { $set: pkg },
+      { upsert: true, new: true }
+    );
+    results.push({ tier: result.tier, id: result._id });
+  }
+
+  // Create Free subscription for users without any subscription
+  const freePkg = await Package.findOne({ tier: "free" }).lean() as any;
+  if (freePkg) {
+    const allUsers = await User.find({}, { _id: 1 }).lean();
+    const existingSubs = await Subscription.find({}, { userId: 1 }).lean();
+    const usersWithSub = new Set(existingSubs.map((s: any) => s.userId));
+
+    const now = new Date();
+    const periodEnd = new Date(now);
+    periodEnd.setFullYear(periodEnd.getFullYear() + 100); // Free plan never expires
+
+    let created = 0;
+    for (const user of allUsers) {
+      const uid = user._id.toString();
+      if (!usersWithSub.has(uid)) {
+        await Subscription.findOneAndUpdate(
+          { userId: uid },
+          {
+            $setOnInsert: {
+              userId: uid,
+              packageId: freePkg._id,
+              status: "active",
+              billingCycle: "monthly",
+              currentPeriodStart: now,
+              currentPeriodEnd: periodEnd,
+              autoRenew: false,
+            },
+          },
+          { upsert: true }
+        );
+        created++;
+      }
+    }
+
+    return NextResponse.json({
+      success: true,
+      packages: results,
+      subscriptions: { checked: allUsers.length, created },
+    });
+  }
+
+  return NextResponse.json({ success: true, packages: results });
+}

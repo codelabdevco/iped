@@ -65,6 +65,14 @@ export async function GET(request: NextRequest) {
 export async function POST(request: NextRequest) {
   return withAuth(request, async (session: JWTPayload, req: NextRequest) => {
     await connectDB();
+
+    // Quota check
+    const { checkQuota, incrementUsage } = await import("@/lib/quota");
+    const quota = await checkQuota(session.userId, "receipts");
+    if (!quota.allowed) {
+      return NextResponse.json({ error: quota.message, quota: { current: quota.current, limit: quota.limit, plan: quota.plan } }, { status: 402 });
+    }
+
     const body = await req.json();
 
     if (!body.merchant || !body.date || body.amount == null) {
@@ -94,6 +102,9 @@ export async function POST(request: NextRequest) {
       status: body.status || "confirmed",
       accountType: session.accountType || "personal",
     });
+
+    // Track usage
+    await incrementUsage(session.userId, "receipts");
 
     return NextResponse.json({ success: true, receipt: { ...receipt.toObject(), _id: String(receipt._id) } }, { status: 201 });
   });

@@ -13,6 +13,14 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: "กรุณาเข้าสู่ระบบ" }, { status: 401 });
     }
 
+    // Quota check
+    await connectDB();
+    const { checkQuota, incrementUsage } = await import("@/lib/quota");
+    const quota = await checkQuota(session.userId, "ocr");
+    if (!quota.allowed) {
+      return NextResponse.json({ error: quota.message, quota: { current: quota.current, limit: quota.limit, plan: quota.plan } }, { status: 402 });
+    }
+
     const formData = await request.formData();
     const file = formData.get("file") as File;
 
@@ -110,6 +118,10 @@ export async function POST(request: NextRequest) {
       const matches = await findMatches(String(receipt._id), session.userId);
       console.log("Auto-match:", matches.length, "found for", receipt._id);
     } catch (e) { console.error("Auto-match error:", e); }
+
+    // Track OCR + receipt usage
+    await incrementUsage(session.userId, "ocr");
+    await incrementUsage(session.userId, "receipts");
 
     return NextResponse.json({
       success: true,
