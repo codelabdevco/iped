@@ -118,23 +118,24 @@ export default function Sidebar({ onNavigate, badges = {} }: { onNavigate?: () =
   const { isDark, toggleTheme } = useTheme();
   const { mode, switchMode: ctxSwitchMode } = useMode();
 
+  const businessOnly = ["/dashboard/tax","/dashboard/customers","/dashboard/quotations","/dashboard/invoices","/dashboard/receivables","/dashboard/team","/dashboard/payroll","/dashboard/approvals","/dashboard/reimbursement","/dashboard/accounting","/dashboard/admin","/dashboard/billing"];
+
   const switchMode = (m: Mode) => {
+    // Show overlay
+    window.dispatchEvent(new Event("iped-mode-switching"));
+    // Update mode (localStorage + cookie + event)
     ctxSwitchMode(m);
-    // Show loading overlay then reload — guaranteed fresh data from server
-    document.body.style.opacity = "0.5";
-    document.body.style.transition = "opacity 0.15s";
-    document.body.style.pointerEvents = "none";
-    // If on business-only page and switching to personal, go to dashboard
-    const businessOnly = ["/dashboard/tax","/dashboard/customers","/dashboard/quotations","/dashboard/invoices","/dashboard/receivables","/dashboard/team","/dashboard/payroll","/dashboard/approvals","/dashboard/reimbursement","/dashboard/accounting","/dashboard/admin","/dashboard/billing"];
+
     const needsRedirect = m === "personal" && businessOnly.some((p) => pathname === p || pathname.startsWith(p + "/"));
 
+    // Delay slightly to show overlay, then hard navigate
     setTimeout(() => {
       if (needsRedirect) {
         window.location.href = "/dashboard";
       } else {
         window.location.reload();
       }
-    }, 150);
+    }, 200);
   };
 
   const toggleGroup = (label: string) => {
