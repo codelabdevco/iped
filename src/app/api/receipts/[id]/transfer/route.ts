@@ -29,12 +29,12 @@ export async function POST(
       ? "ส่งเบิกจ่ายแล้ว"
       : "โอนกลับส่วนตัวแล้ว";
 
-    // Find original receipt
+    // Find original receipt (include imageUrl for copying)
     const original = await Receipt.findOne({
       _id: id,
       userId: session.userId,
       accountType: sourceAccountType,
-    });
+    }).select("+imageUrl");
 
     if (!original) {
       return NextResponse.json(

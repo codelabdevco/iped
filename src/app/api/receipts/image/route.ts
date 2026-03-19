@@ -12,16 +12,34 @@ export async function GET(request: NextRequest) {
   if (!id) return NextResponse.json({ error: "missing id" }, { status: 400 });
 
   await connectDB();
-  const receipt = await Receipt.findOne({ _id: id, userId: session.userId }).select("imageUrl").lean() as any;
+
+  // Find receipt (any accountType — images are shared across modes)
+  let receipt = await Receipt.findOne({ _id: id, userId: session.userId }).select("imageUrl imageHash").lean() as any;
   if (!receipt?.imageUrl) return NextResponse.json({ error: "not found" }, { status: 404 });
 
-  const dataUrl = receipt.imageUrl as string;
+  let dataUrl = receipt.imageUrl as string;
+
+  // If imageUrl is a reference to another receipt (not base64), follow it
+  if (!dataUrl.startsWith("data:") && receipt.imageHash) {
+    const original = await Receipt.findOne({
+      userId: session.userId,
+      imageHash: receipt.imageHash,
+      imageUrl: { $regex: /^data:/ },
+    }).select("imageUrl").lean() as any;
+
+    if (original?.imageUrl) {
+      dataUrl = original.imageUrl;
+      // Fix the broken reference for future requests
+      await Receipt.updateOne({ _id: id }, { $set: { imageUrl: dataUrl } });
+    } else {
+      return NextResponse.json({ error: "image not found" }, { status: 404 });
+    }
+  }
 
   // Parse data URL: "data:image/jpeg;base64,XXXXX"
   const match = dataUrl.match(/^data:([^;]+);base64,(.+)$/);
   if (!match) {
-    // Fallback: return as JSON for backward compat
-    return NextResponse.json({ imageUrl: dataUrl });
+    return NextResponse.json({ error: "invalid image format" }, { status: 404 });
   }
 
   const mimeType = match[1];
