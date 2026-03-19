@@ -22,7 +22,7 @@ async function ReceiptsData() {
   const accountType = await getAccountMode();
 
   const [receipts, currentUser] = await Promise.all([
-    Receipt.find({ userId: decoded.userId, accountType, source: { $in: ["line", "web"] } })
+    Receipt.find({ userId: decoded.userId, accountType })
       .select("-imageUrl -ocrRawText")
       .sort({ createdAt: -1 })
       .limit(100)
