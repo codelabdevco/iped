@@ -69,6 +69,9 @@ const ReceiptSchema = new Schema<IReceipt>(
     orgId: String,
     direction: { type: String, enum: ["expense", "income", "savings"], default: "expense" },
     accountType: { type: String, enum: ["personal", "business"], default: "personal" },
+    // Company reimbursement fields
+    companySlipImage: String,
+    companyNote: String,
   },
   { timestamps: true }
 );

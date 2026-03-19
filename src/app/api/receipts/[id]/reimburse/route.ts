@@ -103,14 +103,9 @@ export async function POST(
       ].filter(Boolean).join(" • ");
       receipt.note = `${receipt.note || ""} | ${companyNote}`;
 
-      // Save slip image from company (if provided)
-      if (body.slipImage) {
-        // Store as a separate field or append to existing
-        receipt.set("companySlipImage", body.slipImage);
-      }
-      if (body.companyNote) {
-        receipt.set("companyNote", body.companyNote);
-      }
+      // Save company slip + note
+      if (body.slipImage) receipt.companySlipImage = body.slipImage;
+      if (body.companyNote) receipt.companyNote = body.companyNote;
 
       await receipt.save();
 

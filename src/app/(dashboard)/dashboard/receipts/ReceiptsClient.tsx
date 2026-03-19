@@ -268,11 +268,7 @@ export default function ReceiptsClient({ receipts: initialReceipts }: { receipts
       }
       if (success > 0) {
         await modal.alert({ title: "สำเร็จ", message: `ส่ง ${success} รายการไป${label}แล้ว`, type: "success" });
-        // Update UI: mark sent receipts with note so they can't be sent again
-        setReceipts((prev) => prev.map((r) =>
-          ids.includes(r._id) ? { ...r, note: (r.note || "") + " | ส่งเป็นค่าใช้จ่ายบริษัทแล้ว" } : r
-        ));
-        setSelected([]);
+        window.location.reload();
       } else {
         await modal.alert({ title: "ไม่สำเร็จ", message: "ส่งต่อไม่สำเร็จ", type: "error" });
       }
@@ -848,13 +844,13 @@ export default function ReceiptsClient({ receipts: initialReceipts }: { receipts
             <div className="flex items-center gap-1" onClick={(e) => e.stopPropagation()}>
               <button onClick={async () => {
                 await fetch(`/api/receipts/${r._id}`, { method: "PUT", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ status: "confirmed" }) });
-                setReceipts((prev) => prev.map((x) => x._id === r._id ? { ...x, status: "confirmed" } : x));
+                window.location.reload();
               }} className={`px-2.5 py-1 rounded-lg text-[11px] font-medium transition-colors ${dark ? "bg-green-500/15 text-green-400 hover:bg-green-500/25" : "bg-green-50 text-green-600 hover:bg-green-100"}`}>
                 <CheckCircle size={12} className="inline mr-1" />อนุมัติ
               </button>
               <button onClick={async () => {
                 await fetch(`/api/receipts/${r._id}`, { method: "PUT", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ status: "cancelled" }) });
-                setReceipts((prev) => prev.map((x) => x._id === r._id ? { ...x, status: "cancelled" } : x));
+                window.location.reload();
               }} className={`px-2.5 py-1 rounded-lg text-[11px] font-medium transition-colors ${dark ? "bg-red-500/15 text-red-400 hover:bg-red-500/25" : "bg-red-50 text-red-600 hover:bg-red-100"}`}>
                 <X size={12} className="inline mr-1" />ปฏิเสธ
               </button>

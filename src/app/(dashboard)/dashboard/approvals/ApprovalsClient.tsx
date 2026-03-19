@@ -73,9 +73,11 @@ export default function ApprovalsClient({ items: initial }: { items: ItemRow[] }
         const statusMap: Record<string, string> = { approve: "confirmed", reject: "cancelled" };
         await fetch(`/api/receipts/${id}`, { method: "PUT", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ status: statusMap[action] }) });
       }
-      const newStatus = action === "approve" ? "approved" : "rejected";
-      setItems((prev) => prev.map((r) => r._id === id ? { ...r, status: newStatus } as ItemRow : r));
-      if (action === "approve" && item?.isReimbursement) await modal.alert({ title: "อนุมัติแล้ว", message: "แจ้งเตือน LINE ไปยังผู้ขอเบิกแล้ว", type: "success" });
+      if (action === "approve" && item?.isReimbursement) {
+        await modal.alert({ title: "อนุมัติแล้ว", message: "แจ้งเตือน LINE ไปยังผู้ขอเบิกแล้ว", type: "success" });
+      }
+      // Reload to get fresh data (stats, badges, moved items)
+      window.location.reload();
     } catch {} finally { setActing(null); }
   }, [items, modal]);
 
@@ -91,9 +93,9 @@ export default function ApprovalsClient({ items: initial }: { items: ItemRow[] }
       } else {
         await fetch(`/api/receipts/${payTarget._id}`, { method: "PUT", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ status: "paid" }) });
       }
-      setItems((prev) => prev.map((r) => r._id === payTarget._id ? { ...r, status: "paid" } as ItemRow : r));
       setPayTarget(null); setPaySlip(null);
       await modal.alert({ title: "จ่ายเงินสำเร็จ", message: payTarget.isReimbursement ? "ส่งบิล+เอกสาร+หมายเหตุกลับไปส่วนตัว + แจ้ง LINE แล้ว" : "อัพเดทสถานะจ่ายแล้ว", type: "success" });
+      window.location.reload();
     } catch {} finally { setPaying(false); }
   }, [payTarget, payRef, payNote, payCompanyNote, paySlip, modal]);
 
