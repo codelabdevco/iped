@@ -294,7 +294,7 @@ const STATUS_MAP: Record<string, { text: string; cls: string }> = {
 };
 const ALL_STATUSES = Object.keys(STATUS_MAP);
 
-function ReceiptsTab({ receipts: initialReceipts, isDark }: { receipts: any[]; isDark: boolean }) {
+function ReceiptsTab({ receipts: initialReceipts, isDark, orgName, orgId }: { receipts: any[]; isDark: boolean; orgName?: string; orgId?: string }) {
   const { txt, sub, card, border, muted, inp } = useS(isDark);
   const [receipts, setReceipts] = useState(initialReceipts);
   const [dirFilter, setDirFilter] = useState<string>("all");
@@ -476,6 +476,63 @@ function ReceiptsTab({ receipts: initialReceipts, isDark }: { receipts: any[]; i
         if (editId === deleteId) setEditId(null);
       }
     } catch {}
+  };
+
+  // Transfer to company
+  const [toast, setToast] = useState<string | null>(null);
+  const [transferring, setTransferring] = useState(false);
+  const [joinCode, setJoinCode] = useState("");
+  const [showJoin, setShowJoin] = useState(false);
+  const [joining, setJoining] = useState(false);
+
+  const transferToCompany = async (receiptId: string) => {
+    if (!orgId || transferring) return;
+    setTransferring(true);
+    try {
+      const res = await fetch(`/api/receipts/${receiptId}/transfer`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ direction: "to-business" }),
+      });
+      if (res.ok) {
+        setToast(`ส่งเข้า "${orgName}" เรียบร้อยแล้ว`);
+        setTimeout(() => setToast(null), 3000);
+      } else {
+        const err = await res.json();
+        setToast(err.error || "ส่งไม่สำเร็จ");
+        setTimeout(() => setToast(null), 3000);
+      }
+    } catch {
+      setToast("เกิดข้อผิดพลาด");
+      setTimeout(() => setToast(null), 3000);
+    } finally { setTransferring(false); }
+  };
+
+  const handleJoinOrg = async () => {
+    if (!joinCode.trim() || joining) return;
+    setJoining(true);
+    try {
+      const res = await fetch("/api/org/join", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ inviteCode: joinCode.trim() }),
+      });
+      const data = await res.json();
+      if (res.ok) {
+        setToast(data.message || `เข้าร่วม ${data.orgName} สำเร็จ`);
+        setShowJoin(false);
+        setJoinCode("");
+        setTimeout(() => setToast(null), 3000);
+        // Reload to get new org data
+        setTimeout(() => window.location.reload(), 1500);
+      } else {
+        setToast(data.error || "รหัสไม่ถูกต้อง");
+        setTimeout(() => setToast(null), 3000);
+      }
+    } catch {
+      setToast("เกิดข้อผิดพลาด");
+      setTimeout(() => setToast(null), 3000);
+    } finally { setJoining(false); }
   };
 
   const savingsCount = receipts.filter((r) => r.direction === "savings").length;
@@ -851,6 +908,31 @@ function ReceiptsTab({ receipts: initialReceipts, isDark }: { receipts: any[]; i
               </div>
             </div>
 
+            {/* Send to company button */}
+            {orgId && editId !== "new" && (
+              <div className={`rounded-2xl border p-4 ${isDark ? "bg-blue-500/5 border-blue-500/10" : "bg-blue-50 border-blue-100"}`}>
+                <div className="flex items-center justify-between">
+                  <div>
+                    <p className={`text-xs font-semibold ${isDark ? "text-blue-400" : "text-blue-700"}`}>ส่งเข้าบริษัท</p>
+                    <p className={`text-[10px] ${isDark ? "text-blue-400/50" : "text-blue-500/70"} mt-0.5`}>{orgName}</p>
+                  </div>
+                  <button onClick={() => transferToCompany(editId!)} disabled={transferring}
+                    className="px-4 py-2 rounded-xl bg-blue-500 text-white text-xs font-semibold flex items-center gap-1.5 active:scale-[0.97] disabled:opacity-50">
+                    {transferring ? <Loader2 size={14} className="animate-spin" /> : <ArrowUpRight size={14} />}
+                    ส่งเข้าบริษัท
+                  </button>
+                </div>
+              </div>
+            )}
+
+            {/* Not connected — show join button */}
+            {!orgId && editId !== "new" && (
+              <button onClick={() => setShowJoin(true)} className={`w-full rounded-2xl border p-4 text-left ${isDark ? "bg-white/[0.02] border-white/[0.06]" : "bg-gray-50 border-gray-200"}`}>
+                <p className={`text-xs font-semibold ${txt}`}>ส่งเข้าบริษัท</p>
+                <p className={`text-[10px] ${muted} mt-0.5`}>เชื่อมต่อบริษัทด้วยรหัสเชิญเพื่อส่งบิลได้</p>
+              </button>
+            )}
+
             {/* Sticky save + cancel */}
             <div className={`fixed bottom-0 left-0 right-0 px-4 py-3 flex gap-3 ${isDark ? "bg-[#0a0a0a]/95 border-t border-white/[0.06]" : "bg-white/95 border-t border-gray-200"} backdrop-blur-xl`} style={{ paddingBottom: "max(env(safe-area-inset-bottom), 12px)" }}>
               <button onClick={saveEdit} disabled={saving} className="flex-1 py-3 rounded-xl bg-[#FA3633] text-white text-sm font-bold flex items-center justify-center gap-2 active:scale-[0.97] disabled:opacity-50">
@@ -874,6 +956,37 @@ function ReceiptsTab({ receipts: initialReceipts, isDark }: { receipts: any[]; i
               <button onClick={() => setDeleteId(null)} className={`py-2.5 rounded-xl text-sm font-medium ${card} border ${border} ${txt}`}>ยกเลิก</button>
               <button onClick={confirmDelete} className="py-2.5 rounded-xl text-sm font-semibold bg-red-500 text-white">ลบเลย</button>
             </div>
+          </div>
+        </div>
+      )}
+
+      {/* Join org modal */}
+      {showJoin && (
+        <div className="fixed inset-0 z-[100] flex items-center justify-center" onClick={() => setShowJoin(false)}>
+          <div className="absolute inset-0 bg-black/50 backdrop-blur-sm" />
+          <div className={`relative mx-6 p-5 rounded-2xl w-full max-w-sm ${isDark ? "bg-[#1a1a1a]" : "bg-white"} shadow-2xl`} onClick={(e) => e.stopPropagation()}>
+            <p className={`text-base font-bold ${txt} text-center mb-1`}>เชื่อมต่อบริษัท</p>
+            <p className={`text-xs ${sub} text-center mb-4`}>ใส่รหัสเชิญจากบริษัทเพื่อส่งบิลได้</p>
+            <input value={joinCode} onChange={(e) => setJoinCode(e.target.value)} placeholder="รหัสเชิญ เช่น a1b2c3d4e5f6"
+              className={`w-full h-12 px-4 rounded-xl text-center text-lg font-mono tracking-widest ${isDark ? "bg-white/5 border-white/10 text-white" : "bg-gray-50 border-gray-200 text-gray-900"} border focus:outline-none focus:border-blue-500/50 mb-4`} />
+            <div className="grid grid-cols-2 gap-3">
+              <button onClick={() => setShowJoin(false)} className={`py-2.5 rounded-xl text-sm font-medium ${card} border ${border} ${txt}`}>ยกเลิก</button>
+              <button onClick={handleJoinOrg} disabled={joining || !joinCode.trim()} className="py-2.5 rounded-xl text-sm font-semibold bg-blue-500 text-white disabled:opacity-50 flex items-center justify-center gap-1.5">
+                {joining ? <Loader2 size={14} className="animate-spin" /> : null}
+                เข้าร่วม
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Toast notification */}
+      {toast && (
+        <div className="fixed top-14 left-4 right-4 z-[200] animate-in fade-in slide-in-from-top duration-300">
+          <div className={`rounded-xl px-4 py-3 shadow-xl flex items-center gap-2 ${isDark ? "bg-[#1a1a1a] border border-white/10" : "bg-white border border-gray-200 shadow-lg"}`}>
+            <Check size={16} className="text-green-500 shrink-0" />
+            <p className={`text-sm ${txt} flex-1`}>{toast}</p>
+            <button onClick={() => setToast(null)} className={muted}><X size={14} /></button>
           </div>
         </div>
       )}
