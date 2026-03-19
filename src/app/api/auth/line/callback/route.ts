@@ -56,7 +56,7 @@ export async function GET(req: NextRequest) {
     const token = await createToken({
       userId: user._id.toString(),
       role: user.role || "user",
-      accountType: user.accountType || "individual",
+      accountType: user.accountType === "business" ? "business" : "personal",
       orgId: user.orgId?.toString(),
     });
 
