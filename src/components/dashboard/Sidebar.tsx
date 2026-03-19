@@ -260,7 +260,7 @@ export default function Sidebar({ onNavigate, badges = {}, hasOrg = false, planU
               {!collapsed && (
                 <button
                   onClick={() => toggleGroup(group.label)}
-                  className={`flex items-center justify-between w-full px-2 ${gi === 0 ? "pt-2" : "pt-4"} pb-1.5 ${sectionLabel}`}
+                  className={`flex items-center justify-between w-full px-3 ${gi === 0 ? "pt-2" : "pt-4"} pb-1.5 ${sectionLabel}`}
                 >
                   <span className="text-[10px] font-bold uppercase tracking-widest">
                     {group.label}
