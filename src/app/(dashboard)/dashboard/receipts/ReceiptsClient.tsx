@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useMemo, useCallback, useRef, useEffect } from "react";
-import { useRouter, useSearchParams } from "next/navigation";
+import { useSearchParams } from "next/navigation";
 import { useReactiveData } from "@/hooks/useReactiveMode";
 import { useModal } from "@/components/dashboard/ConfirmModal";
 import { Search, Filter, Receipt, FileText, CheckCircle, Clock, Pencil, Trash2, ImageIcon, Cloud, CloudOff, HardDrive, Upload, X, MessageCircle, Globe, User, Plus, Loader2, Mail, Link2, ArrowRightLeft, Building2 } from "lucide-react";
@@ -145,7 +145,6 @@ const typeLabel: Record<string, string> = {
 
 export default function ReceiptsClient({ receipts: initialReceipts }: { receipts: ReceiptRow[] }) {
   const { isDark } = useTheme();
-  const router = useRouter();
   const modal = useModal();
   const [receipts, setReceipts] = useReactiveData(initialReceipts);
   const pollRef = useRef<{ count: number; latestId: string | null }>({
@@ -166,22 +165,7 @@ export default function ReceiptsClient({ receipts: initialReceipts }: { receipts
     };
   }, [initialReceipts]);
 
-  // Poll for changes every 5s
-  useEffect(() => {
-    const interval = setInterval(async () => {
-      try {
-        const res = await fetch("/api/receipts/poll");
-        if (!res.ok) return;
-        const data = await res.json();
-        const prev = pollRef.current;
-        if (data.count !== prev.count || data.latestId !== prev.latestId) {
-          pollRef.current = { count: data.count, latestId: data.latestId };
-          router.refresh();
-        }
-      } catch {}
-    }, 5000);
-    return () => clearInterval(interval);
-  }, [router]);
+  // Polling removed — data comes fresh from server on each page load via <a> navigation
   const [search, setSearch] = useState("");
   const [statusFilter, setStatusFilter] = useState("all");
   const [typeFilter, setTypeFilter] = useState("all");
@@ -375,7 +359,21 @@ export default function ReceiptsClient({ receipts: initialReceipts }: { receipts
       if (json.receipt?._id) {
         setIsAdding(false);
         setEditingId(json.receipt._id);
-        router.refresh();
+        // Add new receipt to local state
+        const nr = json.receipt;
+        setReceipts((prev) => [{
+          _id: String(nr._id), storeName: nr.merchant || "ไม่ระบุร้าน",
+          amount: nr.amount || 0, category: nr.category || "ไม่ระบุ",
+          rawDate: nr.date ? new Date(nr.date).toISOString().slice(0,10) : "",
+          date: nr.date ? new Date(nr.date).toLocaleDateString("th-TH") : "",
+          time: nr.time || "", status: nr.status || "pending",
+          type: nr.type || "receipt", source: nr.source || "web",
+          paymentMethod: nr.paymentMethod || "", note: nr.note || "",
+          vat: nr.vat || 0, wht: nr.wht || 0,
+          documentNumber: nr.documentNumber || "", merchantTaxId: nr.merchantTaxId || "",
+          ocrConfidence: nr.ocrConfidence, hasImage: !!nr.imageHash,
+          items: [], itemCount: 0, direction: nr.direction || "expense", linkedEmail: null,
+        }, ...prev]);
       }
     } catch (e) { console.error("OCR error:", e); }
     setOcrScanning(false);
