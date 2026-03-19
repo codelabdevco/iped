@@ -30,10 +30,15 @@ export function middleware(request: NextRequest) {
 
     if (!token) return NextResponse.redirect(new URL("/login", request.url));
 
-    // Route guard: block /business/ if user hasn't joined a company
+    // Route guard: block /business/ if JWT doesn't have orgId
+    // (JWT orgId is set during LINE login when user has joined a company)
     if (mode === "business") {
-      const hasOrg = request.cookies.get("iped-has-org")?.value;
-      if (!hasOrg) {
+      try {
+        const payload = JSON.parse(atob(token.split(".")[1]));
+        if (!payload.orgId) {
+          return NextResponse.redirect(new URL("/personal/dashboard", request.url));
+        }
+      } catch {
         return NextResponse.redirect(new URL("/personal/dashboard", request.url));
       }
     }

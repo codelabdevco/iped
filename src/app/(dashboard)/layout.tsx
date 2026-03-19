@@ -53,14 +53,6 @@ export default async function DashboardLayout({ children }: { children: React.Re
   if (hasOrg && pendingPayroll > 0) badges["/dashboard/payroll"] = pendingPayroll;
   if (hasOrg && pendingClaims > 0) badges["/dashboard/my-claims"] = pendingClaims;
 
-  // Set org cookie for middleware to check
-  const cookieStoreWrite = await cookies();
-  if (hasOrg) {
-    cookieStoreWrite.set("iped-has-org", "1", { path: "/", maxAge: 3600 });
-  } else {
-    cookieStoreWrite.delete("iped-has-org");
-  }
-
   return (
     <DashboardShell displayName={displayName} pictureUrl={pictureUrl} pendingReceipts={pendingReceipts} badges={badges} hasOrg={hasOrg}>
       {children}
