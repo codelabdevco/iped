@@ -341,31 +341,25 @@ export default function Sidebar({ onNavigate, badges = {}, hasOrg = false, planU
             </div>
           );
         })}
-      </nav>
+        {/* Theme toggle — inside scrollable nav */}
+        <div className="pt-3">
+          <button
+            onClick={toggleTheme}
+            className={`flex items-center gap-3 px-3 py-2 rounded-lg text-[13px] font-medium ${txt} w-full whitespace-nowrap overflow-hidden`}
+            title={collapsed ? (isDark ? "โหมดสว่าง" : "โหมดมืด") : undefined}
+          >
+            {isDark ? <Sun size={18} className="shrink-0" /> : <Moon size={18} className="shrink-0" />}
+            <span style={fadeStyle()}>{isDark ? "โหมดสว่าง" : "โหมดมืด"}</span>
+          </button>
+        </div>
 
-      {/* Bottom */}
-      <div className={`py-3 px-3 border-t ${borderCls} space-y-0.5 overflow-hidden`}>
-        <button
-          onClick={toggleTheme}
-          className={`flex items-center gap-3 px-3 py-2 rounded-lg text-[13px] font-medium ${txt} w-full whitespace-nowrap overflow-hidden`}
-          title={collapsed ? (isDark ? "โหมดสว่าง" : "โหมดมืด") : undefined}
-        >
-          {isDark ? (
-            <Sun size={18} className="shrink-0" />
-          ) : (
-            <Moon size={18} className="shrink-0" />
-          )}
-          <span style={fadeStyle()}>{isDark ? "โหมดสว่าง" : "โหมดมืด"}</span>
-        </button>
-
-        {/* Usage summary — show above settings */}
+        {/* Usage summary — inside scrollable nav */}
         {planUsage && !collapsed && (
-          <div className={`mx-0 mb-2 p-3 rounded-xl ${isDark ? "bg-white/[0.03]" : "bg-gray-50"}`}>
+          <div className={`mt-2 p-3 rounded-xl ${isDark ? "bg-white/[0.03]" : "bg-gray-50"}`}>
             <div className="flex items-center justify-between mb-2">
               <span className={`text-[10px] font-bold uppercase tracking-wider ${muted}`}>{planUsage.planName}</span>
               <a href={modeHref("/dashboard/billing")} className="text-[10px] text-[#FA3633]">อัพเกรด</a>
             </div>
-            {/* Receipt usage bar */}
             <div className="mb-1.5">
               <div className="flex justify-between text-[9px] mb-0.5">
                 <span className={sub}>ใบเสร็จ</span>
@@ -375,11 +369,10 @@ export default function Sidebar({ onNavigate, badges = {}, hasOrg = false, planU
                 <div className="h-full rounded-full bg-[#FA3633]" style={{ width: `${Math.min(((planUsage.usage?.receipts || 0) / (planUsage.limits?.receiptsPerMonth ?? planUsage.limits?.documentsPerMonth ?? 30)) * 100, 100)}%` }} />
               </div>
             </div>
-            {/* OCR usage bar */}
             <div>
               <div className="flex justify-between text-[9px] mb-0.5">
                 <span className={sub}>OCR</span>
-                <span className={sub}>{planUsage.usage?.ocr || 0}/{(planUsage.limits?.ocrPerMonth) === -1 ? "\u221E" : (planUsage.limits?.ocrPerMonth ?? 10)}</span>
+                <span className={sub}>{planUsage.usage?.ocr || 0}/{planUsage.limits?.ocrPerMonth === -1 ? "\u221E" : (planUsage.limits?.ocrPerMonth ?? 10)}</span>
               </div>
               <div className={`h-1 rounded-full ${isDark ? "bg-white/10" : "bg-gray-200"}`}>
                 <div className="h-full rounded-full bg-purple-500" style={{ width: `${Math.min(((planUsage.usage?.ocr || 0) / (planUsage.limits?.ocrPerMonth ?? 10)) * 100, 100)}%` }} />
@@ -387,7 +380,10 @@ export default function Sidebar({ onNavigate, badges = {}, hasOrg = false, planU
             </div>
           </div>
         )}
+      </nav>
 
+      {/* Bottom — minimal: only settings + logout */}
+      <div className={`py-2 px-3 border-t ${borderCls} space-y-0.5 overflow-hidden`}>
         <a
           href={modeHref("/dashboard/settings")}
           className={`flex items-center gap-3 px-3 py-2 rounded-lg text-[13px] font-medium transition-colors whitespace-nowrap overflow-hidden ${
