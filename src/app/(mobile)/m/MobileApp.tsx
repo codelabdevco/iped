@@ -160,16 +160,6 @@ function HomeTab({ data, isDark, onScan, onReceipts, onReports }: { data: Mobile
         </div>
       </div>
 
-      {/* Quick actions */}
-      <div className="grid grid-cols-2 gap-3">
-        <button onClick={onScan} className="flex items-center gap-2.5 py-3.5 px-4 rounded-2xl bg-[#FA3633] text-white font-semibold text-sm shadow-md active:scale-[0.97] transition-all">
-          <ScanLine size={18} /> สแกนสลิป
-        </button>
-        <button onClick={onReceipts} className={`flex items-center gap-2.5 py-3.5 px-4 rounded-2xl font-semibold text-sm active:scale-[0.97] transition-all ${card} border ${border} ${txt}`}>
-          <Receipt size={18} className="text-[#FA3633]" /> ใบเสร็จ
-        </button>
-      </div>
-
       {/* Stats — 4 cards with expense/income */}
       <div className="grid grid-cols-2 gap-3">
         <StatsCard label="รายจ่ายเดือนนี้" value={`฿${fmt(data.monthExpense)}`} icon={<ArrowUpRight size={18} className="text-red-500" />} />
