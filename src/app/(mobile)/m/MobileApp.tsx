@@ -2,7 +2,7 @@
 
 import { useState, useRef, useEffect, useCallback } from "react";
 import { useTheme } from "@/contexts/ThemeContext";
-import { Home, Receipt, ScanLine, BarChart3, User, Camera, Image as ImageIcon, Loader2, Check, X, Bell, Pencil, Moon, Sun, ChevronRight, TrendingUp, Calculator, FolderOpen, ArrowUpRight, ArrowDownLeft, AlertTriangle, PiggyBank, Search, Trash2, Save, ChevronDown } from "lucide-react";
+import { Home, Receipt, ScanLine, BarChart3, User, Camera, Image as ImageIcon, Loader2, Check, X, Bell, Pencil, Moon, Sun, ChevronRight, TrendingUp, Calculator, FolderOpen, ArrowUpRight, ArrowDownLeft, AlertTriangle, PiggyBank, Search, Trash2, Save, ChevronDown, Plus, RefreshCw } from "lucide-react";
 import BrandIcon from "@/components/dashboard/BrandIcon";
 import StatsCard from "@/components/dashboard/StatsCard";
 import GoalCard from "@/components/dashboard/GoalCard";
@@ -133,8 +133,38 @@ function HomeTab({ data, isDark, onScan, onReceipts, onReports }: { data: Mobile
   const net = data.monthIncome - data.monthExpense;
   const budgetPct = data.profile.monthlyBudget > 0 ? Math.min(100, (data.monthExpense / data.profile.monthlyBudget) * 100) : 0;
 
+  // Pull-to-refresh
+  const [refreshing, setRefreshing] = useState(false);
+  const [pullY, setPullY] = useState(0);
+  const touchStartY = useRef(0);
+  const scrollRef = useRef<HTMLDivElement>(null);
+  const handleTouchStart = (e: React.TouchEvent) => { touchStartY.current = e.touches[0].clientY; };
+  const handleTouchMove = (e: React.TouchEvent) => {
+    if (scrollRef.current && scrollRef.current.scrollTop === 0) {
+      const dy = e.touches[0].clientY - touchStartY.current;
+      if (dy > 0) setPullY(Math.min(dy * 0.4, 80));
+    }
+  };
+  const handleTouchEnd = async () => {
+    if (pullY > 50 && !refreshing) {
+      setRefreshing(true);
+      try {
+        const res = await fetch("/api/receipts?limit=100");
+        if (res.ok) { /* data refresh handled at parent level */ }
+      } catch {} finally { setRefreshing(false); }
+    }
+    setPullY(0);
+  };
+
   return (
-    <div className="space-y-4 pt-3">
+    <div ref={scrollRef} onTouchStart={handleTouchStart} onTouchMove={handleTouchMove} onTouchEnd={handleTouchEnd} className="space-y-4 pt-3">
+      {/* Pull-to-refresh indicator */}
+      {(pullY > 0 || refreshing) && (
+        <div className="flex items-center justify-center py-2 -mt-2" style={{ height: refreshing ? 40 : pullY * 0.5 }}>
+          <RefreshCw size={18} className={`${refreshing ? "animate-spin" : ""} ${isDark ? "text-white/40" : "text-gray-400"}`} />
+          {!refreshing && pullY > 50 && <span className={`text-[10px] ml-2 ${isDark ? "text-white/40" : "text-gray-400"}`}>ปล่อยเพื่อรีเฟรช</span>}
+        </div>
+      )}
       {/* Greeting + scan CTA */}
       <div className="flex items-center justify-between">
         <div>
@@ -280,6 +310,40 @@ function ReceiptsTab({ receipts: initialReceipts, isDark }: { receipts: any[]; i
   const [whtEnabled, setWhtEnabled] = useState(false);
   const [whtInclusive, setWhtInclusive] = useState(false);
 
+  // Pull-to-refresh
+  const [refreshing, setRefreshing] = useState(false);
+  const [pullY, setPullY] = useState(0);
+  const touchStartY = useRef(0);
+  const scrollRef = useRef<HTMLDivElement>(null);
+  const handleTouchStart = (e: React.TouchEvent) => { touchStartY.current = e.touches[0].clientY; };
+  const handleTouchMove = (e: React.TouchEvent) => {
+    if (scrollRef.current && scrollRef.current.scrollTop === 0) {
+      const dy = e.touches[0].clientY - touchStartY.current;
+      if (dy > 0) setPullY(Math.min(dy * 0.4, 80));
+    }
+  };
+  const handleTouchEnd = async () => {
+    if (pullY > 50 && !refreshing) {
+      setRefreshing(true);
+      try {
+        const res = await fetch("/api/receipts?limit=100");
+        if (res.ok) {
+          const data = await res.json();
+          setReceipts(data.receipts?.map((r: any) => ({
+            _id: String(r._id), merchant: r.merchant || "ไม่ระบุ", amount: r.amount || 0,
+            category: r.category || "", categoryIcon: r.categoryIcon || "📦",
+            direction: r.direction || "expense", paymentMethod: r.paymentMethod || "",
+            date: r.date ? new Date(r.date).toLocaleDateString("th-TH", { day: "numeric", month: "short" }) : "",
+            rawDate: r.date || "", time: r.time || "", status: r.status || "pending",
+            source: r.source || "web", hasImage: !!r.imageHash, note: r.note || "",
+            type: r.type || "receipt", documentNumber: r.documentNumber || "",
+          })) || []);
+        }
+      } catch {} finally { setRefreshing(false); }
+    }
+    setPullY(0);
+  };
+
   // Polling every 5s
   useEffect(() => {
     const poll = setInterval(async () => {
@@ -333,30 +397,69 @@ function ReceiptsTab({ receipts: initialReceipts, isDark }: { receipts: any[]; i
     setWhtEnabled(false); setWhtInclusive(false);
     setEditId(r._id);
   };
+  // Add new receipt manually
+  const openNew = () => {
+    setEditForm({
+      merchant: "", amount: 0, category: "", categoryIcon: "📦",
+      direction: "expense", paymentMethod: "", date: "", rawDate: new Date().toISOString(),
+      time: "", status: "pending", source: "manual", hasImage: false, note: "",
+      type: "receipt", documentNumber: "",
+    });
+    setEditItems([{ name: "", qty: 1, price: 0 }]);
+    setVatEnabled(false); setVatInclusive(false);
+    setWhtEnabled(false); setWhtInclusive(false);
+    setEditId("new");
+  };
   const saveEdit = async () => {
     if (!editId) return;
     setSaving(true);
     try {
       const itemsTotal = editItems.reduce((s, it) => s + it.qty * it.price, 0);
       const finalAmount = itemsTotal > 0 ? itemsTotal : Number(editForm.amount);
-      const res = await fetch(`/api/receipts/${editId}`, {
-        method: "PUT",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          merchant: editForm.merchant, amount: finalAmount,
-          category: editForm.category, categoryIcon: editForm.categoryIcon,
-          status: editForm.status, direction: editForm.direction,
-          paymentMethod: editForm.paymentMethod, time: editForm.time,
-          note: editForm.note, type: editForm.type,
-          documentNumber: editForm.documentNumber, merchantTaxId: editForm.merchantTaxId,
-          lineItems: editItems.length > 1 || editItems[0]?.name ? editItems : undefined,
-          vat: vatEnabled ? (vatInclusive ? Math.round(itemsTotal * 7 / 107) : Math.round(itemsTotal * 0.07)) : undefined,
-          wht: whtEnabled ? (whtInclusive ? Math.round(itemsTotal * 3 / 103) : Math.round(itemsTotal * 0.03)) : undefined,
-        }),
-      });
-      if (res.ok) {
-        setReceipts((prev) => prev.map((r) => r._id === editId ? { ...r, ...editForm, amount: finalAmount } : r));
-        setEditId(null);
+      const payload = {
+        merchant: editForm.merchant, amount: finalAmount,
+        category: editForm.category, categoryIcon: editForm.categoryIcon,
+        status: editForm.status, direction: editForm.direction,
+        paymentMethod: editForm.paymentMethod, time: editForm.time,
+        date: editForm.rawDate || new Date().toISOString(),
+        note: editForm.note, type: editForm.type,
+        documentNumber: editForm.documentNumber, merchantTaxId: editForm.merchantTaxId,
+        lineItems: editItems.length > 1 || editItems[0]?.name ? editItems : undefined,
+        vat: vatEnabled ? (vatInclusive ? Math.round(itemsTotal * 7 / 107) : Math.round(itemsTotal * 0.07)) : undefined,
+        wht: whtEnabled ? (whtInclusive ? Math.round(itemsTotal * 3 / 103) : Math.round(itemsTotal * 0.03)) : undefined,
+      };
+      if (editId === "new") {
+        // Create new receipt
+        const res = await fetch("/api/receipts", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(payload),
+        });
+        if (res.ok) {
+          const created = await res.json();
+          const newR = {
+            _id: String(created._id || created.id), merchant: editForm.merchant || "ไม่ระบุ", amount: finalAmount,
+            category: editForm.category || "", categoryIcon: editForm.categoryIcon || "📦",
+            direction: editForm.direction || "expense", paymentMethod: editForm.paymentMethod || "",
+            date: editForm.rawDate ? new Date(editForm.rawDate).toLocaleDateString("th-TH", { day: "numeric", month: "short" }) : "",
+            rawDate: editForm.rawDate || "", time: editForm.time || "", status: editForm.status || "pending",
+            source: "manual", hasImage: false, note: editForm.note || "",
+            type: editForm.type || "receipt", documentNumber: editForm.documentNumber || "",
+          };
+          setReceipts((prev) => [newR, ...prev]);
+          setEditId(null);
+        }
+      } else {
+        // Update existing receipt
+        const res = await fetch(`/api/receipts/${editId}`, {
+          method: "PUT",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(payload),
+        });
+        if (res.ok) {
+          setReceipts((prev) => prev.map((r) => r._id === editId ? { ...r, ...editForm, amount: finalAmount } : r));
+          setEditId(null);
+        }
       }
     } catch {} finally { setSaving(false); }
   };
@@ -383,7 +486,14 @@ function ReceiptsTab({ receipts: initialReceipts, isDark }: { receipts: any[]; i
   ];
 
   return (
-    <div className="space-y-3 pt-3">
+    <div ref={scrollRef} onTouchStart={handleTouchStart} onTouchMove={handleTouchMove} onTouchEnd={handleTouchEnd} className="space-y-3 pt-3">
+      {/* Pull-to-refresh indicator */}
+      {(pullY > 0 || refreshing) && (
+        <div className="flex items-center justify-center py-2 -mt-2" style={{ height: refreshing ? 40 : pullY * 0.5 }}>
+          <RefreshCw size={18} className={`${refreshing ? "animate-spin" : ""} ${isDark ? "text-white/40" : "text-gray-400"}`} />
+          {!refreshing && pullY > 50 && <span className={`text-[10px] ml-2 ${isDark ? "text-white/40" : "text-gray-400"}`}>ปล่อยเพื่อรีเฟรช</span>}
+        </div>
+      )}
       <p className={`text-lg font-bold ${txt}`}>ใบเสร็จ</p>
 
       {/* Stats */}
@@ -483,6 +593,11 @@ function ReceiptsTab({ receipts: initialReceipts, isDark }: { receipts: any[]; i
         <p className={`text-center text-[10px] ${muted} py-2`}>แสดง {filtered.length} จาก {receipts.length} รายการ</p>
       </div>
 
+      {/* FAB — add new receipt manually */}
+      <button onClick={openNew} className="fixed bottom-20 right-4 z-40 w-14 h-14 rounded-full bg-[#FA3633] text-white shadow-lg shadow-[#FA3633]/30 flex items-center justify-center active:scale-90 transition-transform" aria-label="เพิ่มใบเสร็จ">
+        <Plus size={24} />
+      </button>
+
       {/* Lightbox */}
       {lightbox && (
         <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/80 backdrop-blur-sm" onClick={() => setLightbox(null)}>
@@ -536,8 +651,10 @@ function ReceiptsTab({ receipts: initialReceipts, isDark }: { receipts: any[]; i
               <button onClick={() => setEditId(null)} className={`flex items-center gap-1 text-sm font-medium ${txt}`}>
                 <ChevronDown size={18} className="rotate-90" /> กลับ
               </button>
-              <p className={`text-sm font-bold ${txt}`}>แก้ไขใบเสร็จ</p>
-              <button onClick={() => setDeleteId(editId)} className="p-1.5 rounded-lg bg-red-500/10 text-red-500"><Trash2 size={16} /></button>
+              <p className={`text-sm font-bold ${txt}`}>{editId === "new" ? "เพิ่มใบเสร็จ" : "แก้ไขใบเสร็จ"}</p>
+              {editId !== "new" ? (
+                <button onClick={() => setDeleteId(editId)} className="p-1.5 rounded-lg bg-red-500/10 text-red-500"><Trash2 size={16} /></button>
+              ) : <div className="w-8" />}
             </div>
 
             <div className="px-4 py-4 space-y-4 pb-24">
