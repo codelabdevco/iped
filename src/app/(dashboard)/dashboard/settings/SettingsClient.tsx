@@ -6,6 +6,7 @@ import Select from "@/components/dashboard/Select";
 import DatePicker from "@/components/dashboard/DatePicker";
 import { useTheme } from "@/contexts/ThemeContext";
 import PageHeader from "@/components/dashboard/PageHeader";
+import { useModal } from "@/components/dashboard/ConfirmModal";
 
 interface Profile {
   _id: string;
@@ -73,6 +74,7 @@ function Toggle({ checked, onChange, isDark }: { checked: boolean; onChange: (v:
 
 export default function SettingsClient({ profile, categoryStats = [] }: { profile: Profile; categoryStats?: CatStat[] }) {
   const { isDark } = useTheme();
+  const modal = useModal();
   const [activeTab, setActiveTab] = useState<TabId>("profile");
   const [saving, setSaving] = useState(false);
   const [saved, setSaved] = useState(false);
@@ -186,7 +188,7 @@ export default function SettingsClient({ profile, categoryStats = [] }: { profil
           body: JSON.stringify(body),
         });
         if (res.ok) setSaved(true);
-        else alert("บันทึกไม่สำเร็จ");
+        else await modal.alert({ title: "เกิดข้อผิดพลาด", message: "บันทึกไม่สำเร็จ", type: "error" });
         setSaving(false);
         setTimeout(() => setSaved(false), 2000);
         return;
@@ -220,14 +222,14 @@ export default function SettingsClient({ profile, categoryStats = [] }: { profil
         body: JSON.stringify(body),
       });
       if (res.ok) setSaved(true);
-      else alert("บันทึกไม่สำเร็จ");
+      else await modal.alert({ title: "เกิดข้อผิดพลาด", message: "บันทึกไม่สำเร็จ", type: "error" });
     } catch {
-      alert("เกิดข้อผิดพลาด");
+      await modal.alert({ title: "เกิดข้อผิดพลาด", message: "เกิดข้อผิดพลาด", type: "error" });
     } finally {
       setSaving(false);
       setTimeout(() => setSaved(false), 2000);
     }
-  }, [form, notif, prefs, company, dataRetentionDays]);
+  }, [form, notif, prefs, company, dataRetentionDays, modal]);
 
   // ── Data export handler ──
   const handleExportData = async () => {
@@ -243,7 +245,7 @@ export default function SettingsClient({ profile, categoryStats = [] }: { profil
       a.click();
       URL.revokeObjectURL(url);
     } catch {
-      alert("ส่งออกข้อมูลไม่สำเร็จ");
+      await modal.alert({ title: "เกิดข้อผิดพลาด", message: "ส่งออกข้อมูลไม่สำเร็จ", type: "error" });
     } finally {
       setExporting(false);
     }
@@ -258,10 +260,10 @@ export default function SettingsClient({ profile, categoryStats = [] }: { profil
         localStorage.clear();
         window.location.href = "/";
       } else {
-        alert("ลบบัญชีไม่สำเร็จ");
+        await modal.alert({ title: "เกิดข้อผิดพลาด", message: "ลบบัญชีไม่สำเร็จ", type: "error" });
       }
     } catch {
-      alert("เกิดข้อผิดพลาด");
+      await modal.alert({ title: "เกิดข้อผิดพลาด", message: "เกิดข้อผิดพลาด", type: "error" });
     } finally {
       setDeleting(false);
       setDeleteConfirm(false);

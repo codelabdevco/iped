@@ -7,6 +7,7 @@ import { Cloud, Grid3X3, List, Search, ImageIcon, FileText, Upload, Eye, Message
 import BrandIcon from "@/components/dashboard/BrandIcon";
 import PageHeader from "@/components/dashboard/PageHeader";
 import StatsCard from "@/components/dashboard/StatsCard";
+import { useModal } from "@/components/dashboard/ConfirmModal";
 
 interface Doc {
   _id: string; name: string; fileType: "receipt" | "file"; mimeType: string;
@@ -57,6 +58,7 @@ export default function DriveClient({ docs: initial, totalStorageBytes = 0 }: { 
     finally { setSyncing(false); }
   };
   const { isDark } = useTheme();
+  const modal = useModal();
   const [docs, setDocs] = useReactiveData(initial);
   const [view, setView] = useState<"grid" | "list">("grid");
   const [search, setSearch] = useState("");
@@ -110,7 +112,7 @@ export default function DriveClient({ docs: initial, totalStorageBytes = 0 }: { 
   };
 
   const handleDelete = async (id: string, type: string) => {
-    if (!confirm("ลบไฟล์นี้?")) return;
+    if (!(await modal.confirm({ title: "ยืนยัน", message: "ลบไฟล์นี้?" }))) return;
     if (type === "file") {
       await fetch("/api/files", { method: "DELETE", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ id }) });
     }

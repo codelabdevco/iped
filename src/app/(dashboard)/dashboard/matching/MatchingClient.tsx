@@ -7,6 +7,7 @@ import { Upload, Loader2, Check, X, Mail, Clock, ChevronDown, Paperclip, Downloa
 import PageHeader from "@/components/dashboard/PageHeader";
 import BrandIcon from "@/components/dashboard/BrandIcon";
 import Baht from "@/components/dashboard/Baht";
+import { useModal } from "@/components/dashboard/ConfirmModal";
 
 interface FileInfo { name: string; type: string; size: number; }
 interface ReceiptRow {
@@ -40,6 +41,7 @@ export default function MatchingClient({ receipts, matches: initMatches, gmailSe
   receipts: ReceiptRow[]; matches: MatchRow[]; gmailSettings: GmailSettings;
 }) {
   const { isDark } = useTheme();
+  const modal = useModal();
   const router = useRouter();
   const [matches, setMatches] = useState(initMatches);
   const [uploading, setUploading] = useState(false);
@@ -113,10 +115,10 @@ export default function MatchingClient({ receipts, matches: initMatches, gmailSe
       const res = await fetch("/api/gmail/scan", { method: "POST" });
       const json = await res.json();
       if (json.expired) { window.location.href = "/api/auth/google"; return; }
-      if (json.error) { alert(json.error); return; }
+      if (json.error) { await modal.alert({ title: "เกิดข้อผิดพลาด", message: json.error, type: "error" }); return; }
       setLastScan(new Date().toISOString());
       router.refresh();
-    } catch { alert("เกิดข้อผิดพลาด"); } finally { setScanning(false); }
+    } catch { await modal.alert({ title: "เกิดข้อผิดพลาด", message: "เกิดข้อผิดพลาด", type: "error" }); } finally { setScanning(false); }
   };
 
   const handlePair = async (emailId: string, slipId: string) => {
@@ -138,9 +140,9 @@ export default function MatchingClient({ receipts, matches: initMatches, gmailSe
         }, ...prev]);
       } else {
         const json = await res.json();
-        alert(json.error || "เกิดข้อผิดพลาด");
+        await modal.alert({ title: "เกิดข้อผิดพลาด", message: json.error || "เกิดข้อผิดพลาด", type: "error" });
       }
-    } catch { alert("เกิดข้อผิดพลาด"); }
+    } catch { await modal.alert({ title: "เกิดข้อผิดพลาด", message: "เกิดข้อผิดพลาด", type: "error" }); }
     setPickingFor(null);
   };
 

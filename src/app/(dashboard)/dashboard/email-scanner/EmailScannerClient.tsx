@@ -9,6 +9,7 @@ import DataTable, { Column } from "@/components/dashboard/DataTable";
 import StatsCard from "@/components/dashboard/StatsCard";
 import Baht from "@/components/dashboard/Baht";
 import BrandIcon from "@/components/dashboard/BrandIcon";
+import { useModal } from "@/components/dashboard/ConfirmModal";
 
 interface EmailRow {
   _id: string;
@@ -75,6 +76,7 @@ export default function EmailScannerClient({
   autoGmailScan: initialAutoScan, totalScanned, totalWithOcr, accounts = [],
 }: Props) {
   const { isDark } = useTheme();
+  const modal = useModal();
   const router = useRouter();
   const [scanning, setScanning] = useState(false);
   const [autoScan, setAutoScan] = useState(initialAutoScan);
@@ -96,10 +98,10 @@ export default function EmailScannerClient({
       const res = await fetch("/api/gmail/scan", { method: "POST" });
       const json = await res.json();
       if (json.expired) { window.location.href = "/api/auth/google"; return; }
-      if (json.error) { alert(json.error); return; }
+      if (json.error) { await modal.alert({ title: "เกิดข้อผิดพลาด", message: json.error, type: "error" }); return; }
       setLastScan(new Date().toISOString());
       router.refresh();
-    } catch { alert("เกิดข้อผิดพลาด"); } finally { setScanning(false); }
+    } catch { await modal.alert({ title: "เกิดข้อผิดพลาด", message: "เกิดข้อผิดพลาด", type: "error" }); } finally { setScanning(false); }
   };
 
   const handleToggleAutoScan = async () => {

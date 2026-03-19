@@ -3,6 +3,7 @@
 import { useState, useCallback } from "react";
 import { ThemeProvider, useTheme } from "@/contexts/ThemeContext";
 import { ModeProvider } from "@/contexts/ModeContext";
+import { ModalProvider } from "@/components/dashboard/ConfirmModal";
 import Sidebar from "@/components/dashboard/Sidebar";
 import Header from "@/components/dashboard/Header";
 
@@ -53,7 +54,9 @@ export default function DashboardShell({ displayName, pictureUrl, pendingReceipt
   return (
     <ThemeProvider>
       <ModeProvider>
-        <ShellInner displayName={displayName} pictureUrl={pictureUrl} pendingReceipts={pendingReceipts}>{children}</ShellInner>
+        <ModalProvider>
+          <ShellInner displayName={displayName} pictureUrl={pictureUrl} pendingReceipts={pendingReceipts}>{children}</ShellInner>
+        </ModalProvider>
       </ModeProvider>
     </ThemeProvider>
   );

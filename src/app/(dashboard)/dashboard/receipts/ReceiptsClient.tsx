@@ -3,6 +3,7 @@
 import { useState, useMemo, useCallback, useRef, useEffect } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { useReactiveData } from "@/hooks/useReactiveMode";
+import { useModal } from "@/components/dashboard/ConfirmModal";
 import { Search, Filter, Receipt, FileText, CheckCircle, Clock, Pencil, Trash2, ImageIcon, Cloud, CloudOff, HardDrive, Upload, X, MessageCircle, Globe, User, Plus, Loader2, Mail, Link2, ArrowRightLeft, Building2 } from "lucide-react";
 import BrandIcon from "@/components/dashboard/BrandIcon";
 import Select from "@/components/dashboard/Select";
@@ -145,6 +146,7 @@ const typeLabel: Record<string, string> = {
 export default function ReceiptsClient({ receipts: initialReceipts }: { receipts: ReceiptRow[] }) {
   const { isDark } = useTheme();
   const router = useRouter();
+  const modal = useModal();
   const [receipts, setReceipts] = useReactiveData(initialReceipts);
   const pollRef = useRef<{ count: number; latestId: string | null }>({
     count: initialReceipts.length,
@@ -265,7 +267,8 @@ export default function ReceiptsClient({ receipts: initialReceipts }: { receipts
     const currentMode = localStorage.getItem("iped-mode") || "personal";
     const direction = currentMode === "personal" ? "to-business" : "to-personal";
     const label = direction === "to-business" ? "บริษัท (เบิกจ่าย)" : "ส่วนตัว";
-    if (!confirm(`ส่ง ${ids.length} รายการไป "${label}" ?`)) return;
+    const ok = await modal.confirm({ title: "ส่งเบิกจ่าย", message: `ส่ง ${ids.length} รายการไป "${label}" ?` });
+    if (!ok) return;
     setTransferring(true);
     try {
       let success = 0;
@@ -278,15 +281,15 @@ export default function ReceiptsClient({ receipts: initialReceipts }: { receipts
         if (res.ok) success++;
       }
       if (success > 0) {
-        alert(`ส่ง ${success} รายการไป${label}แล้ว`);
+        await modal.alert({ title: "สำเร็จ", message: `ส่ง ${success} รายการไป${label}แล้ว`, type: "success" });
         setSelected([]);
         router.refresh();
       } else {
-        alert("ส่งต่อไม่สำเร็จ");
+        await modal.alert({ title: "ไม่สำเร็จ", message: "ส่งต่อไม่สำเร็จ", type: "error" });
       }
-    } catch { alert("เกิดข้อผิดพลาด"); }
+    } catch { await modal.alert({ title: "ผิดพลาด", message: "เกิดข้อผิดพลาด", type: "error" }); }
     setTransferring(false);
-  }, []);
+  }, [modal, router]);
 
   const handleEdit = (r: ReceiptRow) => {
     setEditingId(r._id);
@@ -603,10 +606,10 @@ export default function ReceiptsClient({ receipts: initialReceipts }: { receipts
         setSlipFiles([]);
       } else {
         const err = await res.json().catch(() => null);
-        alert(err?.error || "บันทึกไม่สำเร็จ กรุณาลองใหม่");
+        modal.alert({ title: "ไม่สำเร็จ", message: err?.error || "บันทึกไม่สำเร็จ กรุณาลองใหม่", type: "error" });
       }
     } catch (e: any) {
-      alert("เกิดข้อผิดพลาด: " + (e.message || "กรุณาลองใหม่"));
+      modal.alert({ title: "ผิดพลาด", message: "เกิดข้อผิดพลาด: " + (e.message || "กรุณาลองใหม่"), type: "error" });
     } finally {
       setSaving(false);
     }
