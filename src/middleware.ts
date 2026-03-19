@@ -3,6 +3,35 @@ import { NextRequest, NextResponse } from "next/server";
 // Routes ที่ไม่ต้อง login
 const publicPaths = ["/login", "/register", "/api/auth", "/api/line/webhook", "/api/line"];
 
+// ── Route permissions by mode ──
+// Pages that ONLY exist in personal mode
+const personalOnlyPages = new Set<string>([
+  // (currently all personal pages also exist in business)
+]);
+
+// Pages that ONLY exist in business mode
+const businessOnlyPages = new Set([
+  "/dashboard/tax",
+  "/dashboard/customers",
+  "/dashboard/quotations",
+  "/dashboard/invoices",
+  "/dashboard/receivables",
+  "/dashboard/team",
+  "/dashboard/payroll",
+  "/dashboard/approvals",
+  "/dashboard/reimbursement",
+  "/dashboard/accounting",
+  "/dashboard/admin",
+  "/dashboard/billing",
+]);
+
+// Pages shared between both modes
+// /dashboard, /dashboard/income, /dashboard/expenses, /dashboard/savings,
+// /dashboard/drive, /dashboard/receipts, /dashboard/matching,
+// /dashboard/duplicates, /dashboard/reports, /dashboard/settings,
+// /dashboard/scan, /dashboard/budget, /dashboard/categories,
+// /dashboard/email-scanner, etc.
+
 export function middleware(request: NextRequest) {
   const { pathname } = request.nextUrl;
 
@@ -30,11 +59,30 @@ export function middleware(request: NextRequest) {
     const mode = modeMatch[1] as "personal" | "business";
     const rest = modeMatch[2] || "/dashboard";
 
-    // ถ้ายังไม่ login → redirect ไป login
     if (!token) {
       const loginUrl = new URL("/login", request.url);
       loginUrl.searchParams.set("from", pathname);
       return NextResponse.redirect(loginUrl);
+    }
+
+    // ── Route guard: check if page is allowed for this mode ──
+    // Find the matching page path (strip trailing slash, handle sub-paths)
+    const pagePath = rest.replace(/\/$/, "") || "/dashboard";
+
+    if (mode === "personal") {
+      // Check if this is a business-only page
+      for (const bp of businessOnlyPages) {
+        if (pagePath === bp || pagePath.startsWith(bp + "/")) {
+          return NextResponse.redirect(new URL("/personal/dashboard", request.url));
+        }
+      }
+    } else {
+      // Check if this is a personal-only page
+      for (const pp of personalOnlyPages) {
+        if (pagePath === pp || pagePath.startsWith(pp + "/")) {
+          return NextResponse.redirect(new URL("/business/dashboard", request.url));
+        }
+      }
     }
 
     // Rewrite to the actual page path + set cookie
@@ -48,18 +96,15 @@ export function middleware(request: NextRequest) {
     return response;
   }
 
-  // ── Legacy /dashboard/... → redirect to /personal/dashboard/... or /business/... ──
+  // ── Legacy /dashboard/... → redirect to /{mode}/dashboard/... ──
   if (pathname.startsWith("/dashboard")) {
     if (!token) {
       const loginUrl = new URL("/login", request.url);
       loginUrl.searchParams.set("from", pathname);
       return NextResponse.redirect(loginUrl);
     }
-
-    // Read current mode from cookie to maintain user's last choice
     const mode = request.cookies.get("iped-mode")?.value || "personal";
-    const redirectUrl = new URL(`/${mode}${pathname}`, request.url);
-    return NextResponse.redirect(redirectUrl);
+    return NextResponse.redirect(new URL(`/${mode}${pathname}`, request.url));
   }
 
   // ── Root / → redirect to /personal/dashboard ──
