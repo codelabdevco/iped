@@ -23,7 +23,7 @@ async function ReimbursementData() {
     accountType: "business",
     status: { $in: ["paid", "cancelled"] },
   })
-    .select("-imageUrl -ocrRawText")
+    .select("-ocrRawText")
     .sort({ createdAt: -1 })
     .limit(200)
     .lean();
@@ -34,12 +34,16 @@ async function ReimbursementData() {
     amount: r.amount || 0,
     category: r.category || "ไม่ระบุ",
     date: r.createdAt ? new Date(r.createdAt).toISOString() : "",
+    receiptDate: r.date ? new Date(r.date).toLocaleDateString("th-TH") : "",
+    time: r.time || "",
     status: r.status || "pending",
     source: r.source || "web",
     note: r.note || "",
     direction: r.direction || "expense",
     hasImage: !!r.imageHash,
     paymentMethod: r.paymentMethod || "",
+    vat: r.vat || 0,
+    wht: r.wht || 0,
     companyNote: r.companyNote || "",
     hasCompanySlip: !!r.companySlipImage,
   }));

@@ -17,12 +17,17 @@ interface ClaimRow {
   amount: number;
   category: string;
   date: string;
+  receiptDate: string;
+  time: string;
+  vat: number;
+  wht: number;
   hasImage: boolean;
   bizStatus: string;
   bizNote: string;
   companyNote: string;
   hasCompanySlip: boolean;
   bizReceiptId: string;
+  payRef: string;
 }
 
 export default function MyClaimsClient({ claims: initial }: { claims: ClaimRow[] }) {
@@ -130,7 +135,52 @@ export default function MyClaimsClient({ claims: initial }: { claims: ClaimRow[]
         <div className="w-44"><Select value={statusFilter} onChange={setStatusFilter} options={statusOptions} /></div>
       </div>
 
-      <DataTable columns={columns} data={filtered} rowKey={(r) => r._id} dateField="date" emptyText="ยังไม่มีรายการเบิกจ่าย — ส่งใบเสร็จไปบริษัทได้จากหน้าใบเสร็จ/เอกสาร" columnConfigKey="my-claims" />
+      <DataTable
+        columns={columns}
+        data={filtered}
+        rowKey={(r) => r._id}
+        dateField="date"
+        emptyText="ยังไม่มีรายการเบิกจ่าย — ส่งใบเสร็จไปบริษัทได้จากหน้าใบเสร็จ/เอกสาร"
+        columnConfigKey="my-claims"
+        expandRender={(r, dark) => {
+          const border = dark ? "border-[rgba(255,255,255,0.06)]" : "border-gray-200";
+          const bg = dark ? "bg-[rgba(255,255,255,0.02)]" : "bg-gray-50";
+          const sub = dark ? "text-white/40" : "text-gray-500";
+          const txt = dark ? "text-white" : "text-gray-900";
+          return (
+            <div className={`p-4 ${bg} rounded-xl border ${border} space-y-3`}>
+              <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+                <div><p className={`text-[10px] ${sub}`}>ร้านค้า</p><p className={`text-sm font-medium ${txt}`}>{r.merchant}</p></div>
+                <div><p className={`text-[10px] ${sub}`}>หมวดหมู่</p><p className={`text-sm ${txt}`}>{r.category}</p></div>
+                <div><p className={`text-[10px] ${sub}`}>วันที่ในใบเสร็จ</p><p className={`text-sm ${txt}`}>{r.receiptDate || "-"}{r.time ? ` ${r.time}` : ""}</p></div>
+                <div><p className={`text-[10px] ${sub}`}>จำนวนเงิน</p><p className={`text-sm font-bold ${txt}`}>฿{r.amount.toLocaleString("th-TH", { minimumFractionDigits: 2 })}</p></div>
+              </div>
+              {(r.vat > 0 || r.wht > 0) && (
+                <div className="flex gap-4">
+                  {r.vat > 0 && <div><p className={`text-[10px] ${sub}`}>VAT</p><p className={`text-sm ${txt}`}>฿{r.vat.toLocaleString()}</p></div>}
+                  {r.wht > 0 && <div><p className={`text-[10px] ${sub}`}>WHT</p><p className={`text-sm ${txt}`}>฿{r.wht.toLocaleString()}</p></div>}
+                </div>
+              )}
+              {r.payRef && <div><p className={`text-[10px] ${sub}`}>เลขอ้างอิง Ref จากบริษัท</p><p className={`text-sm font-mono ${txt}`}>{r.payRef}</p></div>}
+              {r.companyNote && <div><p className={`text-[10px] ${sub}`}>หมายเหตุจากบริษัท</p><p className={`text-sm ${txt}`}>{r.companyNote}</p></div>}
+              <div className="flex gap-3">
+                {r.hasImage && (
+                  <div>
+                    <p className={`text-[10px] ${sub} mb-1`}>ใบเสร็จที่ส่งไป</p>
+                    <img src={`/api/receipts/image?id=${r._id}`} alt="" className="h-32 rounded-lg object-contain border border-white/10" loading="lazy" />
+                  </div>
+                )}
+                {r.hasCompanySlip && (
+                  <div>
+                    <p className={`text-[10px] ${sub} mb-1`}>สลิปจากบริษัท</p>
+                    <img src={`/api/receipts/company-slip?id=${r.bizReceiptId}`} alt="" className="h-32 rounded-lg object-contain border border-white/10" loading="lazy" />
+                  </div>
+                )}
+              </div>
+            </div>
+          );
+        }}
+      />
     </div>
   );
 }

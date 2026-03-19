@@ -39,18 +39,24 @@ async function MyClaimsData() {
         bizStatus = bizReceipt.status;
         bizNote = bizReceipt.note || "";
       }
+      const payRef = (bizReceipt?.paymentMethod || "").replace("โอน ref: ", "");
       return {
         _id: String(r._id),
         merchant: r.merchant || "ไม่ระบุ",
         amount: r.amount || 0,
         category: r.category || "",
         date: r.createdAt ? new Date(r.createdAt).toISOString() : "",
+        receiptDate: r.date ? new Date(r.date).toLocaleDateString("th-TH") : "",
+        time: r.time || "",
+        vat: r.vat || 0,
+        wht: r.wht || 0,
         hasImage: !!r.imageHash,
         bizStatus,
         bizNote,
         companyNote: bizReceipt?.companyNote || "",
         hasCompanySlip: !!bizReceipt?.companySlipImage,
         bizReceiptId: refMatch ? refMatch[1] : "",
+        payRef,
       };
     } else {
       return {
@@ -60,8 +66,10 @@ async function MyClaimsData() {
         category: r.category || "",
         date: r.createdAt ? new Date(r.createdAt).toISOString() : "",
         hasImage: !!r.imageHash,
+        receiptDate: r.date ? new Date(r.date).toLocaleDateString("th-TH") : "",
+        time: r.time || "", vat: r.vat || 0, wht: r.wht || 0,
         bizStatus, bizNote,
-        companyNote: "", hasCompanySlip: false, bizReceiptId: "",
+        companyNote: "", hasCompanySlip: false, bizReceiptId: "", payRef: "",
       };
     }
   }));
