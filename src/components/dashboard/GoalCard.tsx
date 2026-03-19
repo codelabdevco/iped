@@ -5,15 +5,10 @@ import { useTheme } from "@/contexts/ThemeContext";
 import { Target, Pencil, Check, X } from "lucide-react";
 
 interface GoalCardProps {
-  /** localStorage key e.g. "goal-income" */
   storageKey: string;
-  /** Current actual amount */
   current: number;
-  /** Label e.g. "เป้ารายรับ" */
   label: string;
-  /** Color theme */
   color: "green" | "red" | "pink";
-  /** Period label e.g. "เดือนนี้" */
   period?: string;
 }
 
@@ -65,37 +60,50 @@ export default function GoalCard({ storageKey, current, label, color, period = "
   const sub = isDark ? "text-white/50" : "text-gray-500";
   const txt = isDark ? "text-white" : "text-gray-900";
   const muted = isDark ? "text-white/30" : "text-gray-400";
-  const inputCls = `h-8 px-2 rounded-lg text-sm border ${isDark ? "bg-white/5 border-white/10 text-white" : "bg-gray-50 border-gray-200 text-gray-900"} focus:outline-none ${c.ring}`;
+  const inputCls = `h-10 px-3 rounded-lg text-sm border w-full ${isDark ? "bg-white/5 border-white/10 text-white" : "bg-gray-50 border-gray-200 text-gray-900"} focus:outline-none ${c.ring}`;
 
-  // No goal set — show set button
+  // No goal set
   if (goal === 0) {
     return (
       <div className={`${cardBg} border ${cardBorder} rounded-xl p-4`}>
         {editing ? (
-          <div className="flex items-center gap-2">
-            <Target size={16} className={c.text} />
-            <span className={`text-sm ${sub}`}>{label}:</span>
-            <input type="number" value={input} onChange={(e) => setInput(e.target.value)} placeholder="฿0" className={`${inputCls} w-28`} autoFocus onKeyDown={(e) => e.key === "Enter" && saveGoal()} />
-            <button onClick={saveGoal} className={`p-1.5 rounded-lg ${c.bg} ${c.text}`}><Check size={14} /></button>
-            <button onClick={() => setEditing(false)} className={`p-1.5 rounded-lg ${isDark ? "hover:bg-white/5 text-white/30" : "hover:bg-gray-100 text-gray-400"}`}><X size={14} /></button>
+          <div className="space-y-2">
+            <div className="flex items-center gap-1.5">
+              <Target size={14} className={c.text} />
+              <span className={`text-xs font-medium ${sub}`}>{label}</span>
+            </div>
+            <input type="number" value={input} onChange={(e) => setInput(e.target.value)} placeholder="ใส่จำนวนเงิน" className={inputCls} autoFocus onKeyDown={(e) => e.key === "Enter" && saveGoal()} />
+            <div className="flex gap-2">
+              <button onClick={saveGoal} className={`flex-1 py-2 rounded-lg text-xs font-semibold ${c.bg} ${c.text}`}>
+                <Check size={12} className="inline mr-1" />บันทึก
+              </button>
+              <button onClick={() => setEditing(false)} className={`py-2 px-3 rounded-lg text-xs ${isDark ? "bg-white/5 text-white/40" : "bg-gray-100 text-gray-400"}`}>
+                <X size={12} />
+              </button>
+            </div>
           </div>
         ) : (
-          <button onClick={() => { setInput(""); setEditing(true); }} className={`flex items-center gap-2 text-sm ${sub} hover:${c.text} transition-colors w-full`}>
-            <Target size={16} />
-            <span>ตั้ง{label} ({period})</span>
+          <button onClick={() => { setInput(""); setEditing(true); }} className={`flex items-center gap-2 text-sm ${c.text} w-full active:scale-[0.97] transition-all`}>
+            <div className={`w-8 h-8 rounded-lg ${c.bg} flex items-center justify-center`}>
+              <Target size={16} />
+            </div>
+            <div className="text-left">
+              <p className={`text-xs font-semibold`}>ตั้ง{label}</p>
+              <p className={`text-[10px] ${muted}`}>{period}</p>
+            </div>
           </button>
         )}
       </div>
     );
   }
 
-  // Goal is set — show progress
+  // Goal is set
   return (
     <div className={`${cardBg} border ${cardBorder} rounded-xl p-4`}>
       <div className="flex items-center justify-between mb-2">
-        <div className="flex items-center gap-2">
-          <Target size={16} className={c.text} />
-          <span className={`text-sm font-medium ${sub}`}>{label} ({period})</span>
+        <div className="flex items-center gap-1.5">
+          <Target size={14} className={c.text} />
+          <span className={`text-xs font-medium ${sub}`}>{label}</span>
         </div>
         <button onClick={() => { setInput(String(goal)); setEditing(true); }} className={`p-1 rounded-lg transition-colors ${isDark ? "hover:bg-white/5 text-white/30" : "hover:bg-gray-100 text-gray-400"}`}>
           <Pencil size={12} />
@@ -103,30 +111,33 @@ export default function GoalCard({ storageKey, current, label, color, period = "
       </div>
 
       {editing ? (
-        <div className="flex items-center gap-2 mb-2">
-          <input type="number" value={input} onChange={(e) => setInput(e.target.value)} className={`${inputCls} w-28`} autoFocus onKeyDown={(e) => e.key === "Enter" && saveGoal()} />
-          <button onClick={saveGoal} className={`p-1.5 rounded-lg ${c.bg} ${c.text}`}><Check size={14} /></button>
-          <button onClick={clearGoal} className={`p-1.5 rounded-lg ${isDark ? "hover:bg-white/5" : "hover:bg-gray-100"} ${muted} text-xs`}>ลบเป้า</button>
+        <div className="space-y-2 mb-2">
+          <input type="number" value={input} onChange={(e) => setInput(e.target.value)} className={inputCls} autoFocus onKeyDown={(e) => e.key === "Enter" && saveGoal()} />
+          <div className="flex gap-2">
+            <button onClick={saveGoal} className={`flex-1 py-1.5 rounded-lg text-xs font-semibold ${c.bg} ${c.text}`}>
+              <Check size={12} className="inline mr-1" />บันทึก
+            </button>
+            <button onClick={clearGoal} className={`py-1.5 px-2 rounded-lg text-[10px] ${isDark ? "bg-white/5 text-white/30" : "bg-gray-100 text-gray-400"}`}>ลบเป้า</button>
+          </div>
         </div>
       ) : (
-        <div className="flex items-baseline justify-between mb-2">
+        <div className="mb-2">
           <span className={`text-lg font-bold ${txt}`}>฿{current.toLocaleString("th-TH", { minimumFractionDigits: 2 })}</span>
-          <span className={`text-sm ${muted}`}>/ ฿{goal.toLocaleString("th-TH", { minimumFractionDigits: 2 })}</span>
+          <span className={`text-[10px] ${muted} ml-1`}>/ ฿{goal.toLocaleString()}</span>
         </div>
       )}
 
-      {/* Progress bar */}
       <div className="h-2.5 rounded-full overflow-hidden" style={{ background: isDark ? "rgba(255,255,255,0.06)" : "rgba(0,0,0,0.06)" }}>
         <div className="h-full rounded-full transition-all duration-500" style={{ width: `${pct}%`, backgroundColor: exceeded ? "#ef4444" : c.bar }} />
       </div>
 
       <div className="flex items-center justify-between mt-1.5">
-        <span className={`text-[11px] ${muted}`}>
+        <span className={`text-[10px] ${muted}`}>
           {exceeded
-            ? `เกินเป้า ฿${(current - goal).toLocaleString("th-TH", { minimumFractionDigits: 2 })}`
-            : `เหลืออีก ฿${remaining.toLocaleString("th-TH", { minimumFractionDigits: 2 })}`}
+            ? `เกินเป้า ฿${(current - goal).toLocaleString()}`
+            : `เหลืออีก ฿${remaining.toLocaleString()}`}
         </span>
-        <span className={`text-[11px] font-semibold`} style={{ color: exceeded ? "#ef4444" : c.bar }}>{pct.toFixed(0)}%</span>
+        <span className="text-[10px] font-semibold" style={{ color: exceeded ? "#ef4444" : c.bar }}>{pct.toFixed(0)}%</span>
       </div>
     </div>
   );
