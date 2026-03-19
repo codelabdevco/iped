@@ -40,8 +40,10 @@ export function middleware(request: NextRequest) {
       }
     }
 
-    // Rewrite to actual page + set cookie (URL stays as /personal/ or /business/)
-    const response = NextResponse.rewrite(new URL(rest, request.url));
+    // Rewrite to actual page + set cookie (preserve query string)
+    const rewriteUrl = new URL(rest, request.url);
+    rewriteUrl.search = request.nextUrl.search;
+    const response = NextResponse.rewrite(rewriteUrl);
     response.cookies.set("iped-mode", mode, { path: "/", maxAge: 365 * 24 * 60 * 60, sameSite: "lax" });
     return response;
   }
