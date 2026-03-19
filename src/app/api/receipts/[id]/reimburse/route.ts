@@ -94,23 +94,43 @@ export async function POST(
       // confirmed → paid (จ่ายแล้ว)
       receipt.status = "paid";
       if (bankTransferRef) receipt.paymentMethod = `โอน ref: ${bankTransferRef}`;
-      if (note) receipt.note = `${receipt.note || ""} | ${note}`;
+
+      // Build company note
+      const companyNote = [
+        note || "",
+        bankTransferRef ? `ref: ${bankTransferRef}` : "",
+        `จ่ายเมื่อ ${new Date().toLocaleDateString("th-TH")}`,
+      ].filter(Boolean).join(" • ");
+      receipt.note = `${receipt.note || ""} | ${companyNote}`;
+
+      // Save slip image from company (if provided)
+      if (body.slipImage) {
+        // Store as a separate field or append to existing
+        receipt.set("companySlipImage", body.slipImage);
+      }
+      if (body.companyNote) {
+        receipt.set("companyNote", body.companyNote);
+      }
+
       await receipt.save();
 
-      // Update personal receipt — mark as paid + add bill details
+      // Update personal receipt — mark as paid + add bill details + company note
       if (originalReceipt) {
         const billNote = [
           "เบิกจ่ายสำเร็จ จ่ายแล้ว",
           bankTransferRef ? `ref: ${bankTransferRef}` : "",
           `จ่ายเมื่อ ${new Date().toLocaleDateString("th-TH")}`,
+          body.companyNote ? `หมายเหตุ: ${body.companyNote}` : "",
         ].filter(Boolean).join(" • ");
 
-        await Receipt.findByIdAndUpdate(originalId, {
-          $set: {
-            note: `${originalReceipt.note || ""} | ${billNote}`,
-            status: "paid",
-          },
-        });
+        const updateData: Record<string, unknown> = {
+          note: `${originalReceipt.note || ""} | ${billNote}`,
+          status: "paid",
+        };
+        // Copy company slip to personal receipt so they can see it
+        if (body.slipImage) updateData.companySlipImage = body.slipImage;
+
+        await Receipt.findByIdAndUpdate(originalId, { $set: updateData });
       }
 
       // Notify sender via LINE with payment details

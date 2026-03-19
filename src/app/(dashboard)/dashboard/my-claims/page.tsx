@@ -34,22 +34,36 @@ async function MyClaimsData() {
     let bizStatus = "pending";
     let bizNote = "";
     if (refMatch) {
-      const bizReceipt = await Receipt.findById(refMatch[1]).select("status note paymentMethod").lean() as any;
+      const bizReceipt = await Receipt.findById(refMatch[1]).select("status note paymentMethod companySlipImage companyNote").lean() as any;
       if (bizReceipt) {
         bizStatus = bizReceipt.status;
         bizNote = bizReceipt.note || "";
       }
+      return {
+        _id: String(r._id),
+        merchant: r.merchant || "ไม่ระบุ",
+        amount: r.amount || 0,
+        category: r.category || "",
+        date: r.createdAt ? new Date(r.createdAt).toISOString() : "",
+        hasImage: !!r.imageHash,
+        bizStatus,
+        bizNote,
+        companyNote: bizReceipt?.companyNote || "",
+        hasCompanySlip: !!bizReceipt?.companySlipImage,
+        bizReceiptId: refMatch ? refMatch[1] : "",
+      };
+    } else {
+      return {
+        _id: String(r._id),
+        merchant: r.merchant || "ไม่ระบุ",
+        amount: r.amount || 0,
+        category: r.category || "",
+        date: r.createdAt ? new Date(r.createdAt).toISOString() : "",
+        hasImage: !!r.imageHash,
+        bizStatus, bizNote,
+        companyNote: "", hasCompanySlip: false, bizReceiptId: "",
+      };
     }
-    return {
-      _id: String(r._id),
-      merchant: r.merchant || "ไม่ระบุ",
-      amount: r.amount || 0,
-      category: r.category || "",
-      date: r.createdAt ? new Date(r.createdAt).toISOString() : "",
-      hasImage: !!r.imageHash,
-      bizStatus,
-      bizNote,
-    };
   }));
 
   return <MyClaimsClient claims={serialize(data)} />;

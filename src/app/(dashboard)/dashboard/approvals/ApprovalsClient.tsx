@@ -39,6 +39,8 @@ export default function ApprovalsClient({ items: initial }: { items: ItemRow[] }
   const [payTarget, setPayTarget] = useState<ItemRow | null>(null);
   const [payRef, setPayRef] = useState("");
   const [payNote, setPayNote] = useState("");
+  const [payCompanyNote, setPayCompanyNote] = useState("");
+  const [paySlip, setPaySlip] = useState<string | null>(null);
   const [paying, setPaying] = useState(false);
 
   const stats = useMemo(() => ({
@@ -82,15 +84,18 @@ export default function ApprovalsClient({ items: initial }: { items: ItemRow[] }
     setPaying(true);
     try {
       if (payTarget.isReimbursement) {
-        await fetch(`/api/receipts/${payTarget._id}/reimburse`, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ action: "pay", bankTransferRef: payRef, note: payNote }) });
+        await fetch(`/api/receipts/${payTarget._id}/reimburse`, {
+          method: "POST", headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ action: "pay", bankTransferRef: payRef, note: payNote, companyNote: payCompanyNote, slipImage: paySlip }),
+        });
       } else {
         await fetch(`/api/receipts/${payTarget._id}`, { method: "PUT", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ status: "paid" }) });
       }
       setItems((prev) => prev.map((r) => r._id === payTarget._id ? { ...r, status: "paid" } as ItemRow : r));
-      setPayTarget(null);
-      await modal.alert({ title: "จ่ายเงินสำเร็จ", message: payTarget.isReimbursement ? "ส่งบิล+เอกสารกลับไปส่วนตัว + แจ้ง LINE แล้ว" : "อัพเดทสถานะจ่ายแล้ว", type: "success" });
+      setPayTarget(null); setPaySlip(null);
+      await modal.alert({ title: "จ่ายเงินสำเร็จ", message: payTarget.isReimbursement ? "ส่งบิล+เอกสาร+หมายเหตุกลับไปส่วนตัว + แจ้ง LINE แล้ว" : "อัพเดทสถานะจ่ายแล้ว", type: "success" });
     } catch {} finally { setPaying(false); }
-  }, [payTarget, payRef, payNote, modal]);
+  }, [payTarget, payRef, payNote, payCompanyNote, paySlip, modal]);
 
   const handleBulkApprove = useCallback(async () => {
     const pendingIds = selected.filter((id) => items.find((r) => r._id === id)?.status === "pending");
@@ -171,8 +176,30 @@ export default function ApprovalsClient({ items: initial }: { items: ItemRow[] }
                 </div>
               )}
               <div><label className={lbl}>เลขอ้างอิงการโอน / Ref</label><input value={payRef} onChange={(e) => setPayRef(e.target.value)} placeholder="เช่น 2026031900001" className={inp} /></div>
-              <div><label className={lbl}>หมายเหตุ</label><input value={payNote} onChange={(e) => setPayNote(e.target.value)} placeholder="รายละเอียดเพิ่มเติม (ไม่บังคับ)" className={inp} /></div>
-              <p className={`text-[10px] ${c("text-white/30", "text-gray-400")}`}>กดอนุมัติจ่าย → อัพเดทสถานะ + ส่งบิลพร้อมเอกสารกลับไปส่วนตัว + แจ้งเตือน LINE</p>
+              <div>
+                <label className={lbl}>แนบสลิปโอนเงิน / เอกสาร</label>
+                {paySlip ? (
+                  <div className="relative">
+                    <img src={paySlip} alt="" className="w-full max-h-40 object-contain rounded-lg border border-white/10" />
+                    <button onClick={() => setPaySlip(null)} className="absolute top-1 right-1 w-6 h-6 rounded-full bg-black/60 flex items-center justify-center text-white"><X size={12} /></button>
+                  </div>
+                ) : (
+                  <label className={`flex items-center justify-center gap-2 h-20 rounded-lg border-2 border-dashed cursor-pointer transition-colors ${isDark ? "border-white/10 hover:border-white/20 text-white/40" : "border-gray-200 hover:border-gray-300 text-gray-400"}`}>
+                    <Banknote size={16} />
+                    <span className="text-xs">คลิกเพื่อแนบสลิป</span>
+                    <input type="file" accept="image/*" className="hidden" onChange={(e) => {
+                      const file = e.target.files?.[0];
+                      if (!file) return;
+                      const reader = new FileReader();
+                      reader.onload = (ev) => setPaySlip(ev.target?.result as string);
+                      reader.readAsDataURL(file);
+                    }} />
+                  </label>
+                )}
+              </div>
+              <div><label className={lbl}>หมายเหตุจากบริษัท (ส่งกลับไปส่วนตัว)</label><textarea value={payCompanyNote} onChange={(e) => setPayCompanyNote(e.target.value)} placeholder="เช่น จ่ายเข้าบัญชี xxx แล้ว, ไม่สามารถเบิกรายการ xxx ได้..." rows={2} className={`${inp} h-auto py-2`} /></div>
+              <div><label className={lbl}>หมายเหตุภายใน (ไม่ส่งกลับ)</label><input value={payNote} onChange={(e) => setPayNote(e.target.value)} placeholder="memo ภายในบริษัท (ไม่บังคับ)" className={inp} /></div>
+              <p className={`text-[10px] ${c("text-white/30", "text-gray-400")}`}>กดอนุมัติจ่าย → ส่งบิล + สลิป + หมายเหตุกลับไปส่วนตัว + แจ้งเตือน LINE</p>
               <div className="flex gap-2 pt-2">
                 <button onClick={handlePay} disabled={paying} className="flex-1 py-2.5 rounded-xl text-sm font-medium bg-[#FA3633] text-white hover:bg-[#e0302d] transition-colors disabled:opacity-40 flex items-center justify-center gap-2">
                   {paying ? <Loader2 size={14} className="animate-spin" /> : <Banknote size={14} />}{paying ? "กำลังดำเนินการ..." : "อนุมัติจ่ายเงิน"}

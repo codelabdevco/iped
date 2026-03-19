@@ -18,8 +18,11 @@ interface ClaimRow {
   category: string;
   date: string;
   hasImage: boolean;
-  bizStatus: string; // pending, confirmed, paid, cancelled
+  bizStatus: string;
   bizNote: string;
+  companyNote: string;
+  hasCompanySlip: boolean;
+  bizReceiptId: string;
 }
 
 export default function MyClaimsClient({ claims: initial }: { claims: ClaimRow[] }) {
@@ -86,14 +89,22 @@ export default function MyClaimsClient({ claims: initial }: { claims: ClaimRow[]
       },
     },
     {
-      key: "bizNote" as any, label: "หมายเหตุจากบริษัท",
+      key: "companyNote" as any, label: "หมายเหตุ / เอกสารจากบริษัท",
       render: (r) => {
-        // Extract useful info from note
         const refMatch = (r.bizNote || "").match(/ref:\s*(\S+)/);
-        const paidMatch = (r.bizNote || "").match(/จ่ายเมื่อ\s*(.+)/);
-        if (r.bizStatus === "paid" && refMatch) return <span className={`text-xs ${c("text-white/50", "text-gray-500")}`}>Ref: {refMatch[1]}</span>;
-        if (r.bizStatus === "cancelled") return <span className={`text-xs text-red-400`}>ปฏิเสธ</span>;
-        return <span className={c("text-white/30", "text-gray-400")}>—</span>;
+        return (
+          <div className="space-y-1">
+            {r.companyNote && <p className={`text-xs ${c("text-white/60", "text-gray-600")}`}>{r.companyNote}</p>}
+            {r.bizStatus === "paid" && refMatch && <p className={`text-[11px] ${c("text-white/40", "text-gray-500")}`}>Ref: {refMatch[1]}</p>}
+            {r.hasCompanySlip && (
+              <a href={`/api/receipts/company-slip?id=${r.bizReceiptId}`} target="_blank" className="inline-flex items-center gap-1 text-[11px] text-blue-400 hover:text-blue-300">
+                <ImageIcon size={11} />ดูสลิปจากบริษัท
+              </a>
+            )}
+            {r.bizStatus === "cancelled" && <p className="text-xs text-red-400">ปฏิเสธ</p>}
+            {!r.companyNote && !r.hasCompanySlip && r.bizStatus !== "cancelled" && !(r.bizStatus === "paid" && refMatch) && <span className={c("text-white/30", "text-gray-400")}>—</span>}
+          </div>
+        );
       },
     },
   ], [isDark]);
