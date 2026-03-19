@@ -21,6 +21,9 @@ async function MobileData() {
     .lean() as any;
   if (!user) redirect("/login");
 
+  // Mobile page — LINE login only
+  if (!user.lineUserId) redirect("/login?error=line_only");
+
   const [
     allReceipts,
     todayReceipts,
