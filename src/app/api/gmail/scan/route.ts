@@ -8,6 +8,7 @@ import { processOCR, processEmailBody } from "@/lib/ocr";
 import { findMatches } from "@/lib/auto-match";
 import FileModel from "@/models/File";
 import crypto from "crypto";
+import { encrypt, decrypt } from "@/lib/encrypt";
 
 // Helper: find attachments recursively (handles nested multipart)
 function findAttachments(parts: any[]): { mimeType: string; attachmentId: string; filename: string }[] {
@@ -86,8 +87,13 @@ export async function POST(request: NextRequest) {
   const userId = session.userId;
   const accountType = session.accountType || "personal";
 
-  // Get all connected Google accounts
-  const accounts: any[] = await GoogleAccount.find({ userId, status: "active" }).lean();
+  // Get all connected Google accounts — decrypt tokens (backward-compat: decrypt handles unencrypted values)
+  const rawAccounts: any[] = await GoogleAccount.find({ userId, status: "active" }).lean();
+  const accounts: any[] = rawAccounts.map((a) => ({
+    ...a,
+    accessToken: decrypt(a.accessToken),
+    refreshToken: a.refreshToken ? decrypt(a.refreshToken) : undefined,
+  }));
 
   // If no accounts, fall back to User model (backward compat)
   if (accounts.length === 0) {
@@ -96,8 +102,8 @@ export async function POST(request: NextRequest) {
       accounts.push({
         _id: "legacy",
         email: user.googleEmail,
-        accessToken: user.googleAccessToken,
-        refreshToken: user.googleRefreshToken,
+        accessToken: decrypt(user.googleAccessToken),
+        refreshToken: user.googleRefreshToken ? decrypt(user.googleRefreshToken) : undefined,
       });
     }
   }
@@ -131,9 +137,9 @@ export async function POST(request: NextRequest) {
         const data = await res.json();
         if (data.access_token) {
           if (account._id !== "legacy") {
-            await GoogleAccount.findByIdAndUpdate(account._id, { accessToken: data.access_token });
+            await GoogleAccount.findByIdAndUpdate(account._id, { accessToken: encrypt(data.access_token) });
           } else {
-            await User.findByIdAndUpdate(userId, { googleAccessToken: data.access_token });
+            await User.findByIdAndUpdate(userId, { googleAccessToken: encrypt(data.access_token) });
           }
           return data.access_token;
         }
