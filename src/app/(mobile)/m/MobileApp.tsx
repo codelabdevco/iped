@@ -476,7 +476,7 @@ function ReceiptsTab({ receipts: initialReceipts, isDark }: { receipts: any[]; i
         </div>
       )}
 
-      {/* Edit — fullscreen page */}
+      {/* Edit — fullscreen page (mirrors desktop panel) */}
       {editId && (() => {
         const CATS_EXP = [
           { icon: "🍜", name: "อาหาร" }, { icon: "🚗", name: "เดินทาง" }, { icon: "🛒", name: "ช็อปปิ้ง" },
@@ -500,127 +500,162 @@ function ReceiptsTab({ receipts: initialReceipts, isDark }: { receipts: any[]; i
           { value: "ewallet-truemoney", label: "TrueMoney" },
         ];
         const cats = editForm.direction === "income" ? CATS_INC : editForm.direction === "savings" ? CATS_SAV : CATS_EXP;
-        const dirLabel: Record<string, string> = { expense: "รายจ่าย", income: "รายรับ", savings: "เงินออม" };
         const dirColor: Record<string, string> = { expense: "bg-red-500 text-white", income: "bg-green-500 text-white", savings: "bg-pink-500 text-white" };
-        const dirInactive = isDark ? "text-white/40" : "text-gray-500";
-        const lbl = `text-[11px] font-medium ${sub} mb-1.5 block`;
+        const dirInactive = isDark ? "text-white/50 hover:text-white/70" : "text-gray-400";
+        const section = `rounded-xl ${isDark ? "bg-white/[0.03] border border-white/10" : "bg-white border border-gray-200"} p-4 space-y-3`;
+        const lbl = `block text-xs ${isDark ? "text-white/40" : "text-gray-400"} mb-1`;
+        const field = `w-full h-10 px-3 ${isDark ? "bg-white/5 border border-white/10 text-white" : "bg-gray-50 border border-gray-200 text-gray-900"} rounded-lg text-sm focus:outline-none focus:border-[#FA3633]/50`;
+        const amt = Number(editForm.amount) || 0;
 
         return (
           <div className={`fixed inset-0 z-[90] ${isDark ? "bg-[#0a0a0a]" : "bg-gray-50"} overflow-y-auto`}>
-            {/* Sticky header */}
+            {/* Header */}
             <div className={`sticky top-0 z-10 flex items-center justify-between px-4 h-12 backdrop-blur-xl ${isDark ? "bg-[#0a0a0a]/95 border-b border-white/[0.06]" : "bg-white/95 border-b border-gray-200"}`}>
-              <button onClick={() => setEditId(null)} className={`flex items-center gap-1 text-sm ${txt}`}>
+              <button onClick={() => setEditId(null)} className={`flex items-center gap-1 text-sm font-medium ${txt}`}>
                 <ChevronDown size={18} className="rotate-90" /> กลับ
               </button>
               <p className={`text-sm font-bold ${txt}`}>แก้ไขใบเสร็จ</p>
               <button onClick={() => setDeleteId(editId)} className="p-1.5 rounded-lg bg-red-500/10 text-red-500"><Trash2 size={16} /></button>
             </div>
 
-            <div className="px-4 py-4 space-y-5 pb-28">
+            <div className="px-4 py-4 space-y-4 pb-24">
               {/* Image */}
               {editForm.hasImage && (
-                <button onClick={() => setLightbox(`/api/receipts/image?id=${editId}`)} className="w-full">
-                  <img src={`/api/receipts/image?id=${editId}`} alt="" className="w-full max-h-44 object-contain rounded-xl" />
-                </button>
+                <div className={`relative rounded-xl overflow-hidden ${isDark ? "bg-white/5 border border-white/10" : "bg-white border border-gray-200"}`}>
+                  <img src={`/api/receipts/image?id=${editId}`} alt="" className="w-full max-h-48 object-contain" />
+                  <button onClick={() => setLightbox(`/api/receipts/image?id=${editId}`)} className="absolute bottom-2 right-2 px-2.5 py-1 rounded-lg text-[10px] font-medium bg-black/50 text-white backdrop-blur-sm">ดูเต็มจอ</button>
+                </div>
               )}
 
-              {/* Direction — 3 tabs */}
+              {/* Direction toggle */}
               <div className={`flex p-1 rounded-xl ${isDark ? "bg-white/5" : "bg-gray-100"}`}>
                 {(["expense", "income", "savings"] as const).map((d) => (
-                  <button key={d} onClick={() => setEditForm({ ...editForm, direction: d, category: "", categoryIcon: "" })}
-                    className={`flex-1 py-3 rounded-lg text-sm font-semibold transition-all ${editForm.direction === d ? dirColor[d] : dirInactive}`}>
-                    {dirLabel[d]}
+                  <button key={d} onClick={() => setEditForm({ ...editForm, direction: d })}
+                    className={`flex-1 py-2.5 rounded-lg text-sm font-semibold transition-all ${editForm.direction === d ? dirColor[d] + " shadow-sm" : dirInactive}`}>
+                    {d === "expense" ? "รายจ่าย" : d === "income" ? "รายรับ" : "เงินออม"}
                   </button>
                 ))}
               </div>
 
-              {/* Amount */}
-              <div>
-                <label className={lbl}>จำนวนเงิน (฿)</label>
-                <input type="number" inputMode="decimal" value={editForm.amount || ""} onChange={(e) => setEditForm({ ...editForm, amount: e.target.value })}
-                  className={`w-full h-16 px-4 rounded-2xl text-3xl font-extrabold text-center ${isDark ? "bg-white/5 border-white/10 text-white" : "bg-white border-gray-200 text-gray-900"} border focus:outline-none focus:border-[#FA3633]/50`}
-                  placeholder="0.00" />
-              </div>
-
-              {/* Merchant */}
-              <div>
-                <label className={lbl}>ร้านค้า / รายละเอียด</label>
-                <input value={editForm.merchant || ""} onChange={(e) => setEditForm({ ...editForm, merchant: e.target.value })}
-                  className={`w-full h-12 px-4 rounded-xl text-sm ${isDark ? "bg-white/5 border-white/10 text-white" : "bg-white border-gray-200 text-gray-900"} border focus:outline-none focus:border-[#FA3633]/50`}
-                  placeholder="ชื่อร้านค้า..." />
-              </div>
-
-              {/* Category */}
-              <div>
-                <label className={lbl}>หมวดหมู่</label>
-                <div className="flex flex-wrap gap-2">
-                  {cats.map((c) => {
-                    const active = editForm.category === c.name;
-                    return (
-                      <button key={c.name} onClick={() => setEditForm({ ...editForm, category: c.name, categoryIcon: c.icon })}
-                        className={`flex items-center gap-1.5 px-3 py-2 rounded-xl text-sm font-medium transition-all ${active ? (editForm.direction === "income" ? "bg-green-500 text-white shadow-md shadow-green-500/25" : editForm.direction === "savings" ? "bg-pink-500 text-white shadow-md shadow-pink-500/25" : "bg-red-500 text-white shadow-md shadow-red-500/25") : isDark ? "bg-white/5 text-white/60" : "bg-white text-gray-600 border border-gray-200"}`}>
-                        <span className="text-base">{c.icon}</span> {c.name}
-                      </button>
-                    );
-                  })}
+              {/* ═══ EXPENSE SECTION ═══ */}
+              {editForm.direction === "expense" && (
+                <div className={section}>
+                  <p className={`text-xs font-semibold ${isDark ? "text-white/50" : "text-gray-400"}`}>ข้อมูลรายจ่าย</p>
+                  <div><label className={lbl}>ร้านค้า</label><input value={editForm.merchant || ""} onChange={(e) => setEditForm({ ...editForm, merchant: e.target.value })} className={field} placeholder="ชื่อร้านค้า..." /></div>
+                  <div><label className={lbl}>จำนวนเงิน (฿)</label><input type="number" inputMode="decimal" value={editForm.amount || ""} onChange={(e) => setEditForm({ ...editForm, amount: e.target.value })} className={`${field} text-lg font-bold`} placeholder="0.00" /></div>
+                  <div><label className={lbl}>หมายเหตุ</label><textarea rows={2} value={editForm.note || ""} onChange={(e) => setEditForm({ ...editForm, note: e.target.value })} placeholder="รายละเอียดเพิ่มเติม..." className={`${field} h-auto py-2`} /></div>
+                  <div className="grid grid-cols-2 gap-3">
+                    <div><label className={lbl}>เวลา</label><input type="time" value={editForm.time || ""} onChange={(e) => setEditForm({ ...editForm, time: e.target.value })} className={field} /></div>
+                    <div><label className={lbl}>ประเภทเอกสาร</label>
+                      <select value={editForm.type || "receipt"} onChange={(e) => setEditForm({ ...editForm, type: e.target.value })} className={field}>
+                        {[["receipt","ใบเสร็จ"],["invoice","ใบแจ้งหนี้"],["billing","บิล"],["debit_note","ใบลดหนี้"],["credit_note","ใบเพิ่มหนี้"]].map(([v,l]) => <option key={v} value={v}>{l}</option>)}
+                      </select>
+                    </div>
+                  </div>
+                  <div><label className={lbl}>หมวดหมู่</label>
+                    <div className="flex flex-wrap gap-1.5">
+                      {cats.map((c) => (
+                        <button key={c.name} onClick={() => setEditForm({ ...editForm, category: c.name, categoryIcon: c.icon })}
+                          className={`flex items-center gap-1 px-2.5 py-1.5 rounded-lg text-xs font-medium transition-all ${editForm.category === c.name ? "bg-red-500 text-white shadow-sm" : isDark ? "bg-white/5 text-white/60" : "bg-gray-50 text-gray-600 border border-gray-200"}`}>
+                          {c.icon} {c.name}
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+                  <div><label className={lbl}>สถานะ</label>
+                    <div className="flex flex-wrap gap-1.5">
+                      {ALL_STATUSES.map((s) => (
+                        <button key={s} onClick={() => setEditForm({ ...editForm, status: s })}
+                          className={`px-2.5 py-1.5 rounded-lg text-[10px] font-semibold transition-all ${editForm.status === s ? "bg-[#FA3633] text-white" : STATUS_MAP[s].cls}`}>
+                          {STATUS_MAP[s].text}
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+                  <div><label className={lbl}>วิธีจ่าย</label>
+                    <div className="flex flex-wrap gap-1.5">
+                      {PM_OPTIONS.map((pm) => (
+                        <button key={pm.value} onClick={() => setEditForm({ ...editForm, paymentMethod: pm.value })}
+                          className={`flex items-center gap-1 px-2.5 py-1.5 rounded-lg text-[10px] font-medium transition-all ${editForm.paymentMethod === pm.value ? "bg-[#FA3633] text-white" : isDark ? "bg-white/5 text-white/60" : "bg-gray-50 text-gray-600 border border-gray-200"}`}>
+                          <BrandIcon brand={pm.value} size={14} /> {pm.label}
+                        </button>
+                      ))}
+                    </div>
+                  </div>
                 </div>
-              </div>
+              )}
 
-              {/* Status */}
-              <div>
-                <label className={lbl}>สถานะ</label>
-                <div className="flex flex-wrap gap-2">
-                  {ALL_STATUSES.map((s) => (
-                    <button key={s} onClick={() => setEditForm({ ...editForm, status: s })}
-                      className={`px-3 py-2 rounded-xl text-xs font-semibold transition-all ${editForm.status === s ? "bg-[#FA3633] text-white shadow-md shadow-[#FA3633]/25" : `${STATUS_MAP[s].cls} ${isDark ? "" : "border border-gray-100"}`}`}>
-                      {STATUS_MAP[s].text}
-                    </button>
-                  ))}
+              {/* ═══ INCOME SECTION ═══ */}
+              {editForm.direction === "income" && (
+                <div className={section}>
+                  <p className="text-xs font-semibold text-green-500/70">ข้อมูลรายรับ</p>
+                  <div><label className={lbl}>แหล่งที่มา</label><input value={editForm.merchant || ""} onChange={(e) => setEditForm({ ...editForm, merchant: e.target.value })} placeholder="เช่น บริษัท ABC, ลูกค้า, ฟรีแลนซ์" className={field} /></div>
+                  <div><label className={lbl}>จำนวนเงินที่ได้รับ (฿)</label><input type="number" inputMode="decimal" value={editForm.amount || ""} onChange={(e) => setEditForm({ ...editForm, amount: e.target.value })} className={`${field} text-lg font-bold`} placeholder="0.00" /></div>
+                  <div className="grid grid-cols-2 gap-3">
+                    <div><label className={lbl}>เวลา</label><input type="time" value={editForm.time || ""} onChange={(e) => setEditForm({ ...editForm, time: e.target.value })} className={field} /></div>
+                    <div><label className={lbl}>หมวดรายรับ</label>
+                      <div className="flex flex-wrap gap-1.5">
+                        {cats.map((c) => (
+                          <button key={c.name} onClick={() => setEditForm({ ...editForm, category: c.name, categoryIcon: c.icon })}
+                            className={`flex items-center gap-1 px-2.5 py-1.5 rounded-lg text-xs font-medium transition-all ${editForm.category === c.name ? "bg-green-500 text-white shadow-sm" : isDark ? "bg-white/5 text-white/60" : "bg-gray-50 text-gray-600 border border-gray-200"}`}>
+                            {c.icon} {c.name}
+                          </button>
+                        ))}
+                      </div>
+                    </div>
+                  </div>
+                  <div><label className={lbl}>วิธีรับเงิน</label>
+                    <div className="flex flex-wrap gap-1.5">
+                      {PM_OPTIONS.map((pm) => (
+                        <button key={pm.value} onClick={() => setEditForm({ ...editForm, paymentMethod: pm.value })}
+                          className={`flex items-center gap-1 px-2.5 py-1.5 rounded-lg text-[10px] font-medium transition-all ${editForm.paymentMethod === pm.value ? "bg-green-500 text-white" : isDark ? "bg-white/5 text-white/60" : "bg-gray-50 text-gray-600 border border-gray-200"}`}>
+                          <BrandIcon brand={pm.value} size={14} /> {pm.label}
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+                  <div><label className={lbl}>หมายเหตุ</label><textarea rows={2} value={editForm.note || ""} onChange={(e) => setEditForm({ ...editForm, note: e.target.value })} placeholder="รายละเอียดเพิ่มเติม..." className={`${field} h-auto py-2`} /></div>
                 </div>
-              </div>
+              )}
 
-              {/* Payment method */}
-              <div>
-                <label className={lbl}>วิธีจ่าย</label>
-                <div className="flex flex-wrap gap-2">
-                  {PM_OPTIONS.map((pm) => (
-                    <button key={pm.value} onClick={() => setEditForm({ ...editForm, paymentMethod: pm.value })}
-                      className={`flex items-center gap-1.5 px-3 py-2 rounded-xl text-xs font-medium transition-all ${editForm.paymentMethod === pm.value ? "bg-[#FA3633] text-white shadow-md shadow-[#FA3633]/25" : isDark ? "bg-white/5 text-white/60" : "bg-white text-gray-600 border border-gray-200"}`}>
-                      <BrandIcon brand={pm.value} size={16} /> {pm.label}
-                    </button>
-                  ))}
+              {/* ═══ SAVINGS SECTION ═══ */}
+              {editForm.direction === "savings" && (
+                <div className={section}>
+                  <p className="text-xs font-semibold text-pink-400/70">บันทึกเงินออม</p>
+                  <div><label className={lbl}>เป้าหมาย</label><input value={editForm.merchant || ""} onChange={(e) => setEditForm({ ...editForm, merchant: e.target.value })} placeholder="เช่น ท่องเที่ยวญี่ปุ่น, MacBook Pro" className={field} /></div>
+                  <div><label className={lbl}>จำนวนที่ออม (฿)</label><input type="number" inputMode="decimal" value={editForm.amount || ""} onChange={(e) => setEditForm({ ...editForm, amount: e.target.value })} className={`${field} text-lg font-bold`} placeholder="0.00" /></div>
+                  <div className="grid grid-cols-2 gap-3">
+                    <div><label className={lbl}>วันที่ออม</label><input type="time" value={editForm.time || ""} onChange={(e) => setEditForm({ ...editForm, time: e.target.value })} className={field} /></div>
+                    <div><label className={lbl}>หมวดออม</label>
+                      <div className="flex flex-wrap gap-1.5">
+                        {cats.map((c) => (
+                          <button key={c.name} onClick={() => setEditForm({ ...editForm, category: c.name, categoryIcon: c.icon })}
+                            className={`flex items-center gap-1 px-2.5 py-1.5 rounded-lg text-xs font-medium transition-all ${editForm.category === c.name ? "bg-pink-500 text-white shadow-sm" : isDark ? "bg-white/5 text-white/60" : "bg-gray-50 text-gray-600 border border-gray-200"}`}>
+                            {c.icon} {c.name}
+                          </button>
+                        ))}
+                      </div>
+                    </div>
+                  </div>
+                  <div><label className={lbl}>หมายเหตุ</label><textarea rows={2} value={editForm.note || ""} onChange={(e) => setEditForm({ ...editForm, note: e.target.value })} placeholder="เช่น ออมจากเงินทอน, โบนัส..." className={`${field} h-auto py-2`} /></div>
                 </div>
-              </div>
+              )}
 
-              {/* Time + Type */}
-              <div className="grid grid-cols-2 gap-3">
-                <div>
-                  <label className={lbl}>เวลา</label>
-                  <input type="time" value={editForm.time || ""} onChange={(e) => setEditForm({ ...editForm, time: e.target.value })}
-                    className={`w-full h-12 px-4 rounded-xl text-sm ${isDark ? "bg-white/5 border-white/10 text-white" : "bg-white border-gray-200 text-gray-900"} border focus:outline-none focus:border-[#FA3633]/50`} />
+              {/* Grand total */}
+              <div className={`rounded-xl p-4 ${editForm.direction === "income" ? "bg-green-500/10 border border-green-500/20" : editForm.direction === "savings" ? "bg-pink-500/10 border border-pink-500/20" : "bg-[#FA3633]/10 border border-[#FA3633]/20"}`}>
+                <div className="flex items-center justify-between">
+                  <span className={`text-sm font-semibold ${txt}`}>{editForm.direction === "income" ? "ยอดรับ" : editForm.direction === "savings" ? "ออมครั้งนี้" : "ยอดสุทธิ"}</span>
+                  <span className={`text-2xl font-extrabold ${txt}`}>฿{amt.toLocaleString("th-TH", { minimumFractionDigits: 2 })}</span>
                 </div>
-                <div>
-                  <label className={lbl}>ประเภทเอกสาร</label>
-                  <select value={editForm.type || "receipt"} onChange={(e) => setEditForm({ ...editForm, type: e.target.value })}
-                    className={`w-full h-12 px-4 rounded-xl text-sm ${isDark ? "bg-white/5 border-white/10 text-white" : "bg-white border-gray-200 text-gray-900"} border focus:outline-none focus:border-[#FA3633]/50`}>
-                    {[["receipt","ใบเสร็จ"],["invoice","ใบแจ้งหนี้"],["billing","บิล"],["income","รายรับ"],["expense","รายจ่าย"]].map(([v,l]) => <option key={v} value={v}>{l}</option>)}
-                  </select>
-                </div>
-              </div>
-
-              {/* Note */}
-              <div>
-                <label className={lbl}>บันทึกเพิ่มเติม</label>
-                <textarea value={editForm.note || ""} onChange={(e) => setEditForm({ ...editForm, note: e.target.value })} placeholder="หมายเหตุ..." rows={2}
-                  className={`w-full px-4 py-3 rounded-xl text-sm resize-none ${isDark ? "bg-white/5 border-white/10 text-white" : "bg-white border-gray-200 text-gray-900"} border focus:outline-none focus:border-[#FA3633]/50`} />
               </div>
             </div>
 
-            {/* Sticky save button */}
-            <div className={`fixed bottom-0 left-0 right-0 px-4 py-3 ${isDark ? "bg-[#0a0a0a]/95 border-t border-white/[0.06]" : "bg-white/95 border-t border-gray-200"} backdrop-blur-xl`} style={{ paddingBottom: "max(env(safe-area-inset-bottom), 12px)" }}>
-              <button onClick={saveEdit} disabled={saving} className="w-full py-4 rounded-2xl bg-[#FA3633] text-white text-base font-bold flex items-center justify-center gap-2 active:scale-[0.97] disabled:opacity-50 shadow-lg shadow-[#FA3633]/25">
-                {saving ? <Loader2 size={18} className="animate-spin" /> : <Save size={18} />} บันทึกการแก้ไข
+            {/* Sticky save + cancel */}
+            <div className={`fixed bottom-0 left-0 right-0 px-4 py-3 flex gap-3 ${isDark ? "bg-[#0a0a0a]/95 border-t border-white/[0.06]" : "bg-white/95 border-t border-gray-200"} backdrop-blur-xl`} style={{ paddingBottom: "max(env(safe-area-inset-bottom), 12px)" }}>
+              <button onClick={saveEdit} disabled={saving} className="flex-1 py-3.5 rounded-xl bg-[#FA3633] text-white text-sm font-bold flex items-center justify-center gap-2 active:scale-[0.97] disabled:opacity-50">
+                {saving ? <Loader2 size={16} className="animate-spin" /> : <Save size={16} />} บันทึก
               </button>
+              <button onClick={() => setEditId(null)} className={`py-3.5 px-6 rounded-xl text-sm font-medium ${isDark ? "bg-white/5 text-white/60" : "bg-gray-100 text-gray-500"}`}>ยกเลิก</button>
             </div>
           </div>
         );
