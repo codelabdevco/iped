@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect, useRef, useCallback } from "react";
 import Link from "next/link";
 import {
   MessageCircle, UserRoundCog, HardDrive, Mail, ScanLine,
@@ -16,31 +16,32 @@ interface Step {
   description: string;
   icon: React.ElementType;
   href: string;
+  autoKey?: string; // key from /api/onboarding/status to auto-detect
 }
 
 const personalSteps: Step[] = [
-  { id: "line", label: "เชื่อมต่อ LINE", description: "Login + รับแจ้งเตือนผ่าน LINE", icon: MessageCircle, href: "/dashboard/line-bot" },
+  { id: "line", label: "เชื่อมต่อ LINE", description: "Login + รับแจ้งเตือนผ่าน LINE", icon: MessageCircle, href: "/dashboard/line-bot", autoKey: "line" },
   { id: "mode", label: "เลือกโหมดใช้งาน", description: "เลือกโหมดส่วนตัว", icon: UserRoundCog, href: "/dashboard/settings" },
-  { id: "drive", label: "เชื่อมต่อ Google Drive", description: "สำรอง/จัดเก็บเอกสาร", icon: HardDrive, href: "/dashboard/sync" },
-  { id: "gmail", label: "เชื่อมต่อ Gmail", description: "สแกนเอกสารจากอีเมลอัตโนมัติ", icon: Mail, href: "/dashboard/email-scanner" },
-  { id: "first-scan", label: "อัปโหลดใบเสร็จแรก", description: "ทดลอง AI OCR สแกนใบเสร็จจริง", icon: ScanLine, href: "/dashboard/scan" },
+  { id: "drive", label: "เชื่อมต่อ Google Drive", description: "สำรอง/จัดเก็บเอกสาร", icon: HardDrive, href: "/dashboard/sync", autoKey: "drive" },
+  { id: "gmail", label: "เชื่อมต่อ Gmail", description: "สแกนเอกสารจากอีเมลอัตโนมัติ", icon: Mail, href: "/dashboard/email-scanner", autoKey: "gmail" },
+  { id: "first-scan", label: "อัปโหลดใบเสร็จแรก", description: "ทดลอง AI OCR สแกนใบเสร็จจริง", icon: ScanLine, href: "/dashboard/scan", autoKey: "receipts" },
   { id: "signature", label: "ใส่ลายเซ็นรับรอง", description: "ลายเซ็นดิจิทัลสำหรับใบแทนใบเสร็จ", icon: PenTool, href: "/dashboard/settings" },
   { id: "sheets-notion", label: "เชื่อม Sheets / Notion", description: "เชื่อม Google Sheets หรือ Notion", icon: Sheet, href: "/dashboard/sync" },
   { id: "p-categories", label: "ตั้งหมวดหมู่รายจ่าย", description: "เลือกจาก preset หรือกำหนดเอง", icon: FolderOpen, href: "/dashboard/categories" },
-  { id: "p-budget", label: "ตั้งงบประมาณเดือนแรก", description: "งบรายวัน / รายเดือน / ตามหมวด", icon: Wallet, href: "/dashboard/budget" },
+  { id: "p-budget", label: "ตั้งงบประมาณเดือนแรก", description: "งบรายวัน / รายเดือน / ตามหมวด", icon: Wallet, href: "/dashboard/budget", autoKey: "budget" },
   { id: "p-savings", label: "ตั้งเป้าเงินออม", description: "เป้าหมายออมเงินรายเดือน", icon: PiggyBank, href: "/dashboard/savings" },
 ];
 
 const businessSteps: Step[] = [
-  { id: "line", label: "เชื่อมต่อ LINE", description: "Login + รับแจ้งเตือนผ่าน LINE", icon: MessageCircle, href: "/dashboard/line-bot" },
+  { id: "line", label: "เชื่อมต่อ LINE", description: "Login + รับแจ้งเตือนผ่าน LINE OA", icon: MessageCircle, href: "/dashboard/line-bot", autoKey: "line" },
   { id: "mode", label: "เลือกโหมดใช้งาน", description: "เลือกโหมดบริษัท", icon: UserRoundCog, href: "/dashboard/settings" },
-  { id: "drive", label: "เชื่อมต่อ Google Drive", description: "สำรอง/จัดเก็บเอกสาร", icon: HardDrive, href: "/dashboard/sync" },
-  { id: "gmail", label: "เชื่อมต่อ Gmail", description: "สแกนเอกสารจากอีเมลอัตโนมัติ", icon: Mail, href: "/dashboard/email-scanner" },
-  { id: "first-scan", label: "อัปโหลดใบเสร็จแรก", description: "ทดลอง AI OCR สแกนใบเสร็จจริง", icon: ScanLine, href: "/dashboard/scan" },
-  { id: "signature", label: "ใส่ลายเซ็นรับรอง", description: "ลายเซ็นดิจิทัลสำหรับใบแทนใบเสร็จ", icon: PenTool, href: "/dashboard/settings" },
-  { id: "sheets-notion", label: "เชื่อม Sheets / Notion", description: "เชื่อม Google Sheets หรือ Notion", icon: Sheet, href: "/dashboard/sync" },
-  { id: "b-company", label: "กรอกข้อมูลบริษัท", description: "ชื่อ, เลขผู้เสียภาษี, ที่อยู่, โลโก้", icon: Building2, href: "/dashboard/settings" },
-  { id: "b-team", label: "เพิ่มพนักงาน & แผนก", description: "เชิญทีม + กำหนดสิทธิ์", icon: Users, href: "/dashboard/team" },
+  { id: "drive", label: "เชื่อมต่อ Google Drive", description: "สำรองเอกสารบริษัทอัตโนมัติ", icon: HardDrive, href: "/dashboard/sync", autoKey: "drive" },
+  { id: "gmail", label: "เชื่อมต่อ Gmail", description: "สแกนใบแจ้งหนี้/ใบเสร็จจากอีเมล", icon: Mail, href: "/dashboard/email-scanner", autoKey: "gmail" },
+  { id: "first-scan", label: "อัปโหลดใบเสร็จแรก", description: "ทดลอง AI OCR สแกนเอกสารจริง", icon: ScanLine, href: "/dashboard/scan", autoKey: "receipts" },
+  { id: "signature", label: "ใส่ลายเซ็นรับรอง", description: "ลายเซ็นดิจิทัลผู้มีอำนาจลงนาม", icon: PenTool, href: "/dashboard/settings" },
+  { id: "sheets-notion", label: "เชื่อม Sheets / Notion", description: "ส่งออกข้อมูลไป Google Sheets / Notion", icon: Sheet, href: "/dashboard/sync" },
+  { id: "b-company", label: "กรอกข้อมูลบริษัท", description: "ชื่อ, เลขผู้เสียภาษี, ที่อยู่, โลโก้", icon: Building2, href: "/dashboard/settings", autoKey: "company" },
+  { id: "b-team", label: "เพิ่มพนักงาน & แผนก", description: "เชิญทีม + กำหนดสิทธิ์อนุมัติ", icon: Users, href: "/dashboard/team" },
   { id: "b-approval", label: "ตั้งค่า Approval", description: "กำหนด workflow อนุมัติรายจ่าย", icon: CheckSquare, href: "/dashboard/approvals" },
   { id: "b-categories", label: "ตั้งหมวดหมู่รายจ่าย", description: "หมวดตาม chart of accounts บริษัท", icon: FolderOpen, href: "/dashboard/categories" },
   { id: "b-accounting", label: "เชื่อมโปรแกรมบัญชี", description: "เชื่อมกับซอฟต์แวร์บัญชีที่ใช้อยู่", icon: FileSpreadsheet, href: "/dashboard/accounting" },
@@ -58,7 +59,7 @@ export default function OnboardingChecklist() {
   const [mode, setMode] = useState<"personal" | "business">("personal");
   const initRef = useRef(false);
 
-  // Single init effect — runs once on mount
+  // Load from localStorage on mount
   useEffect(() => {
     if (initRef.current) return;
     initRef.current = true;
@@ -69,7 +70,6 @@ export default function OnboardingChecklist() {
       const raw = localStorage.getItem(STORAGE_KEY);
       const parsed: string[] = raw ? JSON.parse(raw) : [];
 
-      // Auto-complete "mode" if mode is set
       if (savedMode && !parsed.includes("mode")) {
         parsed.push("mode");
         localStorage.setItem(STORAGE_KEY, JSON.stringify(parsed));
@@ -83,6 +83,38 @@ export default function OnboardingChecklist() {
     } catch {}
     setMounted(true);
   }, []);
+
+  // Auto-detect completed steps from API
+  const autoDetect = useCallback(async () => {
+    try {
+      const res = await fetch("/api/onboarding/status");
+      if (!res.ok) return;
+      const status = await res.json();
+
+      setCompleted((prev) => {
+        const steps = mode === "business" ? businessSteps : personalSteps;
+        const next = [...prev];
+        let changed = false;
+
+        for (const step of steps) {
+          if (step.autoKey && status[step.autoKey] && !next.includes(step.id)) {
+            next.push(step.id);
+            changed = true;
+          }
+        }
+
+        if (changed) {
+          try { localStorage.setItem(STORAGE_KEY, JSON.stringify(next)); } catch {}
+          return next;
+        }
+        return prev;
+      });
+    } catch {}
+  }, [mode]);
+
+  useEffect(() => {
+    if (mounted) autoDetect();
+  }, [mounted, autoDetect]);
 
   const steps = mode === "business" ? businessSteps : personalSteps;
   const completedCount = completed.filter((id) => steps.some((s) => s.id === id)).length;
@@ -161,6 +193,7 @@ export default function OnboardingChecklist() {
           {steps.map((step, i) => {
             const Icon = step.icon;
             const done = completed.includes(step.id);
+            const isAuto = step.autoKey && done;
             return (
               <div key={step.id}>
                 {i === 0 && (
@@ -187,7 +220,14 @@ export default function OnboardingChecklist() {
                     <Icon size={16} />
                   </div>
                   <div className="flex-1 min-w-0">
-                    <p className={`text-[13px] font-medium transition-all ${done ? isDark ? "text-green-400 line-through decoration-green-400/30" : "text-green-700 line-through decoration-green-300" : txt}`}>{step.label}</p>
+                    <div className="flex items-center gap-1.5">
+                      <p className={`text-[13px] font-medium transition-all ${done ? isDark ? "text-green-400 line-through decoration-green-400/30" : "text-green-700 line-through decoration-green-300" : txt}`}>{step.label}</p>
+                      {isAuto && (
+                        <span className={`text-[9px] px-1.5 py-0.5 rounded-full font-medium ${isDark ? "bg-green-500/15 text-green-400" : "bg-green-100 text-green-600"}`}>
+                          ตรวจพบแล้ว
+                        </span>
+                      )}
+                    </div>
                     <p className={`text-[11px] ${txtSub} mt-0.5 truncate`}>{step.description}</p>
                   </div>
                 </Link>

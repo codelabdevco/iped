@@ -2,7 +2,7 @@
 
 import { useState, useRef } from "react";
 import { useTheme } from "@/contexts/ThemeContext";
-import { Home, Receipt, ScanLine, BarChart3, User, Camera, Image as ImageIcon, Loader2, Check, X, Bell, Pencil, Moon, Sun, ChevronRight, TrendingUp, Calculator, FolderOpen, ArrowUpRight, ArrowDownLeft, Wallet } from "lucide-react";
+import { Home, Receipt, ScanLine, BarChart3, User, Camera, Image as ImageIcon, Loader2, Check, X, Bell, Pencil, Moon, Sun, ChevronRight, TrendingUp, Calculator, FolderOpen, ArrowUpRight, ArrowDownLeft, Wallet, AlertTriangle } from "lucide-react";
 import BrandIcon from "@/components/dashboard/BrandIcon";
 import StatsCard from "@/components/dashboard/StatsCard";
 import GoalCard from "@/components/dashboard/GoalCard";
@@ -453,27 +453,116 @@ function ReportsTab({ data, isDark }: { data: MobileData; isDark: boolean }) {
   const maxCat = Math.max(...data.categories.map((c: any) => c.total), 1);
   const net = data.monthIncome - data.monthExpense;
   const dailyAvg = data.daysInMonth > 0 ? Math.round(data.totalExpense / Math.min(new Date().getDate(), data.daysInMonth)) : 0;
+  const avgPerReceipt = data.stats.monthReceipts > 0 ? Math.round(data.totalExpense / data.stats.monthReceipts) : 0;
+  const budgetPct = data.profile.monthlyBudget > 0 ? Math.min(100, (data.totalExpense / data.profile.monthlyBudget) * 100) : 0;
+
+  // Budget alerts from localStorage
+  const [budgetAlerts, setBudgetAlerts] = useState<{ cat: string; spent: number; budget: number; pct: number }[]>([]);
+  const [alertsDismissed, setAlertsDismissed] = useState(false);
+  useState(() => {
+    try {
+      const s = typeof window !== "undefined" ? localStorage.getItem("iped-budgets") : null;
+      if (s) {
+        const parsed = JSON.parse(s);
+        const alerts: { cat: string; spent: number; budget: number; pct: number }[] = [];
+        parsed.forEach((b: any) => {
+          if (b.category && b.budget) {
+            const catData = data.categories.find((c: any) => c.name === b.category);
+            const spent = catData?.total || 0;
+            const pct = (spent / b.budget) * 100;
+            if (pct >= 80) alerts.push({ cat: b.category, spent, budget: b.budget, pct });
+          }
+        });
+        setBudgetAlerts(alerts.sort((a, b) => b.pct - a.pct));
+      }
+    } catch {}
+  });
+
+  // Recurring items from localStorage
+  const [recurring, setRecurring] = useState<{ name: string; type: string; amount: number; cycle: string; active: boolean }[]>([]);
+  useState(() => {
+    try {
+      const s = typeof window !== "undefined" ? localStorage.getItem("iped-recurring") : null;
+      const items = s ? JSON.parse(s) : [
+        { name: "ค่าเช่าคอนโด", type: "expense", amount: 12000, cycle: "รายเดือน", active: true },
+        { name: "ค่าอินเทอร์เน็ต", type: "expense", amount: 599, cycle: "รายเดือน", active: true },
+        { name: "Netflix", type: "expense", amount: 419, cycle: "รายเดือน", active: true },
+      ];
+      setRecurring(items);
+    } catch {}
+  });
+
+  // Budget limits from localStorage
+  const [budgetLimits, setBudgetLimits] = useState<Record<string, number>>({});
+  useState(() => {
+    try {
+      const s = typeof window !== "undefined" ? localStorage.getItem("iped-budgets") : null;
+      if (s) {
+        const parsed = JSON.parse(s);
+        const limits: Record<string, number> = {};
+        parsed.forEach((b: any) => { if (b.category && b.budget) limits[b.category] = b.budget; });
+        setBudgetLimits(limits);
+      }
+    } catch {}
+  });
+
+  const recurringTotal = recurring.filter((i) => i.type === "expense" && i.active).reduce((s, i) => s + i.amount, 0);
 
   return (
     <div className="space-y-4 pt-3">
-      {/* Overview */}
-      <div className="rounded-2xl bg-gradient-to-br from-[#FA3633] to-[#e62e2e] p-5 text-white shadow-lg shadow-[#FA3633]/20">
-        <p className="text-xs text-white/60 font-medium mb-3">สรุปเดือนนี้</p>
-        <div className="grid grid-cols-3 gap-3 mb-4">
-          <div><p className="text-[10px] text-white/40">รายจ่าย</p><p className="text-lg font-bold">฿{fmt(data.totalExpense)}</p></div>
-          <div><p className="text-[10px] text-white/40">รายรับ</p><p className="text-lg font-bold">฿{fmt(data.monthIncome)}</p></div>
-          <div><p className="text-[10px] text-white/40">คงเหลือ</p><p className={`text-lg font-bold ${net < 0 ? "text-yellow-200" : ""}`}>{net >= 0 ? "+" : ""}฿{fmt(Math.abs(net))}</p></div>
+      {/* Title */}
+      <div>
+        <p className={`text-lg font-bold ${txt}`}>ภาพรวม</p>
+        <p className={`text-[11px] ${sub}`}>สรุปข้อมูลรายจ่ายและใบเสร็จของคุณ</p>
+      </div>
+
+      {/* Connection status */}
+      <div className={`flex items-center gap-3 ${card} border ${border} rounded-xl px-3 py-2`}>
+        {[
+          { name: "LINE", brand: "line", on: true },
+          { name: "Gmail", brand: "gmail", on: !!data.profile.googleEmail },
+          { name: "Drive", brand: "google-drive", on: !!data.profile.googleEmail },
+        ].map((s) => (
+          <div key={s.name} className={`flex items-center gap-1 text-[10px] ${sub}`}>
+            <BrandIcon brand={s.brand} size={12} />
+            <span className={s.on ? txt : ""}>{s.name}</span>
+            <span className={`w-1.5 h-1.5 rounded-full ${s.on ? "bg-green-500" : isDark ? "bg-white/15" : "bg-gray-300"}`} />
+          </div>
+        ))}
+      </div>
+
+      {/* Budget Alerts */}
+      {!alertsDismissed && budgetAlerts.length > 0 && (
+        <div className={`rounded-xl border p-3 ${isDark ? "bg-amber-500/5 border-amber-500/20" : "bg-amber-50 border-amber-200"}`}>
+          <div className="flex items-center justify-between mb-2">
+            <div className="flex items-center gap-1.5">
+              <AlertTriangle size={14} className="text-amber-500" />
+              <span className={`text-xs font-semibold ${isDark ? "text-amber-400" : "text-amber-700"}`}>แจ้งเตือนงบประมาณ</span>
+            </div>
+            <button onClick={() => setAlertsDismissed(true)} className={muted}><X size={14} /></button>
+          </div>
+          {budgetAlerts.map((a) => (
+            <div key={a.cat} className={`flex items-center gap-2 py-0.5 text-xs ${isDark ? "text-white/70" : "text-gray-700"}`}>
+              <span className="font-medium">{a.cat}</span>
+              <span className={a.pct >= 100 ? "text-red-500" : "text-amber-500"}>
+                ฿{fmt(a.spent)} / ฿{fmt(a.budget)} ({Math.round(a.pct)}%)
+              </span>
+            </div>
+          ))}
         </div>
-        <div className="flex gap-6 pt-3 border-t border-white/15">
-          <div><p className="text-[10px] text-white/40">เฉลี่ย/วัน</p><p className="text-sm font-semibold">฿{fmt(dailyAvg)}</p></div>
-          <div><p className="text-[10px] text-white/40">รายการ</p><p className="text-sm font-semibold">{data.stats.monthReceipts}</p></div>
-          {data.profile.monthlyBudget > 0 && <div><p className="text-[10px] text-white/40">งบ</p><p className="text-sm font-semibold">{Math.round((data.totalExpense / data.profile.monthlyBudget) * 100)}%</p></div>}
-        </div>
+      )}
+
+      {/* Stats cards */}
+      <div className="grid grid-cols-2 gap-3">
+        <StatsCard label="ยอดรวมเดือนนี้" value={`฿${fmt(data.totalExpense)}`} icon={<TrendingUp size={18} />} />
+        <StatsCard label="จำนวนใบเสร็จ" value={`${data.stats.monthReceipts} ใบ`} icon={<Receipt size={18} />} />
+        <StatsCard label="เฉลี่ยต่อใบ" value={`฿${fmt(avgPerReceipt)}`} icon={<Calculator size={18} />} />
+        <StatsCard label="หมวดหมู่" value={`${data.categories.length} หมวด`} icon={<FolderOpen size={18} />} />
       </div>
 
       {/* Chart */}
       <div className={`${card} border ${border} rounded-2xl p-4`}>
-        <p className={`text-xs font-semibold ${txt} mb-4`}>6 เดือนล่าสุด</p>
+        <p className={`text-xs font-semibold ${txt} mb-4`}>ภาพรวมค่าใช้จ่ายรายเดือน</p>
         <div className="flex items-end justify-between gap-1.5 h-36 mb-2">
           {data.monthlyData.map((m, i) => {
             const isLast = i === data.monthlyData.length - 1;
@@ -495,10 +584,106 @@ function ReportsTab({ data, isDark }: { data: MobileData; isDark: boolean }) {
         </div>
       </div>
 
+      {/* Goals */}
+      <div className={`${card} border ${border} rounded-2xl p-4`}>
+        <p className={`text-xs font-semibold ${txt} mb-3`}>เป้าหมาย</p>
+        <div className="grid grid-cols-2 gap-3">
+          <GoalCard storageKey="goal-expense" current={data.monthExpense} label="เป้ารายจ่าย" color="red" />
+          <GoalCard storageKey="goal-income" current={data.monthIncome} label="เป้ารายรับ" color="green" />
+        </div>
+      </div>
+
+      {/* Month summary */}
+      <div className={`${card} border ${border} rounded-2xl p-4`}>
+        <p className={`text-xs font-semibold ${txt} mb-3`}>สรุปเดือนนี้</p>
+        <div className="grid grid-cols-3 gap-2">
+          <MiniCard label="รายจ่าย" value={`฿${fmt(data.monthExpense)}`} color="red" isDark={isDark} />
+          <MiniCard label="รายรับ" value={`฿${fmt(data.monthIncome)}`} color="green" isDark={isDark} />
+          <MiniCard label="คงเหลือ" value={`${net >= 0 ? "+" : ""}฿${fmt(Math.abs(net))}`} color={net >= 0 ? "blue" : "red"} isDark={isDark} />
+        </div>
+        <div className="flex gap-4 mt-3 pt-3 border-t" style={{ borderColor: isDark ? "rgba(255,255,255,0.06)" : "rgba(0,0,0,0.06)" }}>
+          <div><p className={`text-[10px] ${muted}`}>เฉลี่ย/วัน</p><p className={`text-xs font-semibold ${txt}`}>฿{fmt(dailyAvg)}</p></div>
+          <div><p className={`text-[10px] ${muted}`}>รายการ</p><p className={`text-xs font-semibold ${txt}`}>{data.stats.monthReceipts}</p></div>
+          {data.profile.monthlyBudget > 0 && <div><p className={`text-[10px] ${muted}`}>งบ</p><p className={`text-xs font-semibold ${budgetPct > 80 ? "text-red-500" : txt}`}>{Math.round(budgetPct)}%</p></div>}
+        </div>
+        {data.profile.monthlyBudget > 0 && (
+          <div className="mt-3">
+            <div className="flex justify-between mb-1">
+              <span className={`text-[10px] ${sub}`}>งบ ฿{fmt(data.profile.monthlyBudget)}</span>
+              <span className={`text-[10px] font-semibold ${budgetPct > 80 ? "text-red-500" : sub}`}>{Math.round(budgetPct)}%</span>
+            </div>
+            <div className={`h-2 rounded-full overflow-hidden ${isDark ? "bg-white/10" : "bg-gray-100"}`}>
+              <div className={`h-full rounded-full transition-all ${budgetPct > 100 ? "bg-red-500" : budgetPct > 80 ? "bg-amber-500" : "bg-[#FA3633]"}`} style={{ width: `${Math.min(budgetPct, 100)}%` }} />
+            </div>
+          </div>
+        )}
+      </div>
+
+      {/* Budget summary */}
+      {data.categories.length > 0 && (
+        <div className={`${card} border ${border} rounded-2xl p-4`}>
+          <div className="flex items-center justify-between mb-3">
+            <p className={`text-xs font-semibold ${txt}`}>งบประมาณ</p>
+            <a href="/dashboard/budget" className="text-[10px] text-[#FA3633] font-medium">จัดการ →</a>
+          </div>
+          {data.categories.slice(0, 5).map((c: any) => {
+            const budget = budgetLimits[c.name];
+            const pct = budget ? Math.min((c.total / budget) * 100, 100) : 0;
+            const isOver = budget ? c.total > budget : false;
+            return (
+              <div key={c.name} className="mb-2.5">
+                <div className="flex items-center justify-between mb-1">
+                  <div className="flex items-center gap-1.5">
+                    <span className="text-sm">{c.icon}</span>
+                    <span className={`text-xs ${txt}`}>{c.name}</span>
+                  </div>
+                  <span className={`text-xs font-medium ${isOver ? "text-red-500" : txt}`}>
+                    ฿{fmt(c.total)}
+                    {budget ? <span className={sub}> / ฿{fmt(budget)}</span> : ""}
+                  </span>
+                </div>
+                <div className={`h-1.5 rounded-full ${isDark ? "bg-white/10" : "bg-gray-100"}`}>
+                  {budget ? (
+                    <div className="h-full rounded-full" style={{ width: `${pct}%`, backgroundColor: isOver ? "#EF4444" : "#FA3633", opacity: 0.7 }} />
+                  ) : (
+                    <div className="h-full rounded-full bg-[#FA3633] opacity-30" style={{ width: "100%" }} />
+                  )}
+                </div>
+              </div>
+            );
+          })}
+        </div>
+      )}
+
+      {/* Recurring items */}
+      {recurring.filter((i) => i.active).length > 0 && (
+        <div className={`${card} border ${border} rounded-2xl p-4`}>
+          <div className="flex items-center justify-between mb-3">
+            <p className={`text-xs font-semibold ${txt}`}>รายการประจำ</p>
+            <a href="/dashboard/recurring" className="text-[10px] text-[#FA3633] font-medium">จัดการ →</a>
+          </div>
+          {recurring.filter((i) => i.active).slice(0, 5).map((item, i) => (
+            <div key={i} className="flex items-center justify-between py-1">
+              <div className="flex items-center gap-2">
+                <span className={`px-1.5 py-0.5 rounded text-[8px] font-bold leading-none ${item.type === "income" ? "bg-green-500/15 text-green-500" : "bg-red-500/15 text-red-500"}`}>{item.type === "income" ? "รับ" : "จ่าย"}</span>
+                <span className={`text-xs ${txt}`}>{item.name}</span>
+              </div>
+              <span className={`text-xs font-medium ${txt}`}>฿{fmt(item.amount)}<span className={`text-[9px] ${muted} ml-0.5`}>/{item.cycle.replace("ราย", "")}</span></span>
+            </div>
+          ))}
+          {recurringTotal > 0 && (
+            <div className={`mt-2 pt-2 flex justify-between`} style={{ borderTop: `1px solid ${isDark ? "rgba(255,255,255,0.06)" : "rgba(0,0,0,0.06)"}` }}>
+              <span className={`text-[10px] ${sub}`}>รายจ่ายประจำ/เดือน</span>
+              <span className="text-[10px] font-semibold text-red-500">฿{fmt(recurringTotal)}</span>
+            </div>
+          )}
+        </div>
+      )}
+
       {/* Categories */}
       {data.categories.length > 0 && (
         <div className={`${card} border ${border} rounded-2xl p-4`}>
-          <p className={`text-xs font-semibold ${txt} mb-3`}>หมวดหมู่</p>
+          <p className={`text-xs font-semibold ${txt} mb-3`}>สัดส่วนหมวดหมู่</p>
           {data.categories.map((c: any, i: number) => {
             const pct = data.totalExpense > 0 ? Math.round((c.total / data.totalExpense) * 100) : 0;
             return (
@@ -513,6 +698,30 @@ function ReportsTab({ data, isDark }: { data: MobileData; isDark: boolean }) {
                     <div className="h-full rounded-full bg-[#FA3633]" style={{ width: `${(c.total / maxCat) * 100}%`, opacity: 1 - i * 0.08 }} />
                   </div>
                 </div>
+              </div>
+            );
+          })}
+        </div>
+      )}
+
+      {/* Payment methods */}
+      {data.paymentMethods?.length > 0 && (
+        <div className={`${card} border ${border} rounded-2xl p-4`}>
+          <div className="flex items-center justify-between mb-3">
+            <p className={`text-xs font-semibold ${txt}`}>วิธีจ่าย</p>
+            <a href="/dashboard/payments" className="text-[10px] text-[#FA3633] font-medium">ดูทั้งหมด →</a>
+          </div>
+          {data.paymentMethods.map((p) => {
+            const pmMax = Math.max(...data.paymentMethods.map((pm) => pm.total), 1);
+            const pct = (p.total / pmMax) * 100;
+            return (
+              <div key={p.method} className="flex items-center gap-3 py-1.5">
+                <BrandIcon brand={p.method} size={28} className="rounded-lg" />
+                <span className={`text-xs w-16 truncate ${sub}`}>{PAY_LABELS[p.method] || p.method}</span>
+                <div className={`flex-1 h-1.5 rounded-full ${isDark ? "bg-white/10" : "bg-gray-100"}`}>
+                  <div className="h-full rounded-full bg-[#FA3633] opacity-70" style={{ width: `${pct}%` }} />
+                </div>
+                <span className={`text-xs font-bold ${txt}`}>฿{fmt(p.total)}</span>
               </div>
             );
           })}
@@ -534,20 +743,17 @@ function ReportsTab({ data, isDark }: { data: MobileData; isDark: boolean }) {
         </div>
       )}
 
-      {/* Payments */}
-      {data.paymentMethods?.length > 0 && (
-        <div className={`${card} border ${border} rounded-2xl p-4`}>
-          <p className={`text-xs font-semibold ${txt} mb-3`}>วิธีชำระ</p>
-          {data.paymentMethods.map((p) => (
-            <div key={p.method} className="flex items-center gap-3 py-1.5">
-              <BrandIcon brand={p.method} size={28} className="rounded-lg" />
-              <span className={`text-xs flex-1 ${txt}`}>{PAY_LABELS[p.method] || p.method}</span>
-              <span className={`text-[10px] ${muted}`}>{p.count}x</span>
-              <span className={`text-xs font-bold ${txt}`}>฿{fmt(p.total)}</span>
-            </div>
-          ))}
+      {/* Recent receipts */}
+      <div>
+        <div className="flex items-center justify-between mb-2">
+          <p className={`text-xs font-semibold ${txt}`}>ใบเสร็จล่าสุด</p>
+          <a href="/dashboard/receipts" className="text-[10px] text-[#FA3633] font-medium">ดูทั้งหมด ({data.stats.totalReceipts}) →</a>
         </div>
-      )}
+        <div className="space-y-1.5">
+          {data.receipts.slice(0, 8).map((r: any) => <ReceiptRow key={r._id} r={r} isDark={isDark} />)}
+          {data.receipts.length === 0 && <EmptyState isDark={isDark} />}
+        </div>
+      </div>
     </div>
   );
 }
