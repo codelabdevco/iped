@@ -281,14 +281,17 @@ export default function ReceiptsClient({ receipts: initialReceipts }: { receipts
       }
       if (success > 0) {
         await modal.alert({ title: "สำเร็จ", message: `ส่ง ${success} รายการไป${label}แล้ว`, type: "success" });
+        // Update UI: mark sent receipts with note so they can't be sent again
+        setReceipts((prev) => prev.map((r) =>
+          ids.includes(r._id) ? { ...r, note: (r.note || "") + " | ส่งเป็นค่าใช้จ่ายบริษัทแล้ว" } : r
+        ));
         setSelected([]);
-        router.refresh();
       } else {
         await modal.alert({ title: "ไม่สำเร็จ", message: "ส่งต่อไม่สำเร็จ", type: "error" });
       }
     } catch { await modal.alert({ title: "ผิดพลาด", message: "เกิดข้อผิดพลาด", type: "error" }); }
     setTransferring(false);
-  }, [modal, router]);
+  }, [modal]);
 
   const handleEdit = (r: ReceiptRow) => {
     setEditingId(r._id);
@@ -824,9 +827,13 @@ export default function ReceiptsClient({ receipts: initialReceipts }: { receipts
       configurable: false,
       render: (r, dark) => (
         <div className="flex items-center gap-1" onClick={(e) => e.stopPropagation()}>
-          <button onClick={() => handleTransfer([r._id])} className={`p-2 rounded-lg transition-colors ${dark ? "hover:bg-white/5 text-white/40 hover:text-blue-400" : "hover:bg-gray-100 text-gray-400 hover:text-blue-500"}`} title={`ส่งต่อไป${(typeof window !== "undefined" && localStorage.getItem("iped-mode") || "personal") === "personal" ? "บริษัท" : "ส่วนตัว"}`}>
-            <ArrowRightLeft size={14} />
-          </button>
+          {(r.note || "").includes("ส่งเป็นค่าใช้จ่ายบริษัทแล้ว") ? (
+            <span className={`px-2 py-1 rounded-lg text-[10px] font-medium ${dark ? "bg-green-500/10 text-green-400" : "bg-green-50 text-green-600"}`}>ส่งแล้ว</span>
+          ) : (
+            <button onClick={() => handleTransfer([r._id])} className={`p-2 rounded-lg transition-colors ${dark ? "hover:bg-white/5 text-white/40 hover:text-blue-400" : "hover:bg-gray-100 text-gray-400 hover:text-blue-500"}`} title="ส่งเป็นค่าใช้จ่ายบริษัท">
+              <ArrowRightLeft size={14} />
+            </button>
+          )}
           <button onClick={() => handleEdit(r)} className={`p-2 rounded-lg transition-colors ${dark ? "hover:bg-white/5 text-white/40 hover:text-blue-400" : "hover:bg-gray-100 text-gray-400 hover:text-blue-500"}`} title="แก้ไข">
             <Pencil size={14} />
           </button>
@@ -1268,8 +1275,11 @@ export default function ReceiptsClient({ receipts: initialReceipts }: { receipts
             {selected.length === filtered.length && <svg width="12" height="12" viewBox="0 0 12 12" fill="none"><path d="M2.5 6L5 8.5L9.5 3.5" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/></svg>}
           </button>
           <span className={`text-sm font-medium ${txt}`}>เลือก {selected.length} รายการ</span>
-          <button onClick={() => handleTransfer(selected)} disabled={transferring} className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium transition-colors ${isDark ? "bg-blue-500/10 text-blue-400 hover:bg-blue-500/20" : "bg-blue-50 text-blue-600 hover:bg-blue-100"}`}>
-            <ArrowRightLeft size={12} /> {transferring ? "กำลังส่ง..." : `ส่งต่อไป${(localStorage.getItem("iped-mode") || "personal") === "personal" ? "บริษัท" : "ส่วนตัว"}`}
+          <button onClick={() => {
+            const unsent = selected.filter((id) => !(receipts.find((r) => r._id === id)?.note || "").includes("ส่งเป็นค่าใช้จ่ายบริษัทแล้ว"));
+            if (unsent.length > 0) handleTransfer(unsent);
+          }} disabled={transferring} className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium transition-colors ${isDark ? "bg-blue-500/10 text-blue-400 hover:bg-blue-500/20" : "bg-blue-50 text-blue-600 hover:bg-blue-100"}`}>
+            <ArrowRightLeft size={12} /> {transferring ? "กำลังส่ง..." : "ส่งเป็นค่าใช้จ่ายบริษัท"}
           </button>
           <button onClick={handleBulkDelete} className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium bg-red-500 text-white hover:bg-red-600 transition-colors">
             <Trash2 size={12} /> ลบที่เลือก
