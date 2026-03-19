@@ -20,8 +20,8 @@ export async function GET(request: NextRequest) {
     const receiptIds = new Set<string>();
     matches.forEach((m: any) => { receiptIds.add(m.receiptA); receiptIds.add(m.receiptB); });
 
-    const receipts = await Receipt.find({ _id: { $in: Array.from(receiptIds) } })
-      .select("merchant amount date category status source")
+    const receipts = await Receipt.find({ _id: { $in: Array.from(receiptIds) }, userId: session.userId })
+      .select("merchant amount date category status source accountType")
       .lean();
 
     const receiptMap: Record<string, any> = {};

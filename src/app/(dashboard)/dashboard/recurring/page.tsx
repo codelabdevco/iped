@@ -1,7 +1,10 @@
+export const dynamic = "force-dynamic";
+
 import { Suspense } from "react";
 import { getSession } from "@/lib/auth";
 import { redirect } from "next/navigation";
 import { connectDB } from "@/lib/mongodb";
+import { getAccountMode } from "@/lib/mode";
 import Document from "@/models/Document";
 import RecurringClient from "./RecurringClient";
 
@@ -26,9 +29,11 @@ async function RecurringData() {
   if (!session) redirect("/login");
 
   await connectDB();
+  const accountType = await getAccountMode();
 
   const docs = await Document.find({
     userId: session.userId,
+    accountType,
     isRecurring: true,
   }).lean();
 

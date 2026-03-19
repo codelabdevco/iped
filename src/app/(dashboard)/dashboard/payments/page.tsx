@@ -1,7 +1,10 @@
+export const dynamic = "force-dynamic";
+
 import { Suspense } from "react";
 import { getSession } from "@/lib/auth";
 import { redirect } from "next/navigation";
 import { connectDB } from "@/lib/mongodb";
+import { getAccountMode } from "@/lib/mode";
 import Receipt from "@/models/Receipt";
 import PaymentsClient from "./PaymentsClient";
 
@@ -10,9 +13,10 @@ async function PaymentsData() {
   if (!session) redirect("/login");
 
   await connectDB();
+  const accountType = await getAccountMode();
 
   const agg = await Receipt.aggregate([
-    { $match: { userId: session.userId, status: { $ne: "cancelled" } } },
+    { $match: { userId: session.userId, accountType, status: { $ne: "cancelled" } } },
     {
       $group: {
         _id: { $ifNull: ["$paymentMethod", "other"] },

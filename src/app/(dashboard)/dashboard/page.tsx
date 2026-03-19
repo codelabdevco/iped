@@ -57,7 +57,7 @@ async function getDashboardData(userId: string) {
       const ms = new Date(now.getFullYear(), now.getMonth() - i, 1);
       const me = new Date(now.getFullYear(), now.getMonth() - i + 1, 0);
       const recs = await Receipt.find({
-        userId,
+        userId, accountType,
         createdAt: { $gte: ms, $lte: me },
       }).lean();
 
@@ -112,7 +112,7 @@ async function getDashboardData(userId: string) {
   };
 
   // Savings by category (real data)
-  const savingsReceipts = await Receipt.find({ userId, direction: "savings", status: { $nin: ["cancelled", "draft"] } })
+  const savingsReceipts = await Receipt.find({ userId, accountType, direction: "savings", status: { $nin: ["cancelled", "draft"] } })
     .select("amount category")
     .lean();
   const savingsByCategory: Record<string, number> = {};
