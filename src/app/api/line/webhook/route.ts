@@ -496,6 +496,40 @@ export async function POST(request: NextRequest) {
           await replyMessage(ev.replyToken, [{ type: "text", text: "❌ ไม่สามารถดึงข้อมูลสรุปได้" }]);
         }
 
+      // Join company command
+      } else if (msgLower.startsWith("เชื่อม") || msgLower.startsWith("join ") || msgLower.startsWith("เข้าร่วม")) {
+        try {
+          const code = msgText.replace(/^(เชื่อมบริษัท|เชื่อม|join|เข้าร่วม)\s*/i, "").trim();
+          if (!code) {
+            await replyMessage(ev.replyToken, [{ type: "text", text: "📝 พิมพ์ \"เชื่อม [รหัสเชิญ]\" เพื่อเชื่อมต่อบริษัท\nเช่น: เชื่อม a1b2c3d4e5f6" }]);
+          } else {
+            const mongoId = await resolveUserId(uid || "");
+            const Organization = (await import("@/models/Organization")).default;
+            const org = await Organization.findOne({ inviteCode: code, status: "active" });
+            if (!org) {
+              await replyMessage(ev.replyToken, [{ type: "text", text: "❌ รหัสเชิญไม่ถูกต้องหรือหมดอายุ" }]);
+            } else {
+              const isMember = org.members?.some((m: any) => String(m.userId) === mongoId);
+              if (isMember) {
+                await replyMessage(ev.replyToken, [{ type: "text", text: `✅ คุณเป็นสมาชิก ${org.name} อยู่แล้ว\n\nส่งสลิปมาได้เลย จะบันทึกเข้าบัญชีส่วนตัว\nแล้วกด "ส่งเข้าบริษัท" ในหน้าใบเสร็จ` }]);
+              } else {
+                org.members = org.members || [];
+                org.members.push({ userId: mongoId, role: "viewer", joinedAt: new Date() });
+                await org.save();
+                const User = (await import("@/models/User")).default;
+                await User.findByIdAndUpdate(mongoId, { orgId: org._id });
+                await replyMessage(ev.replyToken, [
+                  { type: "text", text: `🏢 เข้าร่วม "${org.name}" เรียบร้อยแล้ว!\n\nตอนนี้คุณสามารถส่งใบเสร็จเข้าบริษัทได้\nเปิดหน้าใบเสร็จ → แก้ไข → กด "ส่งเข้าบริษัท"` },
+                ]);
+              }
+            }
+          }
+          console.log("Reply: join org");
+        } catch (e: any) {
+          console.error("Join org error:", e.message);
+          await replyMessage(ev.replyToken, [{ type: "text", text: "❌ เกิดข้อผิดพลาด กรุณาลองใหม่" }]);
+        }
+
       // AI chat — any other text
       } else {
         try {
@@ -542,6 +576,26 @@ export async function POST(request: NextRequest) {
             await replyMessage(ev.replyToken, [
               { type: "text", text: "✅ ยืนยันบันทึกเรียบร้อยแล้ว\nแก้ไขข้อมูลได้ที่หน้าใบเสร็จ", quickReply: quickReplyButtons() },
             ]);
+          } else if (action === "join_org") {
+            const code = params.get("code");
+            if (code) {
+              const Organization = (await import("@/models/Organization")).default;
+              const org = await Organization.findOne({ inviteCode: code, status: "active" });
+              if (org) {
+                const mongoId = await resolveUserId(uid || "");
+                const isMember = org.members?.some((m: any) => String(m.userId) === mongoId);
+                if (!isMember) {
+                  org.members = org.members || [];
+                  org.members.push({ userId: mongoId, role: "viewer", joinedAt: new Date() });
+                  await org.save();
+                  const UserModel = (await import("@/models/User")).default;
+                  await UserModel.findByIdAndUpdate(mongoId, { orgId: org._id });
+                }
+                await replyMessage(ev.replyToken, [{ type: "text", text: `🏢 เชื่อมต่อ "${org.name}" เรียบร้อย!\nส่งสลิปมาแล้วกด "ส่งเข้าบริษัท" ได้เลย`, quickReply: quickReplyButtons() }]);
+              } else {
+                await replyMessage(ev.replyToken, [{ type: "text", text: "❌ รหัสเชิญไม่ถูกต้อง" }]);
+              }
+            }
           } else if (action === "cancel" && id) {
             // Cancel — delete draft entirely
             await Receipt.findByIdAndDelete(id);
