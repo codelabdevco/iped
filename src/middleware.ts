@@ -5,7 +5,7 @@ const publicPaths = ["/login", "/register", "/api/auth", "/api/line/webhook", "/
 const businessOnlyPages = [
   "/dashboard/tax", "/dashboard/customers", "/dashboard/quotations",
   "/dashboard/invoices", "/dashboard/receivables", "/dashboard/team",
-  "/dashboard/payroll", "/dashboard/approvals", "/dashboard/reimbursement",
+  "/dashboard/payroll", "/dashboard/approvals",
   "/dashboard/accounting", "/dashboard/admin", "/dashboard/billing",
 ];
 

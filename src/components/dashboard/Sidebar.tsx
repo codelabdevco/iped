@@ -90,7 +90,7 @@ const businessNav: NavGroup[] = [
       { label: "พนักงาน & แผนก", href: "/dashboard/team", icon: Users },
       { label: "จ่ายเงินเดือน", href: "/dashboard/payroll", icon: BadgeDollarSign },
       { label: "อนุมัติรายจ่าย", href: "/dashboard/approvals", icon: CheckSquare },
-      { label: "ค่าใช้จ่ายบริษัท", href: "/dashboard/reimbursement", icon: ArrowRightLeft },
+      { label: "ค่าใช้จ่ายบริษัท", href: "/dashboard/receipts?source=reimbursement", icon: ArrowRightLeft },
     ],
   },
   {
