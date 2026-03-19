@@ -45,6 +45,12 @@ const personalNav: NavGroup[] = [
     ],
   },
   {
+    label: "บริษัท",
+    items: [
+      { label: "สถานะเบิกจ่าย", href: "/dashboard/my-claims", icon: ArrowRightLeft },
+    ],
+  },
+  {
     label: "รายงาน",
     items: [
       { label: "สรุป & Trend", href: "/dashboard/reports", icon: BarChart3 },
