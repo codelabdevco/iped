@@ -1,7 +1,6 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import {
   LayoutDashboard, Receipt, FolderOpen, PiggyBank, BarChart3,
@@ -302,7 +301,7 @@ export default function Sidebar({ onNavigate, badges = {} }: { onNavigate?: () =
                   const active = isActive(item.href);
                   const badge = badges[item.href];
                   return (
-                    <Link
+                    <a
                       key={item.href}
                       href={item.href}
                       onClick={onNavigate}
@@ -325,7 +324,7 @@ export default function Sidebar({ onNavigate, badges = {} }: { onNavigate?: () =
                           {badge > 99 ? "99+" : badge}
                         </span>
                       ) : null}
-                    </Link>
+                    </a>
                   );
                 })}
             </div>
@@ -348,7 +347,7 @@ export default function Sidebar({ onNavigate, badges = {} }: { onNavigate?: () =
           <span style={fadeStyle()}>{isDark ? "โหมดสว่าง" : "โหมดมืด"}</span>
         </button>
 
-        <Link
+        <a
           href="/dashboard/settings"
           className={`flex items-center gap-3 px-3 py-2 rounded-lg text-[13px] font-medium transition-colors whitespace-nowrap overflow-hidden ${
             pathname.startsWith("/dashboard/settings") ? activeCls : txt
@@ -356,7 +355,7 @@ export default function Sidebar({ onNavigate, badges = {} }: { onNavigate?: () =
         >
           <Settings size={18} className="shrink-0" />
           <span style={fadeStyle()}>ตั้งค่า</span>
-        </Link>
+        </a>
 
         <button
           onClick={handleLogout}
