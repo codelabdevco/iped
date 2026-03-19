@@ -74,9 +74,10 @@ const ReceiptSchema = new Schema<IReceipt>(
 );
 
 ReceiptSchema.index({ merchant: "text", note: "text", ocrRawText: "text" });
-ReceiptSchema.index({ date: -1 });
-ReceiptSchema.index({ category: 1 });
-ReceiptSchema.index({ status: 1 });
-ReceiptSchema.index({ imageHash: 1 });
+ReceiptSchema.index({ userId: 1, date: -1 });
+ReceiptSchema.index({ userId: 1, direction: 1, date: -1 });
+ReceiptSchema.index({ userId: 1, status: 1 });
+ReceiptSchema.index({ userId: 1, category: 1 });
+ReceiptSchema.index({ imageHash: 1, userId: 1 });
 
 export default mongoose.models.Receipt || mongoose.model<IReceipt>("Receipt", ReceiptSchema);

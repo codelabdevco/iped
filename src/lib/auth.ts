@@ -3,6 +3,9 @@ import { cookies } from "next/headers";
 import { connectDB } from "./mongodb";
 import User from "@/models/User";
 
+if (!process.env.JWT_SECRET) {
+  console.warn("⚠️ JWT_SECRET not set — using insecure default. Set JWT_SECRET in production!");
+}
 const JWT_SECRET = new TextEncoder().encode(process.env.JWT_SECRET || "iped-secret-key-change-in-production");
 const TOKEN_NAME = "iped-token";
 const TOKEN_EXPIRY = "7d";

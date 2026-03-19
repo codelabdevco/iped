@@ -11,7 +11,7 @@ export async function GET(
   return withAuth(request, async (session) => {
     await connectDB();
     const { id } = await params;
-    const receipt = await Receipt.findById(id);
+    const receipt = await Receipt.findOne({ _id: id, userId: session.userId });
     if (!receipt) {
       return NextResponse.json({ success: false, error: "ไม่พบใบเสร็จที่ต้องการ" }, { status: 404 });
     }
@@ -41,7 +41,7 @@ export async function PUT(
     }
     // Only force "edited" if status wasn't explicitly set
     if (!body.status) updateData.status = "edited";
-    const receipt = await Receipt.findByIdAndUpdate(id, updateData, { new: true });
+    const receipt = await Receipt.findOneAndUpdate({ _id: id, userId: session.userId }, updateData, { new: true });
     if (!receipt) {
       return NextResponse.json({ success: false, error: "ไม่พบใบเสร็จที่ต้องการแก้ไข" }, { status: 404 });
     }

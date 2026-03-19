@@ -33,7 +33,11 @@ export async function GET(request: NextRequest) {
     if (from || to) {
       filter.date = {};
       if (from) (filter.date as Record<string, unknown>).$gte = new Date(from);
-      if (to) (filter.date as Record<string, unknown>).$lte = new Date(to + "T23:59:59.999Z");
+      if (to) {
+        const toDate = new Date(to);
+        toDate.setHours(23, 59, 59, 999);
+        (filter.date as Record<string, unknown>).$lte = toDate;
+      }
     }
 
     const search = searchParams.get("search");
@@ -84,12 +88,15 @@ export async function POST(request: NextRequest) {
     const body = await req.json();
 
     // Validate required fields
-    if (!body.merchant || !body.date || !body.amount) {
+    if (!body.merchant || !body.date || body.amount == null) {
       return apiError("กรุณากรอก merchant, date, amount", 400);
     }
 
     // Calculate netAmount
     const amount = Number(body.amount);
+    if (isNaN(amount)) {
+      return apiError("amount ต้องเป็นตัวเลข", 400);
+    }
     const vat = Number(body.vat || 0);
     const wht = Number(body.wht || 0);
     const netAmount = amount + vat - wht;

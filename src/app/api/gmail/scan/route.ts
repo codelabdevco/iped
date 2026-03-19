@@ -120,6 +120,7 @@ export async function POST(request: NextRequest) {
             grant_type: "refresh_token",
           }),
         });
+        if (!res.ok) return null;
         const data = await res.json();
         if (data.access_token) {
           if (account._id !== "legacy") {
@@ -209,7 +210,7 @@ export async function POST(request: NextRequest) {
 
             if (attData.data) {
               const base64 = attData.data.replace(/-/g, "+").replace(/_/g, "/");
-              const imageHash = crypto.createHash("sha256").update(base64.slice(0, 1000)).digest("hex").slice(0, 16);
+              const imageHash = crypto.createHash("sha256").update(base64).digest("hex").slice(0, 16);
 
               // Check duplicate by hash
               const existingByHash = await Receipt.findOne({ imageHash, userId: userId });

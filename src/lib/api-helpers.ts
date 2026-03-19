@@ -21,7 +21,7 @@ export async function withAuth(
     if (!session) {
       return apiError("กรุณาเข้าสู่ระบบ", 401);
     }
-    // Override accountType from client header if present
+    // Read accountType from client header (personal/business mode toggle)
     const headerMode = request.headers.get("x-account-type");
     if (headerMode === "personal" || headerMode === "business") {
       session.accountType = headerMode;
