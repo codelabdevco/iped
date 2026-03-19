@@ -136,7 +136,7 @@ export default function ApprovalsClient({ items: initial }: { items: ItemRow[] }
         </div>
       );
       if (r.status === "approved") return (
-        <button onClick={() => { setPayTarget(r); setPayRef(""); setPayNote(""); }} className={`px-2.5 py-1 rounded-lg text-[11px] font-medium ${dark ? "bg-blue-500/15 text-blue-400 hover:bg-blue-500/25" : "bg-blue-50 text-blue-600 hover:bg-blue-100"}`}><CreditCard className="w-3 h-3 inline mr-1" />อนุมัติจ่าย</button>
+        <button onClick={() => { setPayTarget(r); setPayRef(""); setPayNote(""); setPayCompanyNote(""); setPaySlip(null); }} className={`px-2.5 py-1 rounded-lg text-[11px] font-medium ${dark ? "bg-blue-500/15 text-blue-400 hover:bg-blue-500/25" : "bg-blue-50 text-blue-600 hover:bg-blue-100"}`}><CreditCard className="w-3 h-3 inline mr-1" />อนุมัติจ่าย</button>
       );
       if (r.status === "paid") return <span className="text-[11px] text-green-400">จ่ายแล้ว</span>;
       return <span className={`text-[11px] ${c("text-white/30", "text-gray-400")}`}>—</span>;

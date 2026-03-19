@@ -23,6 +23,8 @@ interface ReceiptRow {
   direction: string;
   hasImage: boolean;
   paymentMethod: string;
+  companyNote: string;
+  hasCompanySlip: boolean;
 }
 
 export default function ReimbursementClient({ receipts: initial }: { receipts: ReceiptRow[] }) {
@@ -90,16 +92,19 @@ export default function ReimbursementClient({ receipts: initial }: { receipts: R
       },
     },
     {
-      key: "paymentMethod" as any, label: "Ref / หมายเหตุ",
+      key: "paymentMethod" as any, label: "เอกสาร / หมายเหตุ",
       render: (r) => {
         const ref = (r.paymentMethod || "").replace("โอน ref: ", "");
-        const noteMatch = (r.note || "").match(/\|\s*([^|]+)$/);
-        const lastNote = noteMatch ? noteMatch[1].trim() : "";
         return (
-          <div>
+          <div className="space-y-0.5">
             {ref && <p className={`text-xs ${c("text-white/50", "text-gray-500")}`}>Ref: {ref}</p>}
-            {lastNote && <p className={`text-[10px] ${c("text-white/30", "text-gray-400")} truncate max-w-[200px]`}>{lastNote}</p>}
-            {!ref && !lastNote && <span className={c("text-white/30", "text-gray-400")}>—</span>}
+            {r.companyNote && <p className={`text-xs ${c("text-white/60", "text-gray-600")}`}>{r.companyNote}</p>}
+            {r.hasCompanySlip && (
+              <a href={`/api/receipts/company-slip?id=${r._id}`} target="_blank" className="inline-flex items-center gap-1 text-[11px] text-blue-400 hover:text-blue-300">
+                <ImageIcon size={11} />ดูสลิปแนบ
+              </a>
+            )}
+            {!ref && !r.companyNote && !r.hasCompanySlip && <span className={c("text-white/30", "text-gray-400")}>—</span>}
           </div>
         );
       },
