@@ -11,19 +11,17 @@ interface ShellProps {
   displayName: string;
   pictureUrl?: string;
   pendingReceipts?: number;
+  badges?: Record<string, number>;
   children: React.ReactNode;
 }
 
-function ShellInner({ displayName, pictureUrl, pendingReceipts, children }: ShellProps) {
+function ShellInner({ displayName, pictureUrl, badges: propBadges, children }: ShellProps) {
   const { isDark } = useTheme();
   const [mobileOpen, setMobileOpen] = useState(false);
   const toggleMobile = useCallback(() => setMobileOpen((p) => !p), []);
   const closeMobile = useCallback(() => setMobileOpen(false), []);
 
-  const badges: Record<string, number> = {};
-  if (pendingReceipts && pendingReceipts > 0) {
-    badges["/dashboard/receipts"] = pendingReceipts;
-  }
+  const badges = propBadges || {};
 
   return (
     <div className="flex h-screen overflow-hidden shell-theme">
@@ -50,12 +48,12 @@ function ShellInner({ displayName, pictureUrl, pendingReceipts, children }: Shel
   );
 }
 
-export default function DashboardShell({ displayName, pictureUrl, pendingReceipts, children }: ShellProps) {
+export default function DashboardShell({ displayName, pictureUrl, pendingReceipts, badges, children }: ShellProps) {
   return (
     <ThemeProvider>
       <ModeProvider>
         <ModalProvider>
-          <ShellInner displayName={displayName} pictureUrl={pictureUrl} pendingReceipts={pendingReceipts}>{children}</ShellInner>
+          <ShellInner displayName={displayName} pictureUrl={pictureUrl} badges={badges}>{children}</ShellInner>
         </ModalProvider>
       </ModeProvider>
     </ThemeProvider>

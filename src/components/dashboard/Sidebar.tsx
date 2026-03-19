@@ -283,7 +283,8 @@ export default function Sidebar({ onNavigate, badges = {} }: { onNavigate?: () =
                 group.items.map((item) => {
                   const Icon = item.icon;
                   const active = isActive(item.href);
-                  const badge = badges[item.href];
+                  const badgeKey = item.href.split("?")[0];
+                  const badge = badges[badgeKey];
                   return (
                     <a
                       key={item.href}
