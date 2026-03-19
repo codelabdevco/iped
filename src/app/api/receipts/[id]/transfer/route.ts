@@ -29,12 +29,12 @@ export async function POST(
       ? "ส่งเป็นค่าใช้จ่ายบริษัทแล้ว"
       : "โอนกลับส่วนตัวแล้ว";
 
-    // Find original receipt (include imageUrl for copying)
+    // Find original receipt — NO .select() so we get ALL fields including imageUrl
     const original = await Receipt.findOne({
       _id: id,
       userId: session.userId,
       accountType: sourceAccountType,
-    }).select("+imageUrl");
+    });
 
     if (!original) {
       return NextResponse.json(
@@ -43,36 +43,22 @@ export async function POST(
       );
     }
 
-    // Create a copy as reimbursement request
+    // Copy ALL data from original to new receipt
+    const origObj = original.toObject();
+    delete origObj._id;
+    delete origObj.createdAt;
+    delete origObj.updatedAt;
+    delete origObj.__v;
+
     const newReceipt = await Receipt.create({
-      type: original.type,
-      source: original.source,
-      documentNumber: original.documentNumber,
-      merchant: original.merchant,
-      merchantTaxId: original.merchantTaxId,
-      date: original.date,
-      time: original.time,
-      dueDate: original.dueDate,
-      amount: original.amount,
-      vat: original.vat,
-      wht: original.wht,
-      category: original.category,
-      categoryIcon: original.categoryIcon,
-      subCategory: original.subCategory,
-      paymentMethod: original.paymentMethod,
-      imageUrl: original.imageUrl,
-      imageHash: original.imageHash,
-      fileIds: original.fileIds,
-      lineItems: original.lineItems,
+      ...origObj,
       userId: session.userId,
-      orgId: original.orgId,
       accountType: targetAccountType,
       status: "pending",
-      direction: "expense",
       note: `${notePrefix} • ref: ${original._id}`,
     });
 
-    // Update original receipt with reference
+    // Update original with reference
     const existingNote = original.note ? `${original.note} | ` : "";
     await Receipt.findByIdAndUpdate(original._id, {
       note: `${existingNote}${noteUpdate} • ref: ${newReceipt._id}`,

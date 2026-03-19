@@ -33,6 +33,16 @@ export async function PUT(
       "documentNumber", "merchantTaxId", "type", "status",
       "imageUrl", "time", "items", "direction", "fileIds", "accountType",
     ];
+    // Check if this is a transferred receipt (read-only except status changes)
+    const existing = await Receipt.findOne({ _id: id, userId: session.userId });
+    if (!existing) {
+      return NextResponse.json({ success: false, error: "ไม่พบใบเสร็จที่ต้องการแก้ไข" }, { status: 404 });
+    }
+    const isTransferred = (existing.note || "").includes("ค่าใช้จ่ายบริษัท จากส่วนตัว");
+    if (isTransferred && !body.status) {
+      return NextResponse.json({ success: false, error: "ใบเสร็จที่ส่งมาจากส่วนตัวไม่สามารถแก้ไขได้ สามารถเปลี่ยนสถานะได้เท่านั้น" }, { status: 403 });
+    }
+
     const updateData: any = {};
     for (const field of allowedFields) {
       if (body[field] !== undefined) {
