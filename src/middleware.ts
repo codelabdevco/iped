@@ -2,7 +2,6 @@ import { NextRequest, NextResponse } from "next/server";
 
 const publicPaths = ["/login", "/register", "/api/auth", "/api/line/webhook", "/api/line"];
 
-// Business-only pages
 const businessOnlyPages = [
   "/dashboard/tax", "/dashboard/customers", "/dashboard/quotations",
   "/dashboard/invoices", "/dashboard/receivables", "/dashboard/team",
@@ -23,44 +22,42 @@ export function middleware(request: NextRequest) {
 
   const token = request.cookies.get("iped-token")?.value;
 
-  // ── /personal/... and /business/... → set cookie + redirect to /dashboard/... ──
+  // ── /personal/... and /business/... → rewrite to /dashboard/... + set cookie ──
   const modeMatch = pathname.match(/^\/(personal|business)(\/.*)?$/);
   if (modeMatch) {
-    const mode = modeMatch[1];
+    const mode = modeMatch[1] as "personal" | "business";
     const rest = modeMatch[2] || "/dashboard";
+
     if (!token) return NextResponse.redirect(new URL("/login", request.url));
 
-    // Redirect to clean URL + set cookie
-    const response = NextResponse.redirect(new URL(rest, request.url));
-    response.cookies.set("iped-mode", mode, { path: "/", maxAge: 365 * 24 * 60 * 60, sameSite: "lax" });
-    return response;
-  }
-
-  // ── Dashboard routes ──
-  if (pathname.startsWith("/dashboard")) {
-    if (!token) {
-      const loginUrl = new URL("/login", request.url);
-      loginUrl.searchParams.set("from", pathname);
-      return NextResponse.redirect(loginUrl);
-    }
-
-    // Route guard: block business-only pages in personal mode
-    const mode = request.cookies.get("iped-mode")?.value || "personal";
+    // Route guard
     if (mode === "personal") {
+      const pagePath = rest.replace(/\/$/, "") || "/dashboard";
       for (const bp of businessOnlyPages) {
-        if (pathname === bp || pathname.startsWith(bp + "/")) {
-          return NextResponse.redirect(new URL("/dashboard", request.url));
+        if (pagePath === bp || pagePath.startsWith(bp + "/")) {
+          return NextResponse.redirect(new URL("/personal/dashboard", request.url));
         }
       }
     }
 
-    return NextResponse.next();
+    // Rewrite to actual page + set cookie (URL stays as /personal/ or /business/)
+    const response = NextResponse.rewrite(new URL(rest, request.url));
+    response.cookies.set("iped-mode", mode, { path: "/", maxAge: 365 * 24 * 60 * 60, sameSite: "lax" });
+    return response;
   }
 
-  // Root
+  // ── Legacy /dashboard/... → redirect to /{mode}/dashboard/... ──
+  if (pathname.startsWith("/dashboard")) {
+    if (!token) return NextResponse.redirect(new URL("/login", request.url));
+    const mode = request.cookies.get("iped-mode")?.value || "personal";
+    return NextResponse.redirect(new URL(`/${mode}${pathname}`, request.url));
+  }
+
+  // ── Root / ──
   if (pathname === "/") {
     if (!token) return NextResponse.redirect(new URL("/login", request.url));
-    return NextResponse.redirect(new URL("/dashboard", request.url));
+    const mode = request.cookies.get("iped-mode")?.value || "personal";
+    return NextResponse.redirect(new URL(`/${mode}/dashboard`, request.url));
   }
 
   // Other protected

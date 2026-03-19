@@ -61,7 +61,7 @@ export async function GET(req: NextRequest) {
     });
 
     // Set cookie and redirect to dashboard
-    const redirectUrl = new URL("/dashboard", baseUrl);
+    const redirectUrl = new URL("/personal/dashboard", baseUrl);
     const response = NextResponse.redirect(redirectUrl);
     const cookie = setTokenCookie(token);
     response.headers.set("Set-Cookie", cookie["Set-Cookie"]);

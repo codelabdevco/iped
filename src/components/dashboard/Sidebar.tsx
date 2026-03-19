@@ -117,39 +117,17 @@ export default function Sidebar({ onNavigate, badges = {} }: { onNavigate?: () =
   const { isDark, toggleTheme } = useTheme();
   const { mode, switchMode: ctxSwitchMode } = useMode();
 
-  const businessOnly = ["/dashboard/tax","/dashboard/customers","/dashboard/quotations","/dashboard/invoices","/dashboard/receivables","/dashboard/team","/dashboard/payroll","/dashboard/approvals","/dashboard/reimbursement","/dashboard/accounting","/dashboard/admin","/dashboard/billing"];
+  // Build href with mode prefix: /personal/dashboard/receipts or /business/dashboard/receipts
+  const modeHref = (href: string) => `/${mode}${href}`;
+
+  // Extract raw dashboard path from current URL (strip /personal or /business prefix)
+  const rawPath = pathname.replace(/^\/(personal|business)/, "") || "/dashboard";
 
   const switchMode = (m: Mode) => {
-    // 1) Create a persistent full-screen overlay OUTSIDE React (survives during reload)
-    const overlay = document.createElement("div");
-    overlay.id = "mode-switch-overlay";
-    const isDarkNow = document.documentElement.getAttribute("data-theme") === "dark";
-    overlay.style.cssText = `
-      position:fixed;inset:0;z-index:99999;
-      display:flex;align-items:center;justify-content:center;gap:12px;
-      background:${isDarkNow ? "rgba(10,10,10,0.92)" : "rgba(247,247,247,0.92)"};
-      backdrop-filter:blur(4px);
-      transition:opacity 0.15s;
-    `;
-    overlay.innerHTML = `
-      <div style="width:20px;height:20px;border:2px solid #FA3633;border-top-color:transparent;border-radius:50%;animation:spin .6s linear infinite"></div>
-      <span style="font-size:14px;font-weight:500;color:${isDarkNow ? "rgba(255,255,255,0.6)" : "rgba(0,0,0,0.5)"}">กำลังสลับโหมด...</span>
-      <style>@keyframes spin{to{transform:rotate(360deg)}}</style>
-    `;
-    document.body.appendChild(overlay);
-
-    // 2) Update mode
     ctxSwitchMode(m);
-
-    // 3) Navigate after brief delay
-    const needsRedirect = m === "personal" && businessOnly.some((p) => pathname === p || pathname.startsWith(p + "/"));
-    setTimeout(() => {
-      if (needsRedirect) {
-        window.location.href = "/dashboard";
-      } else {
-        window.location.reload();
-      }
-    }, 100);
+    // Navigate to same page under new mode — <a> tag = full server request = fresh data
+    const currentPage = rawPath || "/dashboard";
+    window.location.href = `/${m}${currentPage}`;
   };
 
   const toggleGroup = (label: string) => {
@@ -159,7 +137,7 @@ export default function Sidebar({ onNavigate, badges = {} }: { onNavigate?: () =
   const navGroups = mode === "personal" ? personalNav : businessNav;
 
   const isActive = (href: string) =>
-    pathname === href || (href !== "/dashboard" && pathname.startsWith(href));
+    rawPath === href || (href !== "/dashboard" && rawPath.startsWith(href));
 
   const handleLogout = async () => {
     document.cookie = "iped-token=; Path=/; Expires=Thu, 01 Jan 1970 00:00:00 GMT";
@@ -303,7 +281,7 @@ export default function Sidebar({ onNavigate, badges = {} }: { onNavigate?: () =
                   return (
                     <a
                       key={item.href}
-                      href={item.href}
+                      href={modeHref(item.href)}
                       onClick={onNavigate}
                       className={`flex items-center gap-3 px-3 py-2 rounded-lg text-[13px] font-medium transition-colors whitespace-nowrap overflow-hidden ${
                         active ? activeCls : txt
@@ -348,7 +326,7 @@ export default function Sidebar({ onNavigate, badges = {} }: { onNavigate?: () =
         </button>
 
         <a
-          href="/dashboard/settings"
+          href={modeHref("/dashboard/settings")}
           className={`flex items-center gap-3 px-3 py-2 rounded-lg text-[13px] font-medium transition-colors whitespace-nowrap overflow-hidden ${
             pathname.startsWith("/dashboard/settings") ? activeCls : txt
           }`}
