@@ -1567,6 +1567,37 @@ function ProfileTab({ data, isDark, toggleTheme }: { data: MobileData; isDark: b
         </div>
       </div>
 
+      {/* Company connection */}
+      {p.orgId ? (
+        <div className={`${card} border ${border} rounded-2xl p-4`}>
+          <div className="flex items-center gap-3">
+            <div className={`w-10 h-10 rounded-xl flex items-center justify-center text-lg ${isDark ? "bg-blue-500/10" : "bg-blue-50"}`}>🏢</div>
+            <div className="flex-1 min-w-0">
+              <p className={`text-sm font-semibold ${txt} truncate`}>{p.orgName || "บริษัท"}</p>
+              <p className={`text-xs ${sub}`}>เชื่อมต่อบริษัทแล้ว</p>
+            </div>
+            <span className="flex items-center gap-1 px-2 py-1 rounded-full bg-green-500/10 text-green-500 text-[10px] font-semibold">
+              <Check size={10} /> เชื่อมต่อแล้ว
+            </span>
+          </div>
+          <p className={`text-[10px] ${muted} mt-2`}>ส่งใบเสร็จเข้าบริษัทได้ที่หน้าใบเสร็จ → แก้ไข → "ส่งเข้าบริษัท"</p>
+        </div>
+      ) : (
+        <div className={`${card} border ${border} rounded-2xl p-4`}>
+          <div className="flex items-center gap-3">
+            <div className={`w-10 h-10 rounded-xl flex items-center justify-center text-lg ${isDark ? "bg-white/5" : "bg-gray-50"}`}>🏢</div>
+            <div className="flex-1 min-w-0">
+              <p className={`text-sm font-semibold ${txt}`}>เชื่อมต่อบริษัท</p>
+              <p className={`text-xs ${sub}`}>ส่งบิลเข้าบริษัทผ่านรหัสเชิญ</p>
+            </div>
+            <span className={`flex items-center gap-1 px-2 py-1 rounded-full text-[10px] font-semibold ${isDark ? "bg-white/5 text-white/40" : "bg-gray-100 text-gray-400"}`}>
+              ยังไม่เชื่อมต่อ
+            </span>
+          </div>
+          <p className={`text-[10px] ${muted} mt-2`}>พิมพ์ "เชื่อม [รหัส]" ใน LINE หรือเปิดใบเสร็จ → "เชื่อมต่อบริษัท"</p>
+        </div>
+      )}
+
       <div className={`${card} border ${border} rounded-2xl p-4`}>
         <div className="flex items-center justify-between mb-3">
           <p className={`text-xs font-semibold ${txt}`}>ข้อมูลส่วนตัว</p>
