@@ -147,6 +147,7 @@ export default function SettingsClient({ profile, categoryStats = [] }: { profil
   const toggleMode = (newMode: Mode) => {
     setMode(newMode);
     localStorage.setItem("iped-mode", newMode);
+    document.cookie = `iped-mode=${newMode}; path=/; max-age=${365 * 24 * 60 * 60}; SameSite=Lax`;
     // If current tab doesn't exist in new mode, reset to profile
     const newTabs = allTabs.filter((t) => (t.modes as readonly string[]).includes(newMode));
     if (!newTabs.some((t) => t.id === activeTab)) setActiveTab("profile");

@@ -1,3 +1,5 @@
+export const dynamic = "force-dynamic";
+
 import { Suspense } from "react";
 import { verifyToken } from "@/lib/auth";
 import { cookies } from "next/headers";
