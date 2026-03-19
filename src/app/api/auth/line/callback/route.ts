@@ -60,8 +60,8 @@ export async function GET(req: NextRequest) {
       orgId: user.orgId?.toString(),
     });
 
-    // Set cookie and redirect to dashboard (onboarding checklist is inside dashboard)
-    const redirectUrl = new URL("/dashboard", baseUrl);
+    // Set cookie and redirect to dashboard
+    const redirectUrl = new URL("/personal/dashboard", baseUrl);
     const response = NextResponse.redirect(redirectUrl);
     const cookie = setTokenCookie(token);
     response.headers.set("Set-Cookie", cookie["Set-Cookie"]);

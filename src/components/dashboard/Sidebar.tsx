@@ -118,29 +118,15 @@ export default function Sidebar({ onNavigate, badges = {} }: { onNavigate?: () =
   const { isDark, toggleTheme } = useTheme();
   const { mode, switchMode: ctxSwitchMode } = useMode();
 
-  // Check if a pathname is valid for a given mode
-  const isValidRoute = (path: string, m: Mode) => {
-    const nav = m === "personal" ? personalNav : businessNav;
-    const allHrefs = nav.flatMap((g) => g.items.map((i) => i.href));
-    const alwaysValid = ["/dashboard/settings"];
-    return allHrefs.some(
-      (href) => path === href || (href !== "/dashboard" && path.startsWith(href))
-    ) || alwaysValid.some((p) => path.startsWith(p));
-  };
-
-  // Route guard: redirect if current page doesn't belong to current mode
-  useEffect(() => {
-    if (!isValidRoute(pathname, mode)) {
-      router.push("/dashboard");
-    }
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [pathname, mode]);
+  // Build mode-prefixed href
+  const modeHref = (href: string) => `/${mode}${href}`;
 
   const switchMode = (m: Mode) => {
     ctxSwitchMode(m);
-    if (!isValidRoute(pathname, m)) {
-      router.push("/dashboard");
-    }
+    // Navigate to the same page but under new mode prefix
+    // /dashboard/receipts → /business/dashboard/receipts
+    const currentPage = pathname.replace(/^\/(personal|business)/, "") || "/dashboard";
+    router.push(`/${m}${currentPage}`);
   };
 
   const toggleGroup = (label: string) => {
@@ -149,8 +135,10 @@ export default function Sidebar({ onNavigate, badges = {} }: { onNavigate?: () =
 
   const navGroups = mode === "personal" ? personalNav : businessNav;
 
+  // Check active: match against the raw dashboard path (without mode prefix)
+  const rawPath = pathname.replace(/^\/(personal|business)/, "");
   const isActive = (href: string) =>
-    pathname === href || (href !== "/dashboard" && pathname.startsWith(href));
+    rawPath === href || (href !== "/dashboard" && rawPath.startsWith(href));
 
   const handleLogout = async () => {
     document.cookie = "iped-token=; Path=/; Expires=Thu, 01 Jan 1970 00:00:00 GMT";
@@ -294,7 +282,7 @@ export default function Sidebar({ onNavigate, badges = {} }: { onNavigate?: () =
                   return (
                     <Link
                       key={item.href}
-                      href={item.href}
+                      href={modeHref(item.href)}
                       onClick={onNavigate}
                       className={`flex items-center gap-3 px-3 py-2 rounded-lg text-[13px] font-medium transition-colors whitespace-nowrap overflow-hidden ${
                         active ? activeCls : txt
@@ -339,7 +327,7 @@ export default function Sidebar({ onNavigate, badges = {} }: { onNavigate?: () =
         </button>
 
         <Link
-          href="/dashboard/settings"
+          href={modeHref("/dashboard/settings")}
           className={`flex items-center gap-3 px-3 py-2 rounded-lg text-[13px] font-medium transition-colors whitespace-nowrap overflow-hidden ${
             pathname.startsWith("/dashboard/settings") ? activeCls : txt
           }`}
