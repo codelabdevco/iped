@@ -365,13 +365,34 @@ function ScanTab({ isDark, onDone }: { isDark: boolean; onDone: () => void }) {
       const fd = new FormData();
       fd.append("file", file);
       const res = await fetch("/api/ocr", { method: "POST", body: fd });
-      const data = await res.json();
-      if (res.ok && data.receipt) setResult(data.receipt);
-      else setError(data.error || "ไม่สามารถอ่านใบเสร็จได้");
+      const json = await res.json();
+      if (res.ok && json.receipt) {
+        // Pass all info: receipt, data (OCR details), duplicate flag
+        setResult({
+          ...json.receipt,
+          merchant: json.data?.merchant,
+          amount: json.data?.amount || 0,
+          category: json.data?.category,
+          categoryIcon: json.data?.categoryIcon,
+          direction: json.data?.direction || (json.data?.amount < 0 ? "income" : "expense"),
+          date: json.data?.date,
+          time: json.data?.time,
+          paymentMethod: json.data?.paymentMethod,
+          ocrConfidence: json.data?.ocrConfidence,
+          duplicate: json.duplicate || false,
+          duplicateInfo: json.duplicateInfo || "",
+        });
+      } else {
+        setError(json.error || "ไม่สามารถอ่านใบเสร็จได้");
+      }
     } catch { setError("เกิดข้อผิดพลาด"); } finally { setUploading(false); }
   };
   const handleInput = (e: React.ChangeEvent<HTMLInputElement>) => { const f = e.target.files?.[0]; if (f) handleFile(f); e.target.value = ""; };
   const reset = () => { setPreview(null); setResult(null); setError(""); };
+
+  // Determine result type
+  const isDuplicate = result?.duplicate;
+  const isLowConfidence = result && (result.ocrConfidence <= 10 || result.amount === 0);
 
   return (
     <div className="space-y-4 pt-3">
@@ -380,18 +401,86 @@ function ScanTab({ isDark, onDone }: { isDark: boolean; onDone: () => void }) {
       <input ref={galleryRef} type="file" accept="image/*" onChange={handleInput} className="hidden" />
 
       {result ? (
-        <div className={`${card} border border-green-500/20 rounded-2xl p-5 space-y-4`}>
-          <div className="flex items-center gap-3">
-            <div className="w-10 h-10 rounded-xl bg-green-500/10 flex items-center justify-center"><Check size={20} className="text-green-500" /></div>
-            <div><p className={`text-base font-bold ${txt}`}>บันทึกสำเร็จ!</p><p className={`text-xs ${sub}`}>{result.merchant}</p></div>
-          </div>
-          <div className={`rounded-xl p-3 ${isDark ? "bg-white/[0.03]" : "bg-gray-50"}`}>
-            <div className="flex justify-between mb-1"><span className={`text-xs ${sub}`}>จำนวนเงิน</span><Baht value={result.amount} direction={result.direction} className="text-lg font-bold" /></div>
-            <div className="flex justify-between"><span className={`text-xs ${sub}`}>หมวดหมู่</span><span className={`text-sm ${txt}`}>{result.categoryIcon} {result.category}</span></div>
-          </div>
-          <div className="grid grid-cols-2 gap-2">
-            <button onClick={reset} className="py-3 rounded-xl bg-[#FA3633] text-white text-sm font-semibold active:scale-[0.97]">สแกนอีก</button>
-            <button onClick={onDone} className={`py-3 rounded-xl text-sm font-semibold ${card} border ${border} ${txt}`}>กลับหน้าหลัก</button>
+        <div className="space-y-3">
+          {/* Duplicate warning */}
+          {isDuplicate && (
+            <div className={`rounded-xl border p-3 ${isDark ? "bg-amber-500/5 border-amber-500/20" : "bg-amber-50 border-amber-200"}`}>
+              <div className="flex items-center gap-2 mb-1">
+                <AlertTriangle size={16} className="text-amber-500" />
+                <span className={`text-xs font-semibold ${isDark ? "text-amber-400" : "text-amber-700"}`}>พบสลิปซ้ำ!</span>
+              </div>
+              <p className={`text-[11px] ${isDark ? "text-amber-400/70" : "text-amber-600"}`}>{result.duplicateInfo}</p>
+              <p className={`text-[10px] ${muted} mt-1`}>บันทึกแล้วเป็นสถานะ "ซ้ำ" — ตรวจสอบได้ที่หน้าใบเสร็จ</p>
+            </div>
+          )}
+
+          {/* Low confidence / not a receipt warning */}
+          {isLowConfidence && !isDuplicate && (
+            <div className={`rounded-xl border p-3 ${isDark ? "bg-orange-500/5 border-orange-500/20" : "bg-orange-50 border-orange-200"}`}>
+              <div className="flex items-center gap-2 mb-1">
+                <AlertTriangle size={16} className="text-orange-500" />
+                <span className={`text-xs font-semibold ${isDark ? "text-orange-400" : "text-orange-700"}`}>อาจไม่ใช่ใบเสร็จ</span>
+              </div>
+              <p className={`text-[10px] ${isDark ? "text-orange-400/70" : "text-orange-600"}`}>AI ไม่มั่นใจว่าเป็นใบเสร็จ/สลิป — บันทึกแล้วเป็น "รอตรวจสอบ" กรุณาตรวจสอบและแก้ไขข้อมูล</p>
+            </div>
+          )}
+
+          {/* Success card */}
+          <div className={`${card} border ${isDuplicate ? "border-amber-500/20" : isLowConfidence ? "border-orange-500/20" : "border-green-500/20"} rounded-2xl p-5 space-y-4`}>
+            <div className="flex items-center gap-3">
+              <div className={`w-10 h-10 rounded-xl flex items-center justify-center ${isDuplicate ? "bg-amber-500/10" : isLowConfidence ? "bg-orange-500/10" : "bg-green-500/10"}`}>
+                {isDuplicate ? <AlertTriangle size={20} className="text-amber-500" /> : isLowConfidence ? <AlertTriangle size={20} className="text-orange-500" /> : <Check size={20} className="text-green-500" />}
+              </div>
+              <div>
+                <p className={`text-base font-bold ${txt}`}>{isDuplicate ? "บันทึกแล้ว (ซ้ำ)" : isLowConfidence ? "บันทึกแล้ว (รอตรวจ)" : "บันทึกสำเร็จ!"}</p>
+                <p className={`text-xs ${sub}`}>{result.merchant || "ไม่ระบุร้านค้า"}</p>
+              </div>
+            </div>
+
+            {/* Receipt details */}
+            <div className={`rounded-xl p-3 space-y-2 ${isDark ? "bg-white/[0.03]" : "bg-gray-50"}`}>
+              <div className="flex justify-between">
+                <span className={`text-xs ${sub}`}>จำนวนเงิน</span>
+                <Baht value={result.amount} direction={result.direction} className="text-lg font-bold" />
+              </div>
+              <div className="flex justify-between">
+                <span className={`text-xs ${sub}`}>หมวดหมู่</span>
+                <span className={`text-sm ${txt}`}>{result.categoryIcon} {result.category}</span>
+              </div>
+              {result.date && (
+                <div className="flex justify-between">
+                  <span className={`text-xs ${sub}`}>วันที่</span>
+                  <span className={`text-xs ${txt}`}>{new Date(result.date).toLocaleDateString("th-TH", { day: "numeric", month: "short", year: "2-digit" })}{result.time ? ` · ${result.time}` : ""}</span>
+                </div>
+              )}
+              {result.paymentMethod && (
+                <div className="flex justify-between items-center">
+                  <span className={`text-xs ${sub}`}>ช่องทาง</span>
+                  <div className="flex items-center gap-1.5">
+                    <BrandIcon brand={result.paymentMethod} size={16} />
+                    <span className={`text-xs ${txt}`}>{PAY_LABELS[result.paymentMethod] || result.paymentMethod}</span>
+                  </div>
+                </div>
+              )}
+              <div className="flex justify-between">
+                <span className={`text-xs ${sub}`}>สถานะ</span>
+                <span className={`text-[10px] px-2 py-0.5 rounded-full font-semibold ${
+                  isDuplicate ? "bg-amber-500/10 text-amber-500" : isLowConfidence ? "bg-orange-500/10 text-orange-500" : "bg-green-500/10 text-green-500"
+                }`}>{isDuplicate ? "ซ้ำ" : isLowConfidence ? "รอตรวจสอบ" : "รอยืนยัน"}</span>
+              </div>
+            </div>
+
+            {/* Link to desktop receipts */}
+            <a href={`/dashboard/receipts`} className={`flex items-center justify-center gap-2 py-2.5 rounded-xl text-xs font-medium ${isDark ? "bg-white/5 text-white/60" : "bg-gray-100 text-gray-600"}`}>
+              <Receipt size={14} />
+              ดู/แก้ไขในหน้าใบเสร็จ →
+            </a>
+
+            {/* Action buttons */}
+            <div className="grid grid-cols-2 gap-2">
+              <button onClick={reset} className="py-3 rounded-xl bg-[#FA3633] text-white text-sm font-semibold active:scale-[0.97]">สแกนอีก</button>
+              <button onClick={onDone} className={`py-3 rounded-xl text-sm font-semibold ${card} border ${border} ${txt}`}>กลับหน้าหลัก</button>
+            </div>
           </div>
         </div>
       ) : error ? (
@@ -407,7 +496,7 @@ function ScanTab({ isDark, onDone }: { isDark: boolean; onDone: () => void }) {
           </div>
           <div className="text-center">
             <p className={`text-sm font-semibold ${txt}`}>AI กำลังวิเคราะห์...</p>
-            <p className={`text-xs ${muted} mt-1`}>อ่านข้อมูลจากใบเสร็จ</p>
+            <p className={`text-xs ${muted} mt-1`}>ตรวจซ้ำ → อ่านข้อมูล → บันทึก</p>
           </div>
         </div>
       ) : (

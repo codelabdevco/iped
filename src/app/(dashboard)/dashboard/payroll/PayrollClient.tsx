@@ -5,18 +5,8 @@ import { useRouter } from "next/navigation";
 import { useReactiveData } from "@/hooks/useReactiveMode";
 import { useTheme } from "@/contexts/ThemeContext";
 import {
-  Banknote,
-  Users,
-  CheckCircle,
-  Clock,
-  Plus,
-  Play,
-  Loader2,
-  X,
-  Pencil,
-  Check,
-  CreditCard,
-  Trash2,
+  Banknote, Users, CheckCircle, Clock, Plus, Play, Loader2,
+  Pencil, Check, CreditCard, Trash2, Search, Filter,
 } from "lucide-react";
 import PageHeader from "@/components/dashboard/PageHeader";
 import StatsCard from "@/components/dashboard/StatsCard";
@@ -132,6 +122,8 @@ export default function PayrollClient({ employees: initialEmp, payrolls: initial
   const [running, setRunning] = useState(false);
   const [runResult, setRunResult] = useState<{ created: number; skipped: number } | null>(null);
   const [empForm, setEmpForm] = useState(defaultEmpForm);
+  const [search, setSearch] = useState("");
+  const [statusFilter, setStatusFilter] = useState("all");
 
   /* ── Stats (recompute from local state) ── */
   const stats = useMemo(() => {
@@ -150,6 +142,22 @@ export default function PayrollClient({ employees: initialEmp, payrolls: initial
     const y = currentYear - 2 + i;
     return { value: String(y), label: String(y + 543) };
   });
+
+  /* ── Status filter options ── */
+  const payrollStatusOptions = [
+    { value: "all", label: "ทั้งหมด" },
+    { value: "draft", label: "แบบร่าง" },
+    { value: "pending", label: "รออนุมัติ" },
+    { value: "approved", label: "อนุมัติแล้ว" },
+    { value: "paid", label: "จ่ายแล้ว" },
+  ];
+
+  const empStatusOptions = [
+    { value: "all", label: "ทั้งหมด" },
+    { value: "active", label: "ทำงานอยู่" },
+    { value: "probation", label: "ทดลองงาน" },
+    { value: "resigned", label: "ลาออก" },
+  ];
 
   /* ── Payroll actions ── */
   const handlePayrollAction = useCallback(async (id: string, action: "approve" | "pay") => {
@@ -213,71 +221,31 @@ export default function PayrollClient({ employees: initialEmp, payrolls: initial
     setShowAddEmployee(true);
   };
 
-  const addAllowanceRow = () => {
-    setEmpForm((f) => ({ ...f, allowances: [...f.allowances, { type: "", amount: "" }] }));
-  };
-
-  const removeAllowanceRow = (idx: number) => {
-    setEmpForm((f) => ({ ...f, allowances: f.allowances.filter((_, i) => i !== idx) }));
-  };
-
-  const updateAllowance = (idx: number, key: "type" | "amount", val: string) => {
-    setEmpForm((f) => ({
-      ...f,
-      allowances: f.allowances.map((a, i) => (i === idx ? { ...a, [key]: val } : a)),
-    }));
-  };
+  const addAllowanceRow = () => setEmpForm((f) => ({ ...f, allowances: [...f.allowances, { type: "", amount: "" }] }));
+  const removeAllowanceRow = (idx: number) => setEmpForm((f) => ({ ...f, allowances: f.allowances.filter((_, i) => i !== idx) }));
+  const updateAllowance = (idx: number, key: "type" | "amount", val: string) => setEmpForm((f) => ({ ...f, allowances: f.allowances.map((a, i) => (i === idx ? { ...a, [key]: val } : a)) }));
 
   const handleSaveEmployee = async () => {
     if (!empForm.name || !empForm.baseSalary) return;
     setSaving(true);
     const body = {
-      employeeCode: empForm.employeeCode,
-      name: empForm.name,
-      nickname: empForm.nickname,
-      position: empForm.position,
-      department: empForm.department,
-      employmentType: empForm.employmentType,
-      startDate: empForm.startDate,
-      baseSalary: Number(empForm.baseSalary),
+      employeeCode: empForm.employeeCode, name: empForm.name, nickname: empForm.nickname,
+      position: empForm.position, department: empForm.department, employmentType: empForm.employmentType,
+      startDate: empForm.startDate, baseSalary: Number(empForm.baseSalary),
       allowances: empForm.allowances.filter((a) => a.type && a.amount).map((a) => ({ type: a.type, amount: Number(a.amount) })),
-      socialSecurity: empForm.socialSecurity,
-      providentFund: Number(empForm.providentFund) || 0,
-      bankName: empForm.bankName,
-      bankAccount: empForm.bankAccount,
-      taxId: empForm.taxId,
-      lineUserId: empForm.lineUserId || undefined,
-      email: empForm.email || undefined,
+      socialSecurity: empForm.socialSecurity, providentFund: Number(empForm.providentFund) || 0,
+      bankName: empForm.bankName, bankAccount: empForm.bankAccount, taxId: empForm.taxId,
+      lineUserId: empForm.lineUserId || undefined, email: empForm.email || undefined,
     };
     try {
       if (editingEmpId) {
-        const res = await fetch(`/api/employees/${editingEmpId}`, {
-          method: "PUT",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify(body),
-        });
-        if (res.ok) {
-          setEmployees((prev) => prev.map((e) => e._id === editingEmpId ? { ...e, ...body, allowances: body.allowances, baseSalary: body.baseSalary } : e));
-        }
+        const res = await fetch(`/api/employees/${editingEmpId}`, { method: "PUT", headers: { "Content-Type": "application/json" }, body: JSON.stringify(body) });
+        if (res.ok) setEmployees((prev) => prev.map((e) => e._id === editingEmpId ? { ...e, ...body, allowances: body.allowances, baseSalary: body.baseSalary } as EmployeeRow : e));
       } else {
-        const res = await fetch("/api/employees", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify(body),
-        });
+        const res = await fetch("/api/employees", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(body) });
         if (res.ok) {
           const json = await res.json();
-          setEmployees((prev) => [
-            {
-              _id: json.employee?._id || `temp-${Date.now()}`,
-              ...body,
-              nickname: body.nickname || "",
-              startDate: body.startDate,
-              taxId: body.taxId || "",
-              status: "active",
-            },
-            ...prev,
-          ]);
+          setEmployees((prev) => [{ _id: json.employee?._id || `temp-${Date.now()}`, ...body, nickname: body.nickname || "", startDate: body.startDate, taxId: body.taxId || "", lineUserId: body.lineUserId || "", email: body.email || "", status: "active" } as EmployeeRow, ...prev]);
         }
       }
       setShowAddEmployee(false);
@@ -285,86 +253,110 @@ export default function PayrollClient({ employees: initialEmp, payrolls: initial
     } catch {} finally { setSaving(false); }
   };
 
-  /* ── Filtered payrolls for selected month ── */
-  const filteredPayrolls = useMemo(
-    () => payrolls.filter((p) => p.month === selectedMonth && p.year === selectedYear),
-    [payrolls, selectedMonth, selectedYear]
-  );
+  /* ── Filtered data ── */
+  const filteredPayrolls = useMemo(() => {
+    let data = payrolls.filter((p) => p.month === selectedMonth && p.year === selectedYear);
+    if (statusFilter !== "all") data = data.filter((p) => p.status === statusFilter);
+    if (search) {
+      const q = search.toLowerCase();
+      data = data.filter((p) => p.employeeName.toLowerCase().includes(q) || p.employeeCode.toLowerCase().includes(q) || p.department.toLowerCase().includes(q));
+    }
+    return data;
+  }, [payrolls, selectedMonth, selectedYear, statusFilter, search]);
+
+  const filteredEmployees = useMemo(() => {
+    let data = employees;
+    if (statusFilter !== "all") data = data.filter((e) => e.status === statusFilter);
+    if (search) {
+      const q = search.toLowerCase();
+      data = data.filter((e) => e.name.toLowerCase().includes(q) || e.employeeCode.toLowerCase().includes(q) || e.department.toLowerCase().includes(q) || e.position.toLowerCase().includes(q));
+    }
+    return data;
+  }, [employees, statusFilter, search]);
 
   /* ── Payroll table columns ── */
   const payrollColumns: Column<PayrollRow>[] = useMemo(() => [
     { key: "employeeCode", label: "รหัส", render: (r) => <span className="font-mono text-xs">{r.employeeCode}</span> },
-    { key: "employeeName", label: "ชื่อพนักงาน", render: (r) => <span className="font-medium">{r.employeeName}</span> },
-    { key: "department", label: "แผนก" },
+    {
+      key: "employeeName", label: "ชื่อพนักงาน",
+      render: (r) => (
+        <div>
+          <p className="font-medium text-sm">{r.employeeName}</p>
+          {r.department && <p className={`text-[11px] ${c("text-white/40", "text-gray-400")}`}>{r.department}</p>}
+        </div>
+      ),
+    },
     { key: "baseSalary", label: "เงินเดือน", align: "right", render: (r) => <Baht value={r.baseSalary} /> },
-    { key: "overtime", label: "OT", align: "right", render: (r) => <Baht value={r.overtime?.amount || 0} /> },
+    { key: "overtime", label: "OT", align: "right", render: (r) => <Baht value={r.overtime?.amount || 0} />, defaultVisible: false },
     { key: "grossPay", label: "เงินได้รวม", align: "right", render: (r) => <Baht value={r.grossPay} /> },
-    { key: "totalDeductions", label: "หักรวม", align: "right", render: (r) => <Baht value={r.totalDeductions} direction="expense" /> },
+    { key: "totalDeductions", label: "หักรวม", align: "right", render: (r) => <span className="text-red-400"><Baht value={r.totalDeductions} /></span> },
     {
       key: "netPay", label: "สุทธิ", align: "right",
-      render: (r) => <Baht value={r.netPay} className="font-bold text-green-400" />,
+      render: (r) => <span className="font-bold text-green-400"><Baht value={r.netPay} /></span>,
     },
     {
       key: "status", label: "สถานะ",
       render: (r) => {
         const st = payrollStatusStyle[r.status] || payrollStatusStyle.draft;
-        return <span className={`px-2 py-1 rounded-full text-xs font-medium ${st.cls}`}>{st.label}</span>;
+        return <span className={`px-2 py-1 rounded-full text-[11px] font-medium ${st.cls}`}>{st.label}</span>;
       },
     },
     {
       key: "actions", label: "จัดการ", configurable: false,
       render: (r, dark) => (
         <div className="flex items-center gap-1" onClick={(e) => e.stopPropagation()}>
+          {r.status === "draft" && (
+            <button
+              onClick={() => handlePayrollAction(r._id, "approve")}
+              className={`px-2.5 py-1 rounded-lg text-[11px] font-medium transition-colors ${dark ? "bg-blue-500/15 text-blue-400 hover:bg-blue-500/25" : "bg-blue-50 text-blue-600 hover:bg-blue-100"}`}
+            ><Check className="w-3 h-3 inline mr-1" />อนุมัติ</button>
+          )}
           {r.status === "pending" && (
             <button
               onClick={() => handlePayrollAction(r._id, "approve")}
-              className={`px-2 py-1 rounded-lg text-xs font-medium transition-colors ${dark ? "bg-blue-500/20 text-blue-400 hover:bg-blue-500/30" : "bg-blue-50 text-blue-600 hover:bg-blue-100"}`}
-            >
-              <Check className="w-3.5 h-3.5 inline mr-1" />อนุมัติ
-            </button>
+              className={`px-2.5 py-1 rounded-lg text-[11px] font-medium transition-colors ${dark ? "bg-blue-500/15 text-blue-400 hover:bg-blue-500/25" : "bg-blue-50 text-blue-600 hover:bg-blue-100"}`}
+            ><Check className="w-3 h-3 inline mr-1" />อนุมัติ</button>
           )}
           {r.status === "approved" && (
             <button
               onClick={() => handlePayrollAction(r._id, "pay")}
-              className={`px-2 py-1 rounded-lg text-xs font-medium transition-colors ${dark ? "bg-green-500/20 text-green-400 hover:bg-green-500/30" : "bg-green-50 text-green-600 hover:bg-green-100"}`}
-            >
-              <CreditCard className="w-3.5 h-3.5 inline mr-1" />จ่ายเงิน
-            </button>
-          )}
-          {r.status === "draft" && (
-            <button
-              className={`p-2 rounded-lg transition-colors ${dark ? "hover:bg-white/5 text-white/40 hover:text-blue-400" : "hover:bg-gray-100 text-gray-400 hover:text-blue-500"}`}
-            >
-              <Pencil size={14} />
-            </button>
+              className={`px-2.5 py-1 rounded-lg text-[11px] font-medium transition-colors ${dark ? "bg-green-500/15 text-green-400 hover:bg-green-500/25" : "bg-green-50 text-green-600 hover:bg-green-100"}`}
+            ><CreditCard className="w-3 h-3 inline mr-1" />จ่ายเงิน</button>
           )}
         </div>
       ),
     },
-  ], [handlePayrollAction]);
+  ], [handlePayrollAction, isDark]);
 
   /* ── Employee table columns ── */
   const employeeColumns: Column<EmployeeRow>[] = useMemo(() => [
     { key: "employeeCode", label: "รหัส", render: (r) => <span className="font-mono text-xs">{r.employeeCode}</span> },
-    { key: "name", label: "ชื่อ", render: (r) => <span className="font-medium">{r.name}{r.nickname ? ` (${r.nickname})` : ""}</span> },
-    { key: "position", label: "ตำแหน่ง" },
+    {
+      key: "name", label: "ชื่อ",
+      render: (r) => (
+        <div>
+          <p className="font-medium text-sm">{r.name}{r.nickname ? ` (${r.nickname})` : ""}</p>
+          {r.position && <p className={`text-[11px] ${c("text-white/40", "text-gray-400")}`}>{r.position}</p>}
+        </div>
+      ),
+    },
     { key: "department", label: "แผนก" },
     { key: "baseSalary", label: "เงินเดือนฐาน", align: "right", render: (r) => <Baht value={r.baseSalary} /> },
     {
       key: "employmentType", label: "ประเภท",
       render: (r) => {
         const t = empTypeLabel[r.employmentType] || empTypeLabel["full-time"];
-        return <span className={`px-2 py-1 rounded-full text-xs font-medium ${t.cls}`}>{t.label}</span>;
+        return <span className={`px-2 py-1 rounded-full text-[11px] font-medium ${t.cls}`}>{t.label}</span>;
       },
     },
     { key: "bankName", label: "ธนาคาร", render: (r) => <span className="text-xs">{r.bankName || "-"}</span> },
     {
       key: "lineUserId", label: "แจ้งเตือน",
       render: (r) => (
-        <div className="flex items-center gap-1">
-          {r.lineUserId ? <span className="w-5 h-5 rounded-full bg-[#06C755] flex items-center justify-center" title="LINE"><svg width="12" height="12" viewBox="0 0 24 24" fill="white"><path d="M19.365 9.863c.349 0 .63.285.63.631 0 .345-.281.63-.63.63H17.61v1.125h1.755c.349 0 .63.283.63.63 0 .344-.281.629-.63.629h-2.386c-.345 0-.627-.285-.627-.629V8.108c0-.345.282-.63.63-.63h2.386c.346 0 .627.285.627.63 0 .349-.281.63-.63.63H17.61v1.125h1.755zm-3.855 3.016c0 .27-.174.51-.432.596-.064.021-.133.031-.199.031-.211 0-.391-.09-.51-.25l-2.443-3.317v2.94c0 .344-.279.629-.631.629-.346 0-.626-.285-.626-.629V8.108c0-.27.173-.51.43-.595.06-.023.136-.033.194-.033.195 0 .375.104.495.254l2.462 3.33V8.108c0-.345.282-.63.63-.63.345 0 .63.285.63.63v4.771zm-5.741 0c0 .344-.282.629-.631.629-.345 0-.627-.285-.627-.629V8.108c0-.345.282-.63.63-.63.346 0 .628.285.628.63v4.771zm-2.466.629H4.917c-.345 0-.63-.285-.63-.629V8.108c0-.345.285-.63.63-.63.348 0 .63.285.63.63v4.141h1.756c.348 0 .629.283.629.63 0 .344-.282.629-.629.629M24 10.314C24 4.943 18.615.572 12 .572S0 4.943 0 10.314c0 4.811 4.27 8.842 10.035 9.608.391.082.923.258 1.058.59.12.301.079.766.038 1.08l-.164 1.02c-.045.301-.24 1.186 1.049.645 1.291-.539 6.916-4.078 9.436-6.975C23.176 14.393 24 12.458 24 10.314"/></svg></span> : null}
-          {r.email ? <span className="w-5 h-5 rounded-full bg-blue-500 flex items-center justify-center" title={r.email}><svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="2.5"><path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"/><polyline points="22,6 12,13 2,6"/></svg></span> : null}
-          {!r.lineUserId && !r.email ? <span className="text-[10px] text-gray-400">—</span> : null}
+        <div className="flex items-center gap-1.5">
+          {r.lineUserId && <span className="w-5 h-5 rounded-full bg-[#06C755] flex items-center justify-center" title="LINE เชื่อมแล้ว"><svg width="11" height="11" viewBox="0 0 24 24" fill="white"><path d="M19.365 9.863c.349 0 .63.285.63.631 0 .345-.281.63-.63.63H17.61v1.125h1.755c.349 0 .63.283.63.63 0 .344-.281.629-.63.629h-2.386c-.345 0-.627-.285-.627-.629V8.108c0-.345.282-.63.63-.63h2.386c.346 0 .627.285.627.63 0 .349-.281.63-.63.63H17.61v1.125h1.755zm-3.855 3.016c0 .27-.174.51-.432.596-.064.021-.133.031-.199.031-.211 0-.391-.09-.51-.25l-2.443-3.317v2.94c0 .344-.279.629-.631.629-.346 0-.626-.285-.626-.629V8.108c0-.27.173-.51.43-.595.06-.023.136-.033.194-.033.195 0 .375.104.495.254l2.462 3.33V8.108c0-.345.282-.63.63-.63.345 0 .63.285.63.63v4.771zm-5.741 0c0 .344-.282.629-.631.629-.345 0-.627-.285-.627-.629V8.108c0-.345.282-.63.63-.63.346 0 .628.285.628.63v4.771zm-2.466.629H4.917c-.345 0-.63-.285-.63-.629V8.108c0-.345.285-.63.63-.63.348 0 .63.285.63.63v4.141h1.756c.348 0 .629.283.629.63 0 .344-.282.629-.629.629M24 10.314C24 4.943 18.615.572 12 .572S0 4.943 0 10.314c0 4.811 4.27 8.842 10.035 9.608.391.082.923.258 1.058.59.12.301.079.766.038 1.08l-.164 1.02c-.045.301-.24 1.186 1.049.645 1.291-.539 6.916-4.078 9.436-6.975C23.176 14.393 24 12.458 24 10.314"/></svg></span>}
+          {r.email && <span className="w-5 h-5 rounded-full bg-blue-500 flex items-center justify-center" title={r.email}><svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="2.5"><path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"/><polyline points="22,6 12,13 2,6"/></svg></span>}
+          {!r.lineUserId && !r.email && <span className={`text-[10px] ${c("text-white/30", "text-gray-400")}`}>ยังไม่เชื่อม</span>}
         </div>
       ),
     },
@@ -372,29 +364,26 @@ export default function PayrollClient({ employees: initialEmp, payrolls: initial
       key: "status", label: "สถานะ",
       render: (r) => {
         const st = empStatusLabel[r.status] || empStatusLabel.active;
-        return <span className={`px-2 py-1 rounded-full text-xs font-medium ${st.cls}`}>{st.label}</span>;
+        return <span className={`px-2 py-1 rounded-full text-[11px] font-medium ${st.cls}`}>{st.label}</span>;
       },
     },
     {
       key: "actions", label: "จัดการ", configurable: false,
       render: (r, dark) => (
-        <div className="flex items-center gap-1" onClick={(e) => e.stopPropagation()}>
-          <button
-            onClick={() => openEditEmployee(r)}
-            className={`p-2 rounded-lg transition-colors ${dark ? "hover:bg-white/5 text-white/40 hover:text-blue-400" : "hover:bg-gray-100 text-gray-400 hover:text-blue-500"}`}
-          >
-            <Pencil size={14} />
-          </button>
-        </div>
+        <button
+          onClick={(e) => { e.stopPropagation(); openEditEmployee(r); }}
+          className={`p-2 rounded-lg transition-colors ${dark ? "hover:bg-white/5 text-white/40 hover:text-blue-400" : "hover:bg-gray-100 text-gray-400 hover:text-blue-500"}`}
+        ><Pencil size={14} /></button>
       ),
     },
-  ], []);
+  ], [isDark]);
 
   /* ── Style helpers ── */
   const inp = `w-full h-9 px-3 ${c("bg-white/5 border-white/10 text-white", "bg-gray-50 border-gray-200 text-gray-900")} border rounded-lg text-sm focus:outline-none focus:border-[#FA3633]/50`;
   const lbl = `block text-xs ${c("text-white/40", "text-gray-500")} mb-1`;
   const cardBg = c("bg-[rgba(255,255,255,0.04)] border-[rgba(255,255,255,0.06)]", "bg-white border-gray-200");
   const panelBg = c("bg-[#0a0a0a] border-white/10", "bg-white border-gray-200");
+  const inputCls = c("bg-white/5 border-white/10 text-white placeholder-white/30", "bg-white border-gray-200 text-gray-900 placeholder-gray-400");
 
   return (
     <div className="space-y-6">
@@ -404,10 +393,8 @@ export default function PayrollClient({ employees: initialEmp, payrolls: initial
         <div className={`fixed inset-y-0 right-0 z-50 w-[480px] max-w-[95vw] ${panelBg} border-l shadow-2xl overflow-y-auto animate-slide-in-right`}>
           <div className="p-6 space-y-5">
             <div className="flex items-center justify-between">
-              <h2 className={`text-lg font-bold ${c("text-white", "text-gray-900")}`}>
-                {editingEmpId ? "แก้ไขข้อมูลพนักงาน" : "เพิ่มพนักงาน"}
-              </h2>
-              <button onClick={() => { setShowAddEmployee(false); setEditingEmpId(null); }} className={`w-8 h-8 rounded-lg ${c("hover:bg-white/5 text-white/40 hover:text-white", "hover:bg-gray-100 text-gray-400 hover:text-gray-600")} flex items-center justify-center text-xl`}>&times;</button>
+              <h2 className={`text-lg font-bold ${c("text-white", "text-gray-900")}`}>{editingEmpId ? "แก้ไขข้อมูลพนักงาน" : "เพิ่มพนักงาน"}</h2>
+              <button onClick={() => { setShowAddEmployee(false); setEditingEmpId(null); }} className={`w-8 h-8 rounded-lg ${c("hover:bg-white/5 text-white/40", "hover:bg-gray-100 text-gray-400")} flex items-center justify-center text-xl`}>&times;</button>
             </div>
 
             {/* ── Basic info ── */}
@@ -432,7 +419,6 @@ export default function PayrollClient({ employees: initialEmp, payrolls: initial
             <div className={`rounded-xl ${cardBg} border p-4 space-y-3`}>
               <p className="text-xs font-semibold text-[#FA3633]/70">ค่าตอบแทน</p>
               <div><label className={lbl}>เงินเดือนฐาน (บาท) *</label><input type="number" value={empForm.baseSalary} onChange={(e) => setEmpForm({ ...empForm, baseSalary: e.target.value })} placeholder="0" className={inp} /></div>
-
               <div>
                 <div className="flex items-center justify-between mb-2">
                   <label className={lbl}>เงินเพิ่ม / ค่าเบี้ยเลี้ยง</label>
@@ -467,29 +453,19 @@ export default function PayrollClient({ employees: initialEmp, payrolls: initial
             </div>
 
             {/* ── Notifications ── */}
-            <div className="space-y-3">
+            <div className={`rounded-xl ${cardBg} border p-4 space-y-3`}>
               <p className="text-xs font-semibold text-[#FA3633]/70">แจ้งเตือนเงินเดือน</p>
               <div><label className={lbl}>LINE User ID</label><input value={empForm.lineUserId} onChange={(e) => setEmpForm({ ...empForm, lineUserId: e.target.value })} placeholder="Uxxxxxxxxx (จาก LINE Bot)" className={inp} /></div>
               <div><label className={lbl}>Email</label><input type="email" value={empForm.email} onChange={(e) => setEmpForm({ ...empForm, email: e.target.value })} placeholder="employee@email.com" className={inp} /></div>
-              <p className={`text-[10px] ${c("text-white/30", "text-gray-400")}`}>เมื่ออนุมัติหรือจ่ายเงินเดือน ระบบจะส่ง Flex สลิปเงินเดือนผ่าน LINE และ/หรือ Email อัตโนมัติ</p>
+              <p className={`text-[10px] ${c("text-white/30", "text-gray-400")}`}>เมื่ออนุมัติหรือจ่ายเงินเดือน ระบบจะส่งสลิปเงินเดือนผ่าน LINE และ/หรือ Email อัตโนมัติ</p>
             </div>
 
             {/* ── Save buttons ── */}
             <div className={`flex gap-2 pt-2 sticky bottom-0 pb-6 ${c("bg-[#0a0a0a]", "bg-white")}`}>
-              <button
-                onClick={handleSaveEmployee}
-                disabled={saving || !empForm.name || !empForm.baseSalary}
-                className="flex-1 py-2.5 rounded-xl text-sm font-medium bg-[#FA3633] text-white hover:bg-[#e0302d] transition-colors disabled:opacity-40 flex items-center justify-center gap-2"
-              >
-                {saving && <Loader2 size={14} className="animate-spin" />}
-                {editingEmpId ? "บันทึก" : "เพิ่มพนักงาน"}
+              <button onClick={handleSaveEmployee} disabled={saving || !empForm.name || !empForm.baseSalary} className="flex-1 py-2.5 rounded-xl text-sm font-medium bg-[#FA3633] text-white hover:bg-[#e0302d] transition-colors disabled:opacity-40 flex items-center justify-center gap-2">
+                {saving && <Loader2 size={14} className="animate-spin" />}{editingEmpId ? "บันทึก" : "เพิ่มพนักงาน"}
               </button>
-              <button
-                onClick={() => { setShowAddEmployee(false); setEditingEmpId(null); }}
-                className={`flex-1 py-2.5 rounded-xl text-sm font-medium ${c("bg-white/5 text-white/60 hover:bg-white/10", "bg-gray-100 text-gray-600 hover:bg-gray-200")} transition-colors`}
-              >
-                ยกเลิก
-              </button>
+              <button onClick={() => { setShowAddEmployee(false); setEditingEmpId(null); }} className={`flex-1 py-2.5 rounded-xl text-sm font-medium ${c("bg-white/5 text-white/60 hover:bg-white/10", "bg-gray-100 text-gray-600 hover:bg-gray-200")} transition-colors`}>ยกเลิก</button>
             </div>
           </div>
         </div>
@@ -504,19 +480,12 @@ export default function PayrollClient({ employees: initialEmp, payrolls: initial
               <h2 className={`text-lg font-bold ${c("text-white", "text-gray-900")}`}>สร้างเงินเดือน</h2>
               {!runResult ? (
                 <>
-                  <p className={`text-sm ${c("text-white/60", "text-gray-600")}`}>
-                    สร้างเงินเดือนเดือน {TH_MONTHS[selectedMonth - 1]}/{selectedYear + 543} สำหรับพนักงาน {employees.length} คน?
-                  </p>
+                  <p className={`text-sm ${c("text-white/60", "text-gray-600")}`}>สร้างเงินเดือนเดือน {TH_MONTHS[selectedMonth - 1]}/{selectedYear + 543} สำหรับพนักงาน {employees.length} คน?</p>
                   <div className="flex gap-2 pt-2">
-                    <button
-                      onClick={handleRunPayroll}
-                      disabled={running}
-                      className="flex-1 py-2.5 rounded-xl text-sm font-medium bg-[#FA3633] text-white hover:bg-[#e0302d] transition-colors disabled:opacity-40 flex items-center justify-center gap-2"
-                    >
-                      {running && <Loader2 size={14} className="animate-spin" />}
-                      {running ? "กำลังสร้าง..." : "ยืนยัน"}
+                    <button onClick={handleRunPayroll} disabled={running} className="flex-1 py-2.5 rounded-xl text-sm font-medium bg-[#FA3633] text-white hover:bg-[#e0302d] transition-colors disabled:opacity-40 flex items-center justify-center gap-2">
+                      {running && <Loader2 size={14} className="animate-spin" />}{running ? "กำลังสร้าง..." : "ยืนยัน"}
                     </button>
-                    <button onClick={() => setShowRunModal(false)} className={`flex-1 py-2.5 rounded-xl text-sm font-medium ${c("bg-white/5 text-white/60 hover:bg-white/10", "bg-gray-100 text-gray-600 hover:bg-gray-200")} transition-colors`}>ยกเลิก</button>
+                    <button onClick={() => setShowRunModal(false)} className={`flex-1 py-2.5 rounded-xl text-sm font-medium ${c("bg-white/5 text-white/60", "bg-gray-100 text-gray-600")} transition-colors`}>ยกเลิก</button>
                   </div>
                 </>
               ) : (
@@ -525,12 +494,7 @@ export default function PayrollClient({ employees: initialEmp, payrolls: initial
                     <p className={`text-sm ${c("text-white", "text-gray-900")}`}>สร้างสำเร็จ: <span className="font-bold text-green-400">{runResult.created}</span> รายการ</p>
                     <p className={`text-sm ${c("text-white/60", "text-gray-600")}`}>ข้ามไป (มีแล้ว): <span className="font-medium">{runResult.skipped}</span> รายการ</p>
                   </div>
-                  <button
-                    onClick={() => { setShowRunModal(false); setRunResult(null); router.refresh(); }}
-                    className="w-full py-2.5 rounded-xl text-sm font-medium bg-[#FA3633] text-white hover:bg-[#e0302d] transition-colors"
-                  >
-                    ปิด
-                  </button>
+                  <button onClick={() => { setShowRunModal(false); setRunResult(null); router.refresh(); }} className="w-full py-2.5 rounded-xl text-sm font-medium bg-[#FA3633] text-white hover:bg-[#e0302d] transition-colors">ปิด</button>
                 </>
               )}
             </div>
@@ -543,83 +507,72 @@ export default function PayrollClient({ employees: initialEmp, payrolls: initial
 
       {/* ── Stats cards ── */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-        <StatsCard
-          label="ยอดจ่ายเดือนนี้"
-          value={`฿${stats.totalPayroll.toLocaleString("th-TH", { minimumFractionDigits: 2 })}`}
-          icon={<Banknote size={20} />}
-          color="text-[#FA3633]"
-        />
+        <StatsCard label="ยอดจ่ายเดือนนี้" value={`฿${stats.totalPayroll.toLocaleString("th-TH", { minimumFractionDigits: 2 })}`} icon={<Banknote size={20} />} color="text-[#FA3633]" />
         <StatsCard label="พนักงานทั้งหมด" value={`${stats.totalEmployees} คน`} icon={<Users size={20} />} color="text-blue-500" />
         <StatsCard label="จ่ายแล้ว" value={`${stats.totalPaid} คน`} icon={<CheckCircle size={20} />} color="text-green-500" />
         <StatsCard label="รอดำเนินการ" value={`${stats.totalPending} คน`} icon={<Clock size={20} />} color="text-yellow-500" />
       </div>
 
-      {/* ── Action bar ── */}
+      {/* ── Action bar + Search + Filter (same pattern as receipts page) ── */}
       <div className="flex flex-wrap items-center gap-3">
-        <div className="flex gap-2">
-          <div className="w-40">
-            <Select value={String(selectedMonth)} onChange={(v) => setSelectedMonth(Number(v))} options={monthOptions} />
+        {/* Month/Year selector (payroll tab only) */}
+        {tab === "payroll" && (
+          <div className="flex gap-2">
+            <div className="w-40"><Select value={String(selectedMonth)} onChange={(v) => setSelectedMonth(Number(v))} options={monthOptions} /></div>
+            <div className="w-28"><Select value={String(selectedYear)} onChange={(v) => setSelectedYear(Number(v))} options={yearOptions} /></div>
           </div>
-          <div className="w-28">
-            <Select value={String(selectedYear)} onChange={(v) => setSelectedYear(Number(v))} options={yearOptions} />
-          </div>
+        )}
+
+        {/* Search */}
+        <div className="relative flex-1 min-w-[200px] max-w-sm">
+          <Search size={16} className={`absolute left-3 top-1/2 -translate-y-1/2 ${c("text-white/30", "text-gray-400")}`} />
+          <input
+            type="text"
+            placeholder={tab === "payroll" ? "ค้นหาชื่อ, รหัส, แผนก..." : "ค้นหาพนักงาน..."}
+            value={search}
+            onChange={(e) => setSearch(e.target.value)}
+            className={`w-full h-10 pl-9 pr-4 ${inputCls} border rounded-lg text-sm focus:outline-none focus:border-[#FA3633]/50`}
+          />
         </div>
-        <button
-          onClick={() => setShowRunModal(true)}
-          className="flex items-center gap-2 px-4 py-2.5 rounded-xl text-sm font-medium bg-[#FA3633] text-white hover:bg-[#e0302d] transition-colors shadow-sm shadow-[#FA3633]/25"
-        >
-          <Play size={16} />สร้างเงินเดือน
-        </button>
-        <button
-          onClick={openAddEmployee}
-          className={`flex items-center gap-2 px-4 py-2.5 rounded-xl text-sm font-medium transition-colors ${c("bg-white/5 text-white/70 hover:bg-white/10 border border-white/10", "bg-gray-100 text-gray-700 hover:bg-gray-200 border border-gray-200")}`}
-        >
-          <Plus size={16} />เพิ่มพนักงาน
-        </button>
+
+        {/* Status filter */}
+        <div className="w-36">
+          <Select
+            value={statusFilter}
+            onChange={(v) => setStatusFilter(v)}
+            options={tab === "payroll" ? payrollStatusOptions : empStatusOptions}
+          />
+        </div>
+
+        {/* Action buttons */}
+        {tab === "payroll" && (
+          <button onClick={() => setShowRunModal(true)} className="flex items-center gap-2 px-4 py-2.5 rounded-xl text-sm font-medium bg-[#FA3633] text-white hover:bg-[#e0302d] transition-colors shadow-sm shadow-[#FA3633]/25">
+            <Play size={16} />สร้างเงินเดือน
+          </button>
+        )}
+        {tab === "employees" && (
+          <button onClick={openAddEmployee} className="flex items-center gap-2 px-4 py-2.5 rounded-xl text-sm font-medium bg-[#FA3633] text-white hover:bg-[#e0302d] transition-colors shadow-sm shadow-[#FA3633]/25">
+            <Plus size={16} />เพิ่มพนักงาน
+          </button>
+        )}
       </div>
 
       {/* ── Tabs ── */}
       <div className={`flex gap-1 p-1 rounded-xl w-fit ${c("bg-white/[0.04]", "bg-gray-100")}`}>
-        <button
-          onClick={() => setTab("payroll")}
-          className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors ${
-            tab === "payroll"
-              ? `${c("bg-white/10 text-white", "bg-white text-gray-900 shadow-sm")}`
-              : `${c("text-white/50 hover:text-white/70", "text-gray-500 hover:text-gray-700")}`
-          }`}
-        >
+        <button onClick={() => { setTab("payroll"); setSearch(""); setStatusFilter("all"); }} className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors ${tab === "payroll" ? c("bg-white/10 text-white", "bg-white text-gray-900 shadow-sm") : c("text-white/50 hover:text-white/70", "text-gray-500 hover:text-gray-700")}`}>
           สลิปเงินเดือน
         </button>
-        <button
-          onClick={() => setTab("employees")}
-          className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors ${
-            tab === "employees"
-              ? `${c("bg-white/10 text-white", "bg-white text-gray-900 shadow-sm")}`
-              : `${c("text-white/50 hover:text-white/70", "text-gray-500 hover:text-gray-700")}`
-          }`}
-        >
+        <button onClick={() => { setTab("employees"); setSearch(""); setStatusFilter("all"); }} className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors ${tab === "employees" ? c("bg-white/10 text-white", "bg-white text-gray-900 shadow-sm") : c("text-white/50 hover:text-white/70", "text-gray-500 hover:text-gray-700")}`}>
           พนักงาน
         </button>
       </div>
 
       {/* ── Tables ── */}
       {tab === "payroll" && (
-        <DataTable
-          columns={payrollColumns}
-          data={filteredPayrolls}
-          rowKey={(r) => r._id}
-          emptyText="ยังไม่มีข้อมูลเงินเดือนเดือนนี้ — กด 'สร้างเงินเดือน' เพื่อเริ่มต้น"
-          columnConfigKey="payroll-slips"
-        />
+        <DataTable columns={payrollColumns} data={filteredPayrolls} rowKey={(r) => r._id} emptyText="ยังไม่มีข้อมูลเงินเดือนเดือนนี้ — กด 'สร้างเงินเดือน' เพื่อเริ่มต้น" columnConfigKey="payroll-slips" />
       )}
       {tab === "employees" && (
-        <DataTable
-          columns={employeeColumns}
-          data={employees}
-          rowKey={(r) => r._id}
-          emptyText="ยังไม่มีพนักงาน — กด 'เพิ่มพนักงาน' เพื่อเริ่มต้น"
-          columnConfigKey="payroll-employees"
-        />
+        <DataTable columns={employeeColumns} data={filteredEmployees} rowKey={(r) => r._id} emptyText="ยังไม่มีพนักงาน — กด 'เพิ่มพนักงาน' เพื่อเริ่มต้น" columnConfigKey="payroll-employees" />
       )}
     </div>
   );
