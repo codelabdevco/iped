@@ -8,7 +8,7 @@ import MobileApp from "./MobileApp";
 
 async function MobileData() {
   const session = await getSession();
-  if (!session) redirect("/login");
+  if (!session) redirect("/m/liff");
 
   await connectDB();
   const now = new Date();
@@ -22,7 +22,7 @@ async function MobileData() {
   if (!user) redirect("/login");
 
   // Mobile page — LINE login only
-  if (!user.lineUserId) redirect("/login?error=line_only");
+  if (!user.lineUserId) redirect("/m/liff");
 
   const [
     allReceipts,
