@@ -39,6 +39,13 @@ export async function POST(request: NextRequest) {
       );
     }
 
+    // Quota check for AI chat
+    const { checkQuota, incrementUsage } = await import("@/lib/quota");
+    const quota = await checkQuota(userId, "aiChat");
+    if (!quota.allowed) {
+      return NextResponse.json({ error: quota.message, quota }, { status: 402 });
+    }
+
     const response = await anthropic.messages.create({
       model: "claude-sonnet-4-20250514",
       max_tokens: 500,
@@ -79,6 +86,9 @@ export async function POST(request: NextRequest) {
         complete = true;
       } catch {}
     }
+
+    // Increment AI chat usage after successful response
+    await incrementUsage(userId, "aiChat");
 
     // Clean the JSON from the displayed message
     const cleanMessage = text.replace(/\n?\{"COMPLETE"\s*:\s*true.*\}/, "").trim();

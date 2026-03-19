@@ -76,6 +76,13 @@ export async function POST(request: NextRequest) {
   if (!session) return NextResponse.json({ error: "unauthorized" }, { status: 401 });
 
   await connectDB();
+
+  // Quota check
+  const { checkQuota, incrementUsage } = await import("@/lib/quota");
+  const quota = await checkQuota(session.userId, "gmail");
+  if (!quota.allowed) {
+    return NextResponse.json({ error: quota.message, quota }, { status: 402 });
+  }
   const userId = session.userId;
   const accountType = session.accountType || "personal";
 
@@ -380,6 +387,9 @@ export async function POST(request: NextRequest) {
       allResults.push({ subject: `[${account.email}] error`, from: account.email, date: "", status: "error", account: account.email });
     }
   }
+
+  // Increment quota usage after successful scan
+  await incrementUsage(session.userId, "gmail");
 
   // Save last scan time (backward compat)
   await User.findByIdAndUpdate(userId, { lastGmailScan: new Date() });
