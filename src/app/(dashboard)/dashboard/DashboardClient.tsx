@@ -289,28 +289,31 @@ function ChartSection({
 }
 
 /* ─── Main Dashboard ─── */
-export default function DashboardClient({ data: initialData }: { data: DashboardData }) {
+export default function DashboardClient({ data: initialData }: { data: DashboardData | null }) {
   const { isDark, mounted } = useTheme();
   const now = new Date();
   const [dateFrom, setDateFrom] = useState(new Date(now.getFullYear(), 0, 1));
   const [dateTo, setDateTo] = useState(now);
-  const [data, setData] = useState<DashboardData>(initialData);
-  const [loading, setLoading] = useState(false);
+  const [data, setData] = useState<DashboardData | null>(initialData || null);
+  const [loading, setLoading] = useState(!initialData);
   const [alertsDismissed, setAlertsDismissed] = useState(false);
   const [showExportMenu, setShowExportMenu] = useState(false);
   const [hoveredReceipt, setHoveredReceipt] = useState<string | null>(null);
   const exportRef = useRef<HTMLDivElement>(null);
 
-  // Sync data when server re-renders with new props
+  // Fetch data on mount + mode change
   useEffect(() => {
-    setData(initialData);
-  }, [initialData]);
-
-  // Re-fetch on mode change (no reload needed)
-  useEffect(() => {
-    const handler = () => fetchData(dateFrom, dateTo);
-    window.addEventListener("iped-mode-change", handler);
-    return () => window.removeEventListener("iped-mode-change", handler);
+    const load = () => {
+      setLoading(true);
+      const params = new URLSearchParams({ from: dateFrom.toISOString(), to: dateTo.toISOString() });
+      fetch(`/api/dashboard?${params}`)
+        .then(r => r.ok ? r.json() : null)
+        .then(json => { if (json) { setData(json); setAlertsDismissed(false); } })
+        .finally(() => setLoading(false));
+    };
+    load();
+    window.addEventListener("iped-mode-change", load);
+    return () => window.removeEventListener("iped-mode-change", load);
   }, [dateFrom, dateTo]);
 
   useEffect(() => {
@@ -345,6 +348,13 @@ export default function DashboardClient({ data: initialData }: { data: Dashboard
   };
 
   if (!mounted) return <div className="min-h-screen bg-[#111]" />;
+
+  if (!data || loading) return (
+    <div className="flex items-center justify-center py-20">
+      <div className="w-6 h-6 border-2 border-[#FA3633] border-t-transparent rounded-full animate-spin" />
+      <span className="ml-3 text-sm text-white/50">กำลังโหลดข้อมูล...</span>
+    </div>
+  );
 
   const card = isDark ? "bg-[rgba(255,255,255,0.04)]" : "bg-white";
   const txt = isDark ? "text-white" : "text-gray-900";

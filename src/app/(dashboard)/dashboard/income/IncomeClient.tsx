@@ -75,19 +75,23 @@ export default function IncomeClient({ incomes: initial }: { incomes: IncomeRow[
   useEffect(() => { const ids = initial.map((r) => r._id + r.amount).join(","); if (ids === prevRef.current) return; prevRef.current = ids; setIncomes(initial); }, [initial]);
   useEffect(() => { const i = setInterval(async () => { try { await fetch("/api/receipts/poll"); router.refresh(); } catch {} }, 5000); return () => clearInterval(i); }, [router]);
 
-  // Re-fetch on mode change
+  // Fetch data on mount + mode change
   useEffect(() => {
-    const handler = async () => {
+    const load = async () => {
       try {
-        const res = await fetch("/api/receipts?direction=income&limit=100");
+        const res = await fetch("/api/receipts?limit=200");
         if (res.ok) {
           const json = await res.json();
-          if (json.data) setIncomes(json.data.map((r: any) => ({ ...r, _id: String(r._id) })));
+          if (json.data) {
+            const filtered = json.data.filter((r: any) => r.direction === "income");
+            setIncomes(filtered.map((r: any) => ({ ...r, _id: String(r._id) })));
+          }
         }
       } catch {}
     };
-    window.addEventListener("iped-mode-change", handler);
-    return () => window.removeEventListener("iped-mode-change", handler);
+    load();
+    window.addEventListener("iped-mode-change", load);
+    return () => window.removeEventListener("iped-mode-change", load);
   }, []);
 
   const muted = isDark ? "text-white/30" : "text-gray-400";

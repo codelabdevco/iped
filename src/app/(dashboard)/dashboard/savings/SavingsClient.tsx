@@ -106,19 +106,23 @@ export default function SavingsClient({ savings: initial }: { savings: SavingsRo
     return () => clearInterval(interval);
   }, [router]);
 
-  // Re-fetch on mode change
+  // Fetch data on mount + mode change
   useEffect(() => {
-    const handler = async () => {
+    const load = async () => {
       try {
-        const res = await fetch("/api/receipts?direction=savings&limit=100");
+        const res = await fetch("/api/receipts?limit=200");
         if (res.ok) {
           const json = await res.json();
-          if (json.data) setSavings(json.data.map((r: any) => ({ ...r, _id: String(r._id) })));
+          if (json.data) {
+            const filtered = json.data.filter((r: any) => r.direction === "savings");
+            setSavings(filtered.map((r: any) => ({ ...r, _id: String(r._id) })));
+          }
         }
       } catch {}
     };
-    window.addEventListener("iped-mode-change", handler);
-    return () => window.removeEventListener("iped-mode-change", handler);
+    load();
+    window.addEventListener("iped-mode-change", load);
+    return () => window.removeEventListener("iped-mode-change", load);
   }, []);
 
   const muted = isDark ? "text-white/30" : "text-gray-400";

@@ -146,16 +146,18 @@ export default function ReceiptsClient({ receipts: initialReceipts }: { receipts
   const { isDark } = useTheme();
   const router = useRouter();
   const [receipts, setReceipts] = useReactiveData(initialReceipts);
+  const [receiptsLoading, setReceiptsLoading] = useState(true);
 
-  // Re-fetch receipts on mode change
+  // Fetch data on mount + mode change
   useEffect(() => {
-    const handler = async () => {
+    const load = async () => {
+      setReceiptsLoading(true);
       try {
-        const res = await fetch("/api/receipts?limit=100");
+        const res = await fetch("/api/receipts?limit=200");
         if (res.ok) {
           const json = await res.json();
           if (json.data) {
-            const mapped = json.data.map((r: any) => ({
+            setReceipts(json.data.map((r: any) => ({
               _id: String(r._id),
               storeName: r.merchant || "ไม่ระบุร้าน",
               amount: r.amount || 0,
@@ -178,14 +180,14 @@ export default function ReceiptsClient({ receipts: initialReceipts }: { receipts
               itemCount: 0,
               direction: r.direction || "expense",
               linkedEmail: null,
-            }));
-            setReceipts(mapped);
+            })));
           }
         }
-      } catch {}
+      } catch {} finally { setReceiptsLoading(false); }
     };
-    window.addEventListener("iped-mode-change", handler);
-    return () => window.removeEventListener("iped-mode-change", handler);
+    load();
+    window.addEventListener("iped-mode-change", load);
+    return () => window.removeEventListener("iped-mode-change", load);
   }, []);
   const pollRef = useRef<{ count: number; latestId: string | null }>({
     count: initialReceipts.length,
