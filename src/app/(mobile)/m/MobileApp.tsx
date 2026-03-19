@@ -125,92 +125,168 @@ export default function MobileApp({ data }: { data: MobileData }) {
 }
 
 // ════════════════════════════════════════
-//  HOME TAB — compact overview
+//  HOME TAB — finance dashboard
 // ════════════════════════════════════════
 function HomeTab({ data, isDark, onScan, onReceipts, onReports }: { data: MobileData; isDark: boolean; onScan: () => void; onReceipts: () => void; onReports: () => void }) {
   const { card, border, txt, sub, muted } = useS(isDark);
   const net = data.monthIncome - data.monthExpense;
   const budgetPct = data.profile.monthlyBudget > 0 ? Math.min(100, (data.monthExpense / data.profile.monthlyBudget) * 100) : 0;
+  const maxMonthly = Math.max(...data.monthlyData.map((m) => Math.max(m.expense, m.income)), 1);
+  const dailyAvg = data.daysInMonth > 0 ? Math.round(data.totalExpense / Math.min(new Date().getDate(), data.daysInMonth)) : 0;
 
   return (
     <div className="space-y-4 pt-3">
-      {/* Greeting */}
-      <div>
-        <p className={`text-lg font-bold ${txt}`}>สวัสดี, {(data.profile.firstNameTh || data.profile.lineDisplayName || data.profile.name).split(" ")[0]} 👋</p>
-        <p className={`text-[11px] ${sub}`}>{new Date().toLocaleDateString("th-TH", { weekday: "long", day: "numeric", month: "long" })}</p>
-      </div>
-
-      {/* Today summary — expense + income side by side */}
-      <div className="grid grid-cols-2 gap-3">
-        <div className="rounded-2xl bg-gradient-to-br from-red-500 to-red-600 p-4 text-white shadow-lg shadow-red-500/20">
-          <div className="flex items-center gap-1.5 mb-2">
-            <ArrowUpRight size={14} className="text-white/60" />
-            <p className="text-[10px] text-white/60 font-medium">จ่ายวันนี้</p>
-          </div>
-          <p className="text-2xl font-extrabold tracking-tight">฿{fmt(data.todayExpense)}</p>
-          <p className="text-[10px] text-white/50 mt-1">{data.todayCount} รายการ</p>
+      {/* Greeting + scan CTA */}
+      <div className="flex items-center justify-between">
+        <div>
+          <p className={`text-lg font-bold ${txt}`}>สวัสดี, {(data.profile.firstNameTh || data.profile.lineDisplayName || data.profile.name).split(" ")[0]}</p>
+          <p className={`text-[11px] ${sub}`}>{new Date().toLocaleDateString("th-TH", { weekday: "long", day: "numeric", month: "long" })}</p>
         </div>
-        <div className="rounded-2xl bg-gradient-to-br from-green-500 to-green-600 p-4 text-white shadow-lg shadow-green-500/20">
-          <div className="flex items-center gap-1.5 mb-2">
-            <ArrowDownLeft size={14} className="text-white/60" />
-            <p className="text-[10px] text-white/60 font-medium">รับวันนี้</p>
+        <button onClick={onScan} className="flex items-center gap-1.5 px-4 py-2.5 rounded-xl bg-[#FA3633] text-white text-xs font-semibold shadow-lg shadow-[#FA3633]/25 active:scale-[0.95] transition-all">
+          <ScanLine size={16} /> สแกนสลิป
+        </button>
+      </div>
+
+      {/* Balance hero card */}
+      <div className={`rounded-2xl p-5 ${isDark ? "bg-gradient-to-br from-[#1a1a2e] to-[#16213e] border border-white/[0.08]" : "bg-gradient-to-br from-gray-900 to-gray-800"} text-white shadow-xl`}>
+        <p className="text-[10px] text-white/50 font-medium mb-1">ยอดคงเหลือเดือนนี้</p>
+        <p className={`text-3xl font-extrabold tracking-tight ${net < 0 ? "text-red-400" : ""}`}>
+          {net >= 0 ? "+" : "-"}฿{fmt(Math.abs(net))}
+        </p>
+        <div className="grid grid-cols-3 gap-3 mt-4 pt-3 border-t border-white/10">
+          <div>
+            <p className="text-[9px] text-red-400/70">รายจ่าย</p>
+            <p className="text-sm font-bold text-red-400">-฿{fmt(data.monthExpense)}</p>
           </div>
-          <p className="text-2xl font-extrabold tracking-tight">฿{fmt(data.todayIncome)}</p>
-          <p className="text-[10px] text-white/50 mt-1">รายรับ</p>
+          <div>
+            <p className="text-[9px] text-green-400/70">รายรับ</p>
+            <p className="text-sm font-bold text-green-400">+฿{fmt(data.monthIncome)}</p>
+          </div>
+          <div>
+            <p className="text-[9px] text-white/40">ใบเสร็จ</p>
+            <p className="text-sm font-bold">{data.stats.monthReceipts} ใบ</p>
+          </div>
+        </div>
+        {data.profile.monthlyBudget > 0 && (
+          <div className="mt-3">
+            <div className="flex justify-between mb-1">
+              <span className="text-[9px] text-white/40">งบประมาณ ฿{fmt(data.profile.monthlyBudget)}</span>
+              <span className={`text-[9px] font-semibold ${budgetPct > 80 ? "text-red-400" : "text-white/60"}`}>{Math.round(budgetPct)}%</span>
+            </div>
+            <div className="h-1.5 rounded-full bg-white/10">
+              <div className={`h-full rounded-full transition-all ${budgetPct > 100 ? "bg-red-400" : budgetPct > 80 ? "bg-amber-400" : "bg-white/50"}`} style={{ width: `${Math.min(budgetPct, 100)}%` }} />
+            </div>
+          </div>
+        )}
+      </div>
+
+      {/* Today — expense + income */}
+      <div className="grid grid-cols-2 gap-3">
+        <div className={`${card} border ${border} rounded-2xl p-3.5`}>
+          <div className="flex items-center gap-1.5 mb-1.5">
+            <div className="w-7 h-7 rounded-lg bg-red-500/10 flex items-center justify-center"><ArrowUpRight size={14} className="text-red-500" /></div>
+            <span className={`text-[10px] ${sub}`}>จ่ายวันนี้</span>
+          </div>
+          <p className="text-xl font-extrabold text-red-500">-฿{fmt(data.todayExpense)}</p>
+          <p className={`text-[9px] ${muted} mt-0.5`}>{data.todayCount} รายการ</p>
+        </div>
+        <div className={`${card} border ${border} rounded-2xl p-3.5`}>
+          <div className="flex items-center gap-1.5 mb-1.5">
+            <div className="w-7 h-7 rounded-lg bg-green-500/10 flex items-center justify-center"><ArrowDownLeft size={14} className="text-green-500" /></div>
+            <span className={`text-[10px] ${sub}`}>รับวันนี้</span>
+          </div>
+          <p className="text-xl font-extrabold text-green-500">+฿{fmt(data.todayIncome)}</p>
+          <p className={`text-[9px] ${muted} mt-0.5`}>รายรับ</p>
         </div>
       </div>
 
-      {/* Stats — 4 cards with expense/income */}
-      <div className="grid grid-cols-2 gap-3">
-        <StatsCard label="รายจ่ายเดือนนี้" value={`฿${fmt(data.monthExpense)}`} icon={<ArrowUpRight size={18} className="text-red-500" />} />
-        <StatsCard label="รายรับเดือนนี้" value={`฿${fmt(data.monthIncome)}`} icon={<ArrowDownLeft size={18} className="text-green-500" />} />
-        <StatsCard label="จำนวนใบเสร็จ" value={`${data.stats.monthReceipts} ใบ`} icon={<Receipt size={18} />} />
-        <StatsCard label="คงเหลือ" value={`${net >= 0 ? "+" : ""}฿${fmt(Math.abs(net))}`} icon={<PiggyBank size={18} className={net >= 0 ? "text-green-500" : "text-red-500"} />} />
+      {/* Goals — donut charts */}
+      <div className={`${card} border ${border} rounded-2xl p-4`}>
+        <p className={`text-xs font-semibold ${txt} mb-4`}>เป้าหมายเดือนนี้</p>
+        <div className="grid grid-cols-2 gap-4">
+          <DonutGoal label="เป้ารายจ่าย" current={data.monthExpense} storageKey="goal-expense" color="#EF4444" isDark={isDark} />
+          <DonutGoal label="เป้ารายรับ" current={data.monthIncome} storageKey="goal-income" color="#22C55E" isDark={isDark} />
+        </div>
       </div>
 
-      {/* Goals */}
+      {/* Set goals (GoalCard) */}
       <div className="grid grid-cols-2 gap-3">
         <GoalCard storageKey="goal-expense" current={data.monthExpense} label="เป้ารายจ่าย" color="red" />
         <GoalCard storageKey="goal-income" current={data.monthIncome} label="เป้ารายรับ" color="green" />
       </div>
 
-      {/* Month summary bar */}
+      {/* Mini chart — 6 months */}
       <div className={`${card} border ${border} rounded-2xl p-4`}>
-        <p className={`text-xs font-semibold ${txt} mb-3`}>สรุปเดือนนี้</p>
-        <div className="grid grid-cols-3 gap-2">
-          <MiniCard label="รายจ่าย" value={`-฿${fmt(data.monthExpense)}`} color="red" isDark={isDark} />
-          <MiniCard label="รายรับ" value={`+฿${fmt(data.monthIncome)}`} color="green" isDark={isDark} />
-          <MiniCard label="คงเหลือ" value={`${net >= 0 ? "+" : "-"}฿${fmt(Math.abs(net))}`} color={net >= 0 ? "green" : "red"} isDark={isDark} />
+        <p className={`text-xs font-semibold ${txt} mb-3`}>แนวโน้ม 6 เดือน</p>
+        <div className="flex items-end justify-between gap-1 h-20 mb-1.5">
+          {data.monthlyData.map((m, i) => {
+            const isLast = i === data.monthlyData.length - 1;
+            const expH = maxMonthly > 0 ? (m.expense / maxMonthly) * 100 : 0;
+            const incH = maxMonthly > 0 ? (m.income / maxMonthly) * 100 : 0;
+            return (
+              <div key={m.month} className="flex-1 flex flex-col items-center gap-0.5">
+                <div className="flex items-end gap-px w-full justify-center h-14">
+                  <div className={`rounded-t ${isLast ? "bg-red-500" : "bg-red-500/30"}`} style={{ width: 6, height: `${Math.max(m.expense > 0 ? 3 : 0, expH)}%` }} />
+                  <div className={`rounded-t ${isLast ? "bg-green-500" : "bg-green-500/30"}`} style={{ width: 6, height: `${Math.max(m.income > 0 ? 3 : 0, incH)}%` }} />
+                </div>
+                <span className={`text-[8px] ${isLast ? txt : muted}`}>{m.month}</span>
+              </div>
+            );
+          })}
         </div>
-        {data.profile.monthlyBudget > 0 && (
-          <div className="mt-3">
-            <div className="flex justify-between mb-1">
-              <span className={`text-[10px] ${sub}`}>งบ ฿{fmt(data.profile.monthlyBudget)}</span>
-              <span className={`text-[10px] font-semibold ${budgetPct > 80 ? "text-red-500" : sub}`}>{Math.round(budgetPct)}%</span>
-            </div>
-            <div className={`h-2 rounded-full overflow-hidden ${isDark ? "bg-white/10" : "bg-gray-100"}`}>
-              <div className={`h-full rounded-full transition-all ${budgetPct > 100 ? "bg-red-500" : budgetPct > 80 ? "bg-amber-500" : "bg-[#FA3633]"}`} style={{ width: `${Math.min(budgetPct, 100)}%` }} />
-            </div>
+        <div className="flex justify-between items-center">
+          <div className="flex gap-3">
+            <div className="flex items-center gap-1"><div className="w-1.5 h-1.5 rounded-sm bg-red-500" /><span className={`text-[8px] ${muted}`}>จ่าย</span></div>
+            <div className="flex items-center gap-1"><div className="w-1.5 h-1.5 rounded-sm bg-green-500" /><span className={`text-[8px] ${muted}`}>รับ</span></div>
           </div>
-        )}
+          <span className={`text-[9px] ${muted}`}>เฉลี่ย/วัน: <span className="text-red-500 font-semibold">-฿{fmt(dailyAvg)}</span></span>
+        </div>
       </div>
+
+      {/* Top categories — compact */}
+      {data.categories.length > 0 && (
+        <div className={`${card} border ${border} rounded-2xl p-4`}>
+          <div className="flex items-center justify-between mb-3">
+            <p className={`text-xs font-semibold ${txt}`}>จ่ายเยอะสุด</p>
+            <button onClick={onReports} className="text-[10px] text-[#FA3633] font-medium">ดูทั้งหมด →</button>
+          </div>
+          {data.categories.slice(0, 3).map((c: any) => {
+            const pct = data.totalExpense > 0 ? Math.round((c.total / data.totalExpense) * 100) : 0;
+            return (
+              <div key={c.name} className="flex items-center gap-2.5 py-1.5">
+                <span className="text-base w-6 text-center">{c.icon}</span>
+                <span className={`text-xs flex-1 ${txt}`}>{c.name}</span>
+                <div className={`w-14 h-1.5 rounded-full ${isDark ? "bg-white/10" : "bg-gray-100"}`}>
+                  <div className="h-full rounded-full bg-red-500" style={{ width: `${pct}%` }} />
+                </div>
+                <span className={`text-[10px] ${muted} w-7 text-right`}>{pct}%</span>
+                <span className="text-xs font-semibold text-red-500 w-16 text-right">-฿{fmt(c.total)}</span>
+              </div>
+            );
+          })}
+        </div>
+      )}
 
       {/* Recent receipts */}
       <div>
         <div className="flex items-center justify-between mb-2">
           <p className={`text-xs font-semibold ${txt}`}>ใบเสร็จล่าสุด</p>
-          <button onClick={onReceipts} className="text-[10px] text-[#FA3633] font-medium">ดูทั้งหมด ({data.stats.totalReceipts})</button>
+          <button onClick={onReceipts} className="text-[10px] text-[#FA3633] font-medium">ดูทั้งหมด ({data.stats.totalReceipts}) →</button>
         </div>
         <div className="space-y-1.5">
-          {data.receipts.slice(0, 6).map((r: any) => <ReceiptRow key={r._id} r={r} isDark={isDark} />)}
+          {data.receipts.slice(0, 5).map((r: any) => <ReceiptRow key={r._id} r={r} isDark={isDark} />)}
           {data.receipts.length === 0 && <EmptyState isDark={isDark} />}
         </div>
-        {data.receipts.length > 6 && (
-          <button onClick={onReports} className={`w-full mt-2 py-2.5 rounded-xl text-xs font-medium ${isDark ? "bg-white/5 text-white/50" : "bg-gray-50 text-gray-500"}`}>
-            ดูสรุปทั้งหมด →
-          </button>
-        )}
       </div>
+
+      {/* Scan prompt — bottom CTA */}
+      {data.receipts.length > 0 && (
+        <button onClick={onScan} className={`w-full flex items-center justify-center gap-2 py-4 rounded-2xl ${isDark ? "bg-white/[0.03] border border-white/[0.06]" : "bg-gray-50 border border-gray-200"} active:scale-[0.98] transition-all`}>
+          <Camera size={18} className="text-[#FA3633]" />
+          <span className={`text-sm font-medium ${txt}`}>บันทึกสลิปเพิ่ม</span>
+          <span className={`text-[10px] ${muted}`}>ถ่ายรูป / เลือกจากอัลบั้ม</span>
+        </button>
+      )}
     </div>
   );
 }
