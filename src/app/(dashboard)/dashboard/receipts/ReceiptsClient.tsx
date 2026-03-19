@@ -267,14 +267,12 @@ export default function ReceiptsClient({ receipts: initialReceipts }: { receipts
         if (res.ok) success++;
       }
       if (success > 0) {
-        await modal.alert({ title: "สำเร็จ", message: `ส่ง ${success} รายการไป${label}แล้ว`, type: "success" });
         window.location.reload();
-      } else {
-        await modal.alert({ title: "ไม่สำเร็จ", message: "ส่งต่อไม่สำเร็จ", type: "error" });
+        return;
       }
-    } catch { await modal.alert({ title: "ผิดพลาด", message: "เกิดข้อผิดพลาด", type: "error" }); }
+    } catch {}
     setTransferring(false);
-  }, [modal]);
+  }, []);
 
   const handleEdit = (r: ReceiptRow) => {
     setEditingId(r._id);
@@ -486,10 +484,7 @@ export default function ReceiptsClient({ receipts: initialReceipts }: { receipts
         imageUrl: slipPreview || r.imageUrl,
         direction: txType === "income" ? "income" : (txType as string) === "savings" ? "savings" : "expense",
       } : r));
-      setEditingId(null);
-      setEditForm({});
-      setEditItems([]);
-      setSlipPreview(null);
+      window.location.reload();
     } catch {} finally {
       setSaving(false);
     }

@@ -73,13 +73,10 @@ export default function ApprovalsClient({ items: initial }: { items: ItemRow[] }
         const statusMap: Record<string, string> = { approve: "confirmed", reject: "cancelled" };
         await fetch(`/api/receipts/${id}`, { method: "PUT", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ status: statusMap[action] }) });
       }
-      if (action === "approve" && item?.isReimbursement) {
-        await modal.alert({ title: "อนุมัติแล้ว", message: "แจ้งเตือน LINE ไปยังผู้ขอเบิกแล้ว", type: "success" });
-      }
-      // Reload to get fresh data (stats, badges, moved items)
-      window.location.reload();
-    } catch {} finally { setActing(null); }
-  }, [items, modal]);
+    } catch {}
+    // Always reload after action — no modal blocking
+    window.location.reload();
+  }, [items]);
 
   const handlePay = useCallback(async () => {
     if (!payTarget) return;
@@ -94,10 +91,10 @@ export default function ApprovalsClient({ items: initial }: { items: ItemRow[] }
         await fetch(`/api/receipts/${payTarget._id}`, { method: "PUT", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ status: "paid" }) });
       }
       setPayTarget(null); setPaySlip(null);
-      await modal.alert({ title: "จ่ายเงินสำเร็จ", message: payTarget.isReimbursement ? "ส่งบิล+เอกสาร+หมายเหตุกลับไปส่วนตัว + แจ้ง LINE แล้ว" : "อัพเดทสถานะจ่ายแล้ว", type: "success" });
-      window.location.reload();
-    } catch {} finally { setPaying(false); }
-  }, [payTarget, payRef, payNote, payCompanyNote, paySlip, modal]);
+    } catch {}
+    // Always reload after pay
+    window.location.reload();
+  }, [payTarget, payRef, payNote, payCompanyNote, paySlip]);
 
   const handleBulkApprove = useCallback(async () => {
     const pendingIds = selected.filter((id) => items.find((r) => r._id === id)?.status === "pending");
