@@ -12,6 +12,20 @@ import { formatNumber as fmt } from "@/lib/utils";
 
 type Tab = "home" | "receipts" | "scan" | "reports" | "profile";
 
+interface ClaimItem {
+  _id: string;
+  merchant: string;
+  amount: number;
+  category: string;
+  date: string;
+  hasImage: boolean;
+  bizStatus: string;
+  companyNote: string;
+  payRef: string;
+  hasCompanySlip: boolean;
+  bizReceiptId: string;
+}
+
 interface MobileData {
   profile: any;
   todayExpense: number;
@@ -27,6 +41,7 @@ interface MobileData {
   paymentMethods: { method: string; total: number; count: number }[];
   daysInMonth: number;
   stats: any;
+  claims?: ClaimItem[];
 }
 const PAY_LABELS: Record<string, string> = {
   "bank-scb": "ไทยพาณิชย์", "bank-kbank": "กสิกร", "bank-bbl": "กรุงเทพ", "bank-ktb": "กรุงไทย",
@@ -496,7 +511,7 @@ function ReceiptsTab({ receipts: initialReceipts, isDark, orgName, orgId }: { re
       });
       if (res.ok) {
         setToast(`ส่งเข้า "${orgName}" เรียบร้อยแล้ว`);
-        setTimeout(() => setToast(null), 3000);
+        setTimeout(() => window.location.reload(), 1000);
       } else {
         const err = await res.json();
         setToast(err.error || "ส่งไม่สำเร็จ");
@@ -1582,7 +1597,41 @@ function ProfileTab({ data, isDark, toggleTheme }: { data: MobileData; isDark: b
           </div>
           <p className={`text-[10px] ${muted} mt-2`}>ส่งใบเสร็จเข้าบริษัทได้ที่หน้าใบเสร็จ → แก้ไข → "ส่งเข้าบริษัท"</p>
         </div>
-      ) : (
+      ) : null}
+
+      {/* Claims status */}
+      {p.orgId && data.claims && data.claims.length > 0 && (
+        <div className={`${card} border ${border} rounded-2xl p-4`}>
+          <div className="flex items-center justify-between mb-3">
+            <p className={`text-xs font-semibold ${txt}`}>สถานะเบิกจ่าย ({data.claims.length})</p>
+            <a href="/personal/dashboard/my-claims" className="text-[10px] text-[#FA3633]">ดูทั้งหมด →</a>
+          </div>
+          <div className="space-y-2">
+            {data.claims.slice(0, 5).map((cl) => (
+              <div key={cl._id} className={`flex items-center gap-3 p-2.5 rounded-xl ${isDark ? "bg-white/[0.03]" : "bg-gray-50"}`}>
+                {cl.hasImage ? (
+                  <img src={`/api/receipts/image?id=${cl._id}`} alt="" className="w-9 h-9 rounded-lg object-cover" loading="lazy" />
+                ) : (
+                  <div className={`w-9 h-9 rounded-lg flex items-center justify-center ${isDark ? "bg-white/5" : "bg-gray-100"}`}><Receipt size={12} className={muted} /></div>
+                )}
+                <div className="flex-1 min-w-0">
+                  <p className={`text-xs font-medium ${txt} truncate`}>{cl.merchant}</p>
+                  <p className={`text-[10px] ${sub}`}>฿{cl.amount.toLocaleString("th-TH", { minimumFractionDigits: 2 })}</p>
+                </div>
+                <div className="text-right">
+                  {cl.bizStatus === "pending" && <span className="px-2 py-0.5 rounded-full text-[9px] font-medium bg-orange-500/10 text-orange-400">รอเบิก</span>}
+                  {cl.bizStatus === "confirmed" && <span className="px-2 py-0.5 rounded-full text-[9px] font-medium bg-blue-500/10 text-blue-400">รอจ่าย</span>}
+                  {cl.bizStatus === "paid" && <span className="px-2 py-0.5 rounded-full text-[9px] font-medium bg-green-500/10 text-green-400">จ่ายแล้ว</span>}
+                  {cl.bizStatus === "cancelled" && <span className="px-2 py-0.5 rounded-full text-[9px] font-medium bg-red-500/10 text-red-400">ปฏิเสธ</span>}
+                  {cl.companyNote && <p className={`text-[9px] ${sub} mt-0.5 truncate max-w-[80px]`}>{cl.companyNote}</p>}
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+
+      {!p.orgId && (
         <div className={`${card} border ${border} rounded-2xl p-4`}>
           <div className="flex items-center gap-3">
             <div className={`w-10 h-10 rounded-xl flex items-center justify-center text-lg ${isDark ? "bg-white/5" : "bg-gray-50"}`}>🏢</div>

@@ -192,6 +192,42 @@ async function MobileData() {
     } catch {}
   }
 
+  // Claims: receipts sent to business
+  const claimReceipts = await Receipt.find({
+    userId: session.userId,
+    accountType: "personal",
+    note: /ส่งเป็นค่าใช้จ่ายบริษัทแล้ว/,
+  }).select("merchant amount category note imageHash createdAt").sort({ createdAt: -1 }).limit(20).lean();
+
+  const claims = await Promise.all(claimReceipts.map(async (r: any) => {
+    const refMatch = (r.note || "").match(/ref:\s*([a-f0-9]+)/);
+    let bizStatus = "pending";
+    let companyNote = "";
+    let payRef = "";
+    let hasCompanySlip = false;
+    if (refMatch) {
+      const biz = await Receipt.findById(refMatch[1]).select("status companyNote companySlipImage paymentMethod").lean() as any;
+      if (biz) {
+        bizStatus = biz.status;
+        companyNote = biz.companyNote || "";
+        hasCompanySlip = !!biz.companySlipImage;
+        payRef = (biz.paymentMethod || "").replace("โอน ref: ", "");
+      }
+    }
+    return {
+      _id: String(r._id),
+      merchant: r.merchant || "ไม่ระบุ",
+      amount: r.amount || 0,
+      category: r.category || "",
+      date: r.createdAt ? new Date(r.createdAt).toISOString() : "",
+      hasImage: !!r.imageHash,
+      bizStatus, companyNote, payRef, hasCompanySlip,
+      bizReceiptId: refMatch ? refMatch[1] : "",
+    };
+  }));
+
+  (data as any).claims = JSON.parse(JSON.stringify(claims));
+
   return <MobileApp data={data} />;
 }
 
