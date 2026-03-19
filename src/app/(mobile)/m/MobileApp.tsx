@@ -168,7 +168,7 @@ function HomeTab({ data, isDark, onScan, onReceipts, onReports }: { data: Mobile
       {/* Greeting + scan CTA */}
       <div className="flex items-center justify-between">
         <div>
-          <p className={`text-lg font-bold ${txt}`}>สวัสดี, {(data.profile.firstNameTh || data.profile.lineDisplayName || data.profile.name).split(" ")[0]}</p>
+          <p className={`text-lg font-bold ${txt}`}>สวัสดี, {data.profile.firstNameTh || data.profile.lineDisplayName || data.profile.name}</p>
           <p className={`text-[11px] ${sub}`}>{new Date().toLocaleDateString("th-TH", { weekday: "long", day: "numeric", month: "long" })}</p>
         </div>
         <button onClick={onScan} className="flex items-center gap-1.5 px-4 py-2.5 rounded-xl bg-[#FA3633] text-white text-xs font-semibold shadow-lg shadow-[#FA3633]/25 active:scale-[0.95] transition-all">
