@@ -118,15 +118,15 @@ export default function Sidebar({ onNavigate, badges = {} }: { onNavigate?: () =
   const { isDark, toggleTheme } = useTheme();
   const { mode, switchMode: ctxSwitchMode } = useMode();
 
-  // Build mode-prefixed href
-  const modeHref = (href: string) => `/${mode}${href}`;
+  // Business-only pages — redirect to /dashboard if switching to personal
+  const businessOnly = ["/dashboard/tax","/dashboard/customers","/dashboard/quotations","/dashboard/invoices","/dashboard/receivables","/dashboard/team","/dashboard/payroll","/dashboard/approvals","/dashboard/reimbursement","/dashboard/accounting","/dashboard/admin","/dashboard/billing"];
 
   const switchMode = (m: Mode) => {
     ctxSwitchMode(m);
-    // Navigate to the same page but under new mode prefix
-    // /dashboard/receipts → /business/dashboard/receipts
-    const currentPage = pathname.replace(/^\/(personal|business)/, "") || "/dashboard";
-    router.push(`/${m}${currentPage}`);
+    // If on a business-only page and switching to personal → navigate to dashboard
+    if (m === "personal" && businessOnly.some((p) => pathname === p || pathname.startsWith(p + "/"))) {
+      router.push("/dashboard");
+    }
   };
 
   const toggleGroup = (label: string) => {
@@ -135,10 +135,8 @@ export default function Sidebar({ onNavigate, badges = {} }: { onNavigate?: () =
 
   const navGroups = mode === "personal" ? personalNav : businessNav;
 
-  // Check active: match against the raw dashboard path (without mode prefix)
-  const rawPath = pathname.replace(/^\/(personal|business)/, "");
   const isActive = (href: string) =>
-    rawPath === href || (href !== "/dashboard" && rawPath.startsWith(href));
+    pathname === href || (href !== "/dashboard" && pathname.startsWith(href));
 
   const handleLogout = async () => {
     document.cookie = "iped-token=; Path=/; Expires=Thu, 01 Jan 1970 00:00:00 GMT";
@@ -282,7 +280,7 @@ export default function Sidebar({ onNavigate, badges = {} }: { onNavigate?: () =
                   return (
                     <Link
                       key={item.href}
-                      href={modeHref(item.href)}
+                      href={item.href}
                       onClick={onNavigate}
                       className={`flex items-center gap-3 px-3 py-2 rounded-lg text-[13px] font-medium transition-colors whitespace-nowrap overflow-hidden ${
                         active ? activeCls : txt
@@ -327,7 +325,7 @@ export default function Sidebar({ onNavigate, badges = {} }: { onNavigate?: () =
         </button>
 
         <Link
-          href={modeHref("/dashboard/settings")}
+          href="/dashboard/settings"
           className={`flex items-center gap-3 px-3 py-2 rounded-lg text-[13px] font-medium transition-colors whitespace-nowrap overflow-hidden ${
             pathname.startsWith("/dashboard/settings") ? activeCls : txt
           }`}

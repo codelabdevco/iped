@@ -302,19 +302,27 @@ export default function DashboardClient({ data: initialData }: { data: Dashboard
   const exportRef = useRef<HTMLDivElement>(null);
 
   // Fetch data on mount + mode change
-  useEffect(() => {
-    const load = () => {
-      setLoading(true);
-      const params = new URLSearchParams({ from: dateFrom.toISOString(), to: dateTo.toISOString() });
-      fetch(`/api/dashboard?${params}`)
-        .then(r => r.ok ? r.json() : null)
-        .then(json => { if (json) { setData(json); setAlertsDismissed(false); } })
-        .finally(() => setLoading(false));
-    };
-    load();
-    window.addEventListener("iped-mode-change", load);
-    return () => window.removeEventListener("iped-mode-change", load);
+  const loadDashboard = useCallback(() => {
+    setLoading(true);
+    const params = new URLSearchParams({ from: dateFrom.toISOString(), to: dateTo.toISOString() });
+    fetch(`/api/dashboard?${params}`, { cache: "no-store" })
+      .then(r => r.ok ? r.json() : null)
+      .then(json => { if (json) { setData(json); setAlertsDismissed(false); } })
+      .finally(() => setLoading(false));
   }, [dateFrom, dateTo]);
+
+  useEffect(() => {
+    loadDashboard();
+  }, [loadDashboard]);
+
+  useEffect(() => {
+    const handler = () => {
+      // Small delay to ensure localStorage is updated before fetch reads it
+      setTimeout(loadDashboard, 50);
+    };
+    window.addEventListener("iped-mode-change", handler);
+    return () => window.removeEventListener("iped-mode-change", handler);
+  }, [loadDashboard]);
 
   useEffect(() => {
     function handleClick(e: MouseEvent) {

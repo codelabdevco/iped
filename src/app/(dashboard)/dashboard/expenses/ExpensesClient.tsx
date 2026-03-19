@@ -84,24 +84,28 @@ export default function ExpensesClient({ expenses: initial }: { expenses: Expens
   useEffect(() => { const ids = initial.map((r) => r._id + r.amount).join(","); if (ids === prevRef.current) return; prevRef.current = ids; setExpenses(initial); }, [initial]);
   useEffect(() => { const i = setInterval(async () => { try { await fetch("/api/receipts/poll"); router.refresh(); } catch {} }, 5000); return () => clearInterval(i); }, [router]);
 
-  // Fetch data on mount + mode change
-  useEffect(() => {
-    const load = async () => {
-      try {
-        const res = await fetch("/api/receipts?limit=200");
-        if (res.ok) {
-          const json = await res.json();
-          if (json.data) {
-            const filtered = json.data.filter((r: any) => r.direction === "expense" || !r.direction);
-            setExpenses(filtered.map((r: any) => ({ ...r, _id: String(r._id) })));
-          }
+  const loadExpenses = useCallback(async () => {
+    try {
+      const res = await fetch("/api/receipts?limit=200", { cache: "no-store" });
+      if (res.ok) {
+        const json = await res.json();
+        if (json.data) {
+          const filtered = json.data.filter((r: any) => r.direction === "expense" || !r.direction);
+          setExpenses(filtered.map((r: any) => ({ ...r, _id: String(r._id) })));
         }
-      } catch {}
-    };
-    load();
-    window.addEventListener("iped-mode-change", load);
-    return () => window.removeEventListener("iped-mode-change", load);
+      }
+    } catch {}
   }, []);
+
+  // Fetch on mount
+  useEffect(() => { loadExpenses(); }, [loadExpenses]);
+
+  // Re-fetch on mode change
+  useEffect(() => {
+    const handler = () => setTimeout(loadExpenses, 50);
+    window.addEventListener("iped-mode-change", handler);
+    return () => window.removeEventListener("iped-mode-change", handler);
+  }, [loadExpenses]);
 
   const muted = isDark ? "text-white/30" : "text-gray-400";
   const confirmed = expenses.filter((r) => r.status === "confirmed");
