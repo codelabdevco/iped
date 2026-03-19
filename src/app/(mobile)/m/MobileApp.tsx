@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useRef, useEffect, useCallback } from "react";
+import { useState, useRef, useEffect } from "react";
 import { useTheme } from "@/contexts/ThemeContext";
 import { Home, Receipt, ScanLine, BarChart3, User, Camera, Image as ImageIcon, Loader2, Check, X, Bell, Pencil, Moon, Sun, ChevronRight, TrendingUp, Calculator, FolderOpen, ArrowUpRight, ArrowDownLeft, AlertTriangle, PiggyBank, Search, Trash2, Save, ChevronDown, Plus, RefreshCw } from "lucide-react";
 import BrandIcon from "@/components/dashboard/BrandIcon";
@@ -170,7 +170,7 @@ function HomeTab({ data, isDark, onScan, onReceipts, onReports }: { data: Mobile
       <div className="flex items-center justify-between">
         <div>
           <p className={`text-lg font-bold ${txt}`}>สวัสดี, {data.profile.firstNameTh || data.profile.lineDisplayName || data.profile.name}</p>
-          <p className={`text-[11px] ${sub}`}>{new Date().toLocaleDateString("th-TH", { weekday: "long", day: "numeric", month: "long" })}</p>
+          <p className={`text-xs ${sub}`}>{new Date().toLocaleDateString("th-TH", { weekday: "long", day: "numeric", month: "long" })}</p>
         </div>
         <button onClick={onScan} className="flex items-center gap-1.5 px-4 py-2.5 rounded-xl bg-[#FA3633] text-white text-xs font-semibold shadow-lg shadow-[#FA3633]/25 active:scale-[0.95] transition-all">
           <ScanLine size={16} /> สแกนสลิป
@@ -212,7 +212,7 @@ function HomeTab({ data, isDark, onScan, onReceipts, onReports }: { data: Mobile
 
       {/* Today — expense + income */}
       <div className="grid grid-cols-2 gap-3">
-        <div className={`${card} border ${border} rounded-2xl p-3.5`}>
+        <div className={`${card} border ${border} rounded-xl p-4`}>
           <div className="flex items-center gap-1.5 mb-1.5">
             <div className="w-7 h-7 rounded-lg bg-red-500/10 flex items-center justify-center"><ArrowUpRight size={14} className="text-red-500" /></div>
             <span className={`text-[10px] ${sub}`}>จ่ายวันนี้</span>
@@ -220,7 +220,7 @@ function HomeTab({ data, isDark, onScan, onReceipts, onReports }: { data: Mobile
           <p className="text-xl font-extrabold text-red-500">-฿{fmt(data.todayExpense)}</p>
           <p className={`text-[9px] ${muted} mt-0.5`}>{data.todayCount} รายการ</p>
         </div>
-        <div className={`${card} border ${border} rounded-2xl p-3.5`}>
+        <div className={`${card} border ${border} rounded-xl p-4`}>
           <div className="flex items-center gap-1.5 mb-1.5">
             <div className="w-7 h-7 rounded-lg bg-green-500/10 flex items-center justify-center"><ArrowDownLeft size={14} className="text-green-500" /></div>
             <span className={`text-[10px] ${sub}`}>รับวันนี้</span>
@@ -262,7 +262,7 @@ function MiniCard({ label, value, color, isDark }: { label: string; value: strin
   const bg = { red: isDark ? "bg-red-500/10" : "bg-red-50", green: isDark ? "bg-green-500/10" : "bg-green-50", blue: isDark ? "bg-blue-500/10" : "bg-blue-50" }[color] || "";
   const tc = { red: "text-red-500", green: "text-green-500", blue: "text-blue-500" }[color] || "";
   return (
-    <div className={`rounded-xl p-2.5 ${bg}`}>
+    <div className={`rounded-xl p-3 ${bg}`}>
       <p className={`text-[10px] ${tc}`}>{label}</p>
       <p className={`text-sm font-bold ${tc} mt-0.5`}>{value}</p>
     </div>
@@ -487,7 +487,7 @@ function ReceiptsTab({ receipts: initialReceipts, isDark }: { receipts: any[]; i
   ];
 
   return (
-    <div ref={scrollRef} onTouchStart={handleTouchStart} onTouchMove={handleTouchMove} onTouchEnd={handleTouchEnd} className="space-y-3 pt-3">
+    <div ref={scrollRef} onTouchStart={handleTouchStart} onTouchMove={handleTouchMove} onTouchEnd={handleTouchEnd} className="space-y-4 pt-3">
       {/* Pull-to-refresh indicator */}
       {(pullY > 0 || refreshing) && (
         <div className="flex items-center justify-center py-2 -mt-2" style={{ height: refreshing ? 40 : pullY * 0.5 }}>
@@ -498,7 +498,7 @@ function ReceiptsTab({ receipts: initialReceipts, isDark }: { receipts: any[]; i
       {/* Header */}
       <div className="flex items-center justify-between">
         <div>
-          <p className={`text-xl font-bold ${txt}`}>ใบเสร็จ</p>
+          <p className={`text-lg font-bold ${txt}`}>ใบเสร็จ</p>
           <p className={`text-xs ${muted}`}>{receipts.length} รายการ · ยอดรวม <span className={totalAmount >= 0 ? "text-green-500" : "text-red-500"}>{totalAmount >= 0 ? "+" : ""}฿{fmt(Math.abs(totalAmount))}</span></p>
         </div>
       </div>
@@ -507,13 +507,13 @@ function ReceiptsTab({ receipts: initialReceipts, isDark }: { receipts: any[]; i
       <div className="relative">
         <Search size={16} className={`absolute left-3.5 top-1/2 -translate-y-1/2 ${muted}`} />
         <input value={search} onChange={(e) => setSearch(e.target.value)} placeholder="ค้นหาร้านค้า, หมวดหมู่..."
-          className={`w-full h-11 pl-10 pr-4 rounded-xl text-sm ${isDark ? "bg-white/5 border-white/10 text-white placeholder:text-white/30" : "bg-white border-gray-200 text-gray-900 placeholder:text-gray-400"} border focus:outline-none focus:border-[#FA3633]/50`} />
+          className={`w-full h-10 pl-10 pr-4 rounded-xl text-sm ${isDark ? "bg-white/5 border-white/10 text-white placeholder:text-white/30" : "bg-white border-gray-200 text-gray-900 placeholder:text-gray-400"} border focus:outline-none focus:border-[#FA3633]/50`} />
       </div>
 
       {/* Direction filter */}
       <div className={`flex p-1 rounded-xl ${isDark ? "bg-white/5" : "bg-gray-100"}`}>
         {dirTabs.map((t) => (
-          <button key={t.key} onClick={() => setDirFilter(t.key)} className={`flex-1 py-2 rounded-lg text-xs font-semibold transition-all ${dirFilter === t.key ? `${t.activeClass} shadow-sm` : isDark ? "text-white/40" : "text-gray-500"}`}>
+          <button key={t.key} onClick={() => setDirFilter(t.key)} className={`flex-1 py-2.5 rounded-lg text-xs font-semibold transition-all ${dirFilter === t.key ? `${t.activeClass} shadow-sm` : isDark ? "text-white/40" : "text-gray-500"}`}>
             {t.label}
           </button>
         ))}
@@ -580,7 +580,7 @@ function ReceiptsTab({ receipts: initialReceipts, isDark }: { receipts: any[]; i
         {filtered.map((r) => {
           const st = STATUS_MAP[r.status] || STATUS_MAP.pending;
           return (
-            <div key={r._id} className={`${card} border ${border} rounded-2xl active:scale-[0.98] transition-transform`} onClick={() => openEdit(r)}>
+            <div key={r._id} className={`${card} border ${border} rounded-xl active:scale-[0.98] transition-transform`} onClick={() => openEdit(r)}>
               <div className="px-4 py-3.5 flex items-center gap-3">
                 {/* Icon */}
                 {r.hasImage ? (
@@ -741,10 +741,10 @@ function ReceiptsTab({ receipts: initialReceipts, isDark }: { receipts: any[]; i
                         <span className={`text-[10px] font-medium ${muted}`}>#{i + 1}</span>
                         {editItems.length > 1 && <button onClick={() => setEditItems(editItems.filter((_, j) => j !== i))} className="text-red-400"><Trash2 size={12} /></button>}
                       </div>
-                      <input value={item.name} onChange={(e) => { const n = [...editItems]; n[i] = { ...n[i], name: e.target.value }; setEditItems(n); }} placeholder="ชื่อรายการ" className={`${field} h-8 text-xs`} />
+                      <input value={item.name} onChange={(e) => { const n = [...editItems]; n[i] = { ...n[i], name: e.target.value }; setEditItems(n); }} placeholder="ชื่อรายการ" className={`${field} h-9 text-xs`} />
                       <div className="grid grid-cols-3 gap-2">
-                        <div><label className={`block text-[10px] ${muted} mb-0.5`}>จำนวน</label><input type="number" value={item.qty} min={1} onChange={(e) => { const n = [...editItems]; n[i] = { ...n[i], qty: Math.max(1, Number(e.target.value)) }; setEditItems(n); }} className={`${field} h-8 text-xs text-center`} /></div>
-                        <div><label className={`block text-[10px] ${muted} mb-0.5`}>ราคา</label><input type="number" value={item.price || ""} onChange={(e) => { const n = [...editItems]; n[i] = { ...n[i], price: Number(e.target.value) }; setEditItems(n); }} placeholder="0" className={`${field} h-8 text-xs text-right`} /></div>
+                        <div><label className={`block text-[10px] ${muted} mb-0.5`}>จำนวน</label><input type="number" value={item.qty} min={1} onChange={(e) => { const n = [...editItems]; n[i] = { ...n[i], qty: Math.max(1, Number(e.target.value)) }; setEditItems(n); }} className={`${field} h-9 text-xs text-center`} /></div>
+                        <div><label className={`block text-[10px] ${muted} mb-0.5`}>ราคา</label><input type="number" value={item.price || ""} onChange={(e) => { const n = [...editItems]; n[i] = { ...n[i], price: Number(e.target.value) }; setEditItems(n); }} placeholder="0" className={`${field} h-9 text-xs text-right`} /></div>
                         <div className="flex items-end justify-end"><span className={`text-xs font-medium ${txt} pb-1.5`}>฿{(item.qty * item.price).toLocaleString("th-TH", { minimumFractionDigits: 2 })}</span></div>
                       </div>
                     </div>
@@ -853,10 +853,10 @@ function ReceiptsTab({ receipts: initialReceipts, isDark }: { receipts: any[]; i
 
             {/* Sticky save + cancel */}
             <div className={`fixed bottom-0 left-0 right-0 px-4 py-3 flex gap-3 ${isDark ? "bg-[#0a0a0a]/95 border-t border-white/[0.06]" : "bg-white/95 border-t border-gray-200"} backdrop-blur-xl`} style={{ paddingBottom: "max(env(safe-area-inset-bottom), 12px)" }}>
-              <button onClick={saveEdit} disabled={saving} className="flex-1 py-3.5 rounded-xl bg-[#FA3633] text-white text-sm font-bold flex items-center justify-center gap-2 active:scale-[0.97] disabled:opacity-50">
+              <button onClick={saveEdit} disabled={saving} className="flex-1 py-3 rounded-xl bg-[#FA3633] text-white text-sm font-bold flex items-center justify-center gap-2 active:scale-[0.97] disabled:opacity-50">
                 {saving ? <Loader2 size={16} className="animate-spin" /> : <Save size={16} />} บันทึก
               </button>
-              <button onClick={() => setEditId(null)} className={`py-3.5 px-6 rounded-xl text-sm font-medium ${isDark ? "bg-white/5 text-white/60" : "bg-gray-100 text-gray-500"}`}>ยกเลิก</button>
+              <button onClick={() => setEditId(null)} className={`py-3 px-6 rounded-xl text-sm font-medium ${isDark ? "bg-white/5 text-white/60" : "bg-gray-100 text-gray-500"}`}>ยกเลิก</button>
             </div>
           </div>
         );
@@ -1022,7 +1022,7 @@ function ScanTab({ isDark, onDone }: { isDark: boolean; onDone: () => void }) {
           </div>
         </div>
       ) : error ? (
-        <div className={`${card} border border-red-500/20 rounded-2xl p-6 text-center`}>
+        <div className={`${card} border border-red-500/20 rounded-2xl p-5 text-center`}>
           <X size={32} className="text-red-500 mx-auto mb-2" />
           <p className="text-red-500 font-semibold text-sm">{error}</p>
           <button onClick={reset} className="mt-4 px-8 py-2.5 rounded-xl bg-[#FA3633] text-white text-sm font-semibold">ลองใหม่</button>
@@ -1044,10 +1044,10 @@ function ScanTab({ isDark, onDone }: { isDark: boolean; onDone: () => void }) {
               <img src={preview} alt="" className="w-full max-h-60 object-contain" />
             </div>
           )}
-          <button onClick={() => cameraRef.current?.click()} className="w-full flex items-center justify-center gap-3 py-5 rounded-2xl bg-[#FA3633] text-white font-bold text-base shadow-lg shadow-[#FA3633]/20 active:scale-[0.97] transition-all">
+          <button onClick={() => cameraRef.current?.click()} className="w-full flex items-center justify-center gap-3 py-4 rounded-2xl bg-[#FA3633] text-white font-bold text-base shadow-lg shadow-[#FA3633]/20 active:scale-[0.97] transition-all">
             <Camera size={22} /> ถ่ายรูปใบเสร็จ
           </button>
-          <button onClick={() => galleryRef.current?.click()} className={`w-full flex items-center justify-center gap-3 py-4 rounded-2xl font-semibold text-sm active:scale-[0.97] transition-all ${card} border ${border} ${txt}`}>
+          <button onClick={() => galleryRef.current?.click()} className={`w-full flex items-center justify-center gap-3 py-3 rounded-2xl font-semibold text-sm active:scale-[0.97] transition-all ${card} border ${border} ${txt}`}>
             <ImageIcon size={18} className="text-[#FA3633]" /> เลือกจากอัลบั้ม
           </button>
           <div className={`${card} border ${border} rounded-2xl p-4`}>
@@ -1133,7 +1133,7 @@ function ReportsTab({ data, isDark }: { data: MobileData; isDark: boolean }) {
       </div>
 
       {/* Connection status */}
-      <div className={`flex items-center gap-3 ${card} border ${border} rounded-xl px-3 py-2`}>
+      <div className={`flex items-center gap-3 ${card} border ${border} rounded-2xl px-3 py-2`}>
         {[
           { name: "LINE", brand: "line", on: true },
           { name: "Gmail", brand: "gmail", on: !!data.profile.googleEmail },
@@ -1149,7 +1149,7 @@ function ReportsTab({ data, isDark }: { data: MobileData; isDark: boolean }) {
 
       {/* Budget Alerts */}
       {!alertsDismissed && budgetAlerts.length > 0 && (
-        <div className={`rounded-xl border p-3 ${isDark ? "bg-amber-500/5 border-amber-500/20" : "bg-amber-50 border-amber-200"}`}>
+        <div className={`rounded-2xl border p-3 ${isDark ? "bg-amber-500/5 border-amber-500/20" : "bg-amber-50 border-amber-200"}`}>
           <div className="flex items-center justify-between mb-2">
             <div className="flex items-center gap-1.5">
               <AlertTriangle size={14} className="text-amber-500" />
@@ -1667,11 +1667,11 @@ function ReceiptRow({ r, isDark }: { r: any; isDark: boolean }) {
           <span className={`text-[7px] px-1 py-0.5 rounded font-bold leading-none ${isIncome ? "bg-green-500/15 text-green-500" : "bg-red-500/15 text-red-500"}`}>
             {isIncome ? "รับ" : "จ่าย"}
           </span>
-          <p className={`text-[13px] font-medium ${txt} truncate`}>{r.merchant}</p>
+          <p className={`text-sm font-medium ${txt} truncate`}>{r.merchant}</p>
         </div>
         <p className={`text-[10px] ${muted}`}>{r.date}{r.time ? ` · ${r.time}` : ""}</p>
       </div>
-      <Baht value={r.amount} direction={r.direction} className="text-[13px] font-bold" />
+      <Baht value={r.amount} direction={r.direction} className="text-sm font-bold" />
     </div>
   );
 }
@@ -1679,8 +1679,8 @@ function ReceiptRow({ r, isDark }: { r: any; isDark: boolean }) {
 function InfoRow({ l, v, d }: { l: string; v: string; d: boolean }) {
   return (
     <div className="flex items-center justify-between py-0.5">
-      <span className={`text-[11px] ${d ? "text-white/35" : "text-gray-500"}`}>{l}</span>
-      <span className={`text-[13px] font-medium ${d ? "text-white" : "text-gray-900"}`}>{v}</span>
+      <span className={`text-xs ${d ? "text-white/35" : "text-gray-500"}`}>{l}</span>
+      <span className={`text-sm font-medium ${d ? "text-white" : "text-gray-900"}`}>{v}</span>
     </div>
   );
 }
