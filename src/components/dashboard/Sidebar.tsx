@@ -10,7 +10,7 @@ import {
   Copy, CreditCard, Bell, Bot, Mail, Cloud, Download,
   Users, Building2, CheckSquare, FileSpreadsheet, Shield,
   Package, Globe, BadgeDollarSign, ChevronDown,
-  ContactRound, FileOutput, FileInput, CircleDollarSign,
+  ContactRound, FileOutput, FileInput, CircleDollarSign, ShieldCheck,
 } from "lucide-react";
 import { useTheme } from "@/contexts/ThemeContext";
 
@@ -101,7 +101,7 @@ const businessNav: NavGroup[] = [
   {
     label: "ระบบ",
     items: [
-      { label: "Admin Dashboard", href: "/dashboard/admin", icon: Building2 },
+      { label: "จัดการผู้ใช้งาน", href: "/dashboard/admin", icon: ShieldCheck },
       { label: "Package & Billing", href: "/dashboard/billing", icon: Package },
     ],
   },
