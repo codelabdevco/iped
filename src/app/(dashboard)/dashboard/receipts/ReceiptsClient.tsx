@@ -377,7 +377,7 @@ export default function ReceiptsClient({ receipts: initialReceipts }: { receipts
       }
     } catch (e) { console.error("OCR error:", e); }
     setOcrScanning(false);
-  }, [router]);
+  }, []);
 
   const handleSlipUpload = (files: FileList | File[]) => {
     const arr = Array.from(files);
