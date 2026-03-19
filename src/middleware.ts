@@ -7,6 +7,7 @@ const businessOnlyPages = [
   "/dashboard/invoices", "/dashboard/receivables", "/dashboard/team",
   "/dashboard/payroll", "/dashboard/approvals", "/dashboard/reimbursement",
   "/dashboard/accounting", "/dashboard/admin", "/dashboard/billing",
+  "/dashboard/org-control",
 ];
 
 export function middleware(request: NextRequest) {
