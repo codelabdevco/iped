@@ -146,6 +146,47 @@ export default function ReceiptsClient({ receipts: initialReceipts }: { receipts
   const { isDark } = useTheme();
   const router = useRouter();
   const [receipts, setReceipts] = useReactiveData(initialReceipts);
+
+  // Re-fetch receipts on mode change
+  useEffect(() => {
+    const handler = async () => {
+      try {
+        const res = await fetch("/api/receipts?limit=100");
+        if (res.ok) {
+          const json = await res.json();
+          if (json.data) {
+            const mapped = json.data.map((r: any) => ({
+              _id: String(r._id),
+              storeName: r.merchant || "ไม่ระบุร้าน",
+              amount: r.amount || 0,
+              category: r.category || "ไม่ระบุ",
+              rawDate: r.date ? new Date(r.date).toISOString().slice(0,10) : "",
+              date: r.date ? new Date(r.date).toLocaleDateString("th-TH") : "",
+              time: r.time || "",
+              status: r.status || "pending",
+              type: r.type || "receipt",
+              source: r.source || "web",
+              paymentMethod: r.paymentMethod || "",
+              note: r.note || "",
+              vat: r.vat || 0,
+              wht: r.wht || 0,
+              documentNumber: r.documentNumber || "",
+              merchantTaxId: r.merchantTaxId || "",
+              ocrConfidence: r.ocrConfidence,
+              hasImage: !!r.imageHash,
+              items: [],
+              itemCount: 0,
+              direction: r.direction || "expense",
+              linkedEmail: null,
+            }));
+            setReceipts(mapped);
+          }
+        }
+      } catch {}
+    };
+    window.addEventListener("iped-mode-change", handler);
+    return () => window.removeEventListener("iped-mode-change", handler);
+  }, []);
   const pollRef = useRef<{ count: number; latestId: string | null }>({
     count: initialReceipts.length,
     latestId: initialReceipts[0]?._id || null,

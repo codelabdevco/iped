@@ -301,10 +301,17 @@ export default function DashboardClient({ data: initialData }: { data: Dashboard
   const [hoveredReceipt, setHoveredReceipt] = useState<string | null>(null);
   const exportRef = useRef<HTMLDivElement>(null);
 
-  // Sync data when server re-renders with new props (e.g. mode switch)
+  // Sync data when server re-renders with new props
   useEffect(() => {
     setData(initialData);
   }, [initialData]);
+
+  // Re-fetch on mode change (no reload needed)
+  useEffect(() => {
+    const handler = () => fetchData(dateFrom, dateTo);
+    window.addEventListener("iped-mode-change", handler);
+    return () => window.removeEventListener("iped-mode-change", handler);
+  }, [dateFrom, dateTo]);
 
   useEffect(() => {
     function handleClick(e: MouseEvent) {

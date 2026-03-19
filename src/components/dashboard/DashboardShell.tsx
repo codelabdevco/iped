@@ -2,6 +2,7 @@
 
 import { useState, useCallback } from "react";
 import { ThemeProvider, useTheme } from "@/contexts/ThemeContext";
+import { ModeProvider } from "@/contexts/ModeContext";
 import Sidebar from "@/components/dashboard/Sidebar";
 import Header from "@/components/dashboard/Header";
 
@@ -51,7 +52,9 @@ function ShellInner({ displayName, pictureUrl, pendingReceipts, children }: Shel
 export default function DashboardShell({ displayName, pictureUrl, pendingReceipts, children }: ShellProps) {
   return (
     <ThemeProvider>
-      <ShellInner displayName={displayName} pictureUrl={pictureUrl} pendingReceipts={pendingReceipts}>{children}</ShellInner>
+      <ModeProvider>
+        <ShellInner displayName={displayName} pictureUrl={pictureUrl} pendingReceipts={pendingReceipts}>{children}</ShellInner>
+      </ModeProvider>
     </ThemeProvider>
   );
 }

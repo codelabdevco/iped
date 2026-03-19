@@ -1,31 +1,41 @@
 import { useState, useEffect, useCallback } from "react";
 
 /**
- * Hook that syncs state with server-provided initial data and re-fetches on mode change.
- * Use in client components that receive data from server components.
+ * Hook that syncs state with server-provided initial data.
+ * Listens for mode changes and calls onModeChange callback or fetchUrl to re-fetch.
  *
- * @param initialData - Data from server component props
- * @param onModeChange - Optional callback to re-fetch data when mode changes
+ * @param initialData - Data from server component props (first load)
+ * @param fetchUrl - Optional API URL to re-fetch when mode changes
+ * @param transform - Optional transform function for API response
  * @returns [data, setData]
  */
 export function useReactiveData<T>(
   initialData: T,
-  onModeChange?: () => void
+  fetchUrl?: string,
+  transform?: (json: any) => T
 ): [T, React.Dispatch<React.SetStateAction<T>>] {
   const [data, setData] = useState<T>(initialData);
 
-  // Sync when server re-renders with new props (e.g. mode switch → router.refresh())
+  // Sync when server re-renders with new props
   useEffect(() => {
     setData(initialData);
   }, [initialData]);
 
-  // Re-fetch on mode change if callback provided
+  // Re-fetch from API on mode change
   useEffect(() => {
-    if (!onModeChange) return;
-    const handler = () => onModeChange();
+    if (!fetchUrl) return;
+    const handler = async () => {
+      try {
+        const res = await fetch(fetchUrl);
+        if (res.ok) {
+          const json = await res.json();
+          setData(transform ? transform(json) : json);
+        }
+      } catch {}
+    };
     window.addEventListener("iped-mode-change", handler);
     return () => window.removeEventListener("iped-mode-change", handler);
-  }, [onModeChange]);
+  }, [fetchUrl, transform]);
 
   return [data, setData];
 }

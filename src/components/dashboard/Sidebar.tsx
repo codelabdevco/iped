@@ -14,6 +14,7 @@ import {
   ArrowRightLeft,
 } from "lucide-react";
 import { useTheme } from "@/contexts/ThemeContext";
+import { useMode } from "@/contexts/ModeContext";
 
 type Mode = "personal" | "business";
 
@@ -111,11 +112,11 @@ const businessNav: NavGroup[] = [
 
 export default function Sidebar({ onNavigate, badges = {} }: { onNavigate?: () => void; badges?: Record<string, number> }) {
   const [collapsed, setCollapsed] = useState(false);
-  const [mode, setMode] = useState<Mode>("personal");
   const [collapsedGroups, setCollapsedGroups] = useState<Record<string, boolean>>({});
   const pathname = usePathname();
   const router = useRouter();
   const { isDark, toggleTheme } = useTheme();
+  const { mode, switchMode: ctxSwitchMode } = useMode();
 
   // Check if a pathname is valid for a given mode
   const isValidRoute = (path: string, m: Mode) => {
@@ -127,43 +128,18 @@ export default function Sidebar({ onNavigate, badges = {} }: { onNavigate?: () =
     ) || alwaysValid.some((p) => path.startsWith(p));
   };
 
-  useEffect(() => {
-    const saved = localStorage.getItem("iped-mode") as Mode | null;
-    if (saved) {
-      setMode(saved);
-      document.cookie = `iped-mode=${saved}; path=/; max-age=${365 * 24 * 60 * 60}; SameSite=Lax`;
-    }
-    // Listen for mode changes from other components (e.g. Settings page)
-    const handleModeChange = (e: Event) => {
-      const newMode = (e as CustomEvent).detail as Mode;
-      setMode(newMode);
-      if (!isValidRoute(pathname, newMode)) router.push("/dashboard");
-    };
-    window.addEventListener("iped-mode-change", handleModeChange);
-    return () => window.removeEventListener("iped-mode-change", handleModeChange);
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [pathname]);
-
   // Route guard: redirect if current page doesn't belong to current mode
-  // Runs on every pathname change (nav, back/forward, direct URL)
   useEffect(() => {
-    const currentMode = (localStorage.getItem("iped-mode") as Mode) || "personal";
-    if (!isValidRoute(pathname, currentMode)) {
+    if (!isValidRoute(pathname, mode)) {
       router.push("/dashboard");
     }
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [pathname]);
+  }, [pathname, mode]);
 
   const switchMode = (m: Mode) => {
-    setMode(m);
-    localStorage.setItem("iped-mode", m);
-    document.cookie = `iped-mode=${m}; path=/; max-age=${365 * 24 * 60 * 60}; SameSite=Lax`;
-    window.dispatchEvent(new CustomEvent("iped-mode-change", { detail: m }));
-    // Hard reload to ensure server components re-read the cookie
+    ctxSwitchMode(m);
     if (!isValidRoute(pathname, m)) {
-      window.location.href = "/dashboard";
-    } else {
-      window.location.reload();
+      router.push("/dashboard");
     }
   };
 
