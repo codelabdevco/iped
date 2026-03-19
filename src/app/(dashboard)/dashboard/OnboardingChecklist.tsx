@@ -5,7 +5,7 @@ import Link from "next/link";
 import {
   MessageCircle, UserRoundCog, HardDrive, Mail, ScanLine,
   PenTool, Sheet, FolderOpen, Wallet, PiggyBank,
-  Building2, Users, CheckSquare, FileSpreadsheet,
+  Building2, Users, CheckSquare, FileSpreadsheet, BadgeDollarSign,
   Check, ChevronDown, ChevronUp, X, Sparkles,
 } from "lucide-react";
 import { useTheme } from "@/contexts/ThemeContext";
@@ -40,6 +40,7 @@ const businessSteps: Step[] = [
   { id: "sheets-notion", label: "เชื่อม Sheets / Notion", description: "ส่งออกข้อมูลไป Google Sheets / Notion", icon: Sheet, href: "/dashboard/sync" },
   { id: "b-company", label: "กรอกข้อมูลบริษัท", description: "ชื่อ, เลขผู้เสียภาษี, ที่อยู่, โลโก้", icon: Building2, href: "/dashboard/settings", autoKey: "company" },
   { id: "b-team", label: "เพิ่มพนักงาน & แผนก", description: "เชิญทีม + กำหนดสิทธิ์อนุมัติ", icon: Users, href: "/dashboard/team" },
+  { id: "b-payroll", label: "ตั้งค่าเงินเดือน", description: "เพิ่มพนักงาน + ตั้งเงินเดือนฐาน", icon: BadgeDollarSign, href: "/dashboard/payroll" },
   { id: "b-approval", label: "ตั้งค่า Approval", description: "กำหนด workflow อนุมัติรายจ่าย", icon: CheckSquare, href: "/dashboard/approvals" },
   { id: "b-categories", label: "ตั้งหมวดหมู่รายจ่าย", description: "หมวดตาม chart of accounts บริษัท", icon: FolderOpen, href: "/dashboard/categories" },
   { id: "b-accounting", label: "เชื่อมโปรแกรมบัญชี", description: "เชื่อมกับซอฟต์แวร์บัญชีที่ใช้อยู่", icon: FileSpreadsheet, href: "/dashboard/accounting" },

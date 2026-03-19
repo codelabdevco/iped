@@ -87,6 +87,7 @@ const businessNav: NavGroup[] = [
     label: "องค์กร",
     items: [
       { label: "พนักงาน & แผนก", href: "/dashboard/team", icon: Users },
+      { label: "จ่ายเงินเดือน", href: "/dashboard/payroll", icon: BadgeDollarSign },
       { label: "อนุมัติรายจ่าย", href: "/dashboard/approvals", icon: CheckSquare },
     ],
   },
