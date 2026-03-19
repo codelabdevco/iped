@@ -707,22 +707,26 @@ function ReceiptsTab({ receipts: initialReceipts, isDark }: { receipts: any[]; i
                     <div><label className={lbl}>วันที่</label><input type="date" value={editForm.rawDate ? new Date(editForm.rawDate).toISOString().slice(0, 10) : ""} onChange={(e) => setEditForm({ ...editForm, rawDate: e.target.value })} className={field} /></div>
                     <div><label className={lbl}>เวลา</label><input type="time" value={editForm.time || ""} onChange={(e) => setEditForm({ ...editForm, time: e.target.value })} className={field} /></div>
                   </div>
-                  <div className="grid grid-cols-2 gap-3">
-                    <div><label className={lbl}>หมวดหมู่</label>
-                      <div className="flex flex-wrap gap-1.5">{cats.map((c) => (<button key={c.name} onClick={() => setEditForm({ ...editForm, category: c.name, categoryIcon: c.icon })} className={`flex items-center gap-1 px-2 py-1.5 rounded-lg text-[11px] font-medium transition-all ${chipActive(editForm.category === c.name, "bg-red-500 text-white")}`}>{c.icon} {c.name}</button>))}</div>
-                    </div>
-                    <div><label className={lbl}>สถานะ</label>
-                      <div className="flex flex-wrap gap-1.5">{ALL_STATUSES.map((s) => (<button key={s} onClick={() => setEditForm({ ...editForm, status: s })} className={`px-2 py-1.5 rounded-lg text-[10px] font-semibold transition-all ${editForm.status === s ? "bg-[#FA3633] text-white" : STATUS_MAP[s].cls}`}>{STATUS_MAP[s].text}</button>))}</div>
-                    </div>
-                  </div>
-                  <div><label className={lbl}>วิธีจ่าย</label>
-                    <div className="flex flex-wrap gap-1.5">{PM_OPTIONS.map((pm) => (<button key={pm.value} onClick={() => setEditForm({ ...editForm, paymentMethod: pm.value })} className={`flex items-center gap-1 px-2 py-1.5 rounded-lg text-[10px] font-medium transition-all ${chipActive(editForm.paymentMethod === pm.value)}`}><BrandIcon brand={pm.value} size={14} /> {pm.label}</button>))}</div>
-                  </div>
                   <div><label className={lbl}>ประเภทเอกสาร</label><select value={editForm.type || "receipt"} onChange={(e) => setEditForm({ ...editForm, type: e.target.value })} className={field}>{[["receipt","ใบเสร็จ"],["invoice","ใบแจ้งหนี้"],["billing","บิล"],["debit_note","ใบลดหนี้"],["credit_note","ใบเพิ่มหนี้"]].map(([v,l]) => <option key={v} value={v}>{l}</option>)}</select></div>
                   <div className="grid grid-cols-2 gap-3">
                     <div><label className={lbl}>เลขที่เอกสาร</label><input value={editForm.documentNumber || ""} onChange={(e) => setEditForm({ ...editForm, documentNumber: e.target.value })} placeholder="RCP-2026-0001" className={field} /></div>
                     <div><label className={lbl}>เลขผู้เสียภาษี</label><input value={editForm.merchantTaxId || ""} onChange={(e) => setEditForm({ ...editForm, merchantTaxId: e.target.value })} placeholder="0107536000269" className={field} /></div>
                   </div>
+                </div>
+                {/* Category */}
+                <div className={section}>
+                  <p className={`text-xs font-semibold ${isDark ? "text-white/50" : "text-gray-400"}`}>หมวดหมู่</p>
+                  <div className="grid grid-cols-3 gap-2">{cats.map((c) => (<button key={c.name} onClick={() => setEditForm({ ...editForm, category: c.name, categoryIcon: c.icon })} className={`flex items-center justify-center gap-1.5 px-2 py-2.5 rounded-xl text-xs font-medium transition-all ${editForm.category === c.name ? "bg-red-500 text-white shadow-md shadow-red-500/20" : isDark ? "bg-white/5 text-white/60" : "bg-gray-50 text-gray-600 border border-gray-200"}`}><span className="text-base">{c.icon}</span>{c.name}</button>))}</div>
+                </div>
+                {/* Status */}
+                <div className={section}>
+                  <p className={`text-xs font-semibold ${isDark ? "text-white/50" : "text-gray-400"}`}>สถานะ</p>
+                  <div className="grid grid-cols-4 gap-2">{ALL_STATUSES.map((s) => (<button key={s} onClick={() => setEditForm({ ...editForm, status: s })} className={`py-2 rounded-xl text-[11px] font-semibold text-center transition-all ${editForm.status === s ? "bg-[#FA3633] text-white shadow-md" : STATUS_MAP[s].cls}`}>{STATUS_MAP[s].text}</button>))}</div>
+                </div>
+                {/* Payment */}
+                <div className={section}>
+                  <p className={`text-xs font-semibold ${isDark ? "text-white/50" : "text-gray-400"}`}>วิธีจ่าย</p>
+                  <div className="grid grid-cols-3 gap-2">{PM_OPTIONS.map((pm) => (<button key={pm.value} onClick={() => setEditForm({ ...editForm, paymentMethod: pm.value })} className={`flex items-center justify-center gap-1.5 px-2 py-2.5 rounded-xl text-xs font-medium transition-all ${editForm.paymentMethod === pm.value ? "bg-[#FA3633] text-white shadow-md shadow-[#FA3633]/20" : isDark ? "bg-white/5 text-white/60" : "bg-gray-50 text-gray-600 border border-gray-200"}`}><BrandIcon brand={pm.value} size={18} />{pm.label}</button>))}</div>
                 </div>
                 {/* Line items */}
                 <div className={section}>
@@ -752,7 +756,7 @@ function ReceiptsTab({ receipts: initialReceipts, isDark }: { receipts: any[]; i
               </>)}
 
               {/* ═══ INCOME ═══ */}
-              {editForm.direction === "income" && (
+              {editForm.direction === "income" && (<>
                 <div className={section}>
                   <p className="text-xs font-semibold text-green-500/70">ข้อมูลรายรับ</p>
                   <div><label className={lbl}>แหล่งที่มา</label><input value={editForm.merchant || ""} onChange={(e) => setEditForm({ ...editForm, merchant: e.target.value })} placeholder="เช่น บริษัท ABC, ลูกค้า" className={field} /></div>
@@ -761,14 +765,22 @@ function ReceiptsTab({ receipts: initialReceipts, isDark }: { receipts: any[]; i
                     <div><label className={lbl}>วันที่</label><input type="date" value={editForm.rawDate ? new Date(editForm.rawDate).toISOString().slice(0, 10) : ""} onChange={(e) => setEditForm({ ...editForm, rawDate: e.target.value })} className={field} /></div>
                     <div><label className={lbl}>เวลา</label><input type="time" value={editForm.time || ""} onChange={(e) => setEditForm({ ...editForm, time: e.target.value })} className={field} /></div>
                   </div>
-                  <div><label className={lbl}>หมวดรายรับ</label><div className="flex flex-wrap gap-1.5">{cats.map((c) => (<button key={c.name} onClick={() => setEditForm({ ...editForm, category: c.name, categoryIcon: c.icon })} className={`flex items-center gap-1 px-2 py-1.5 rounded-lg text-[11px] font-medium transition-all ${chipActive(editForm.category === c.name, "bg-green-500 text-white")}`}>{c.icon} {c.name}</button>))}</div></div>
-                  <div><label className={lbl}>วิธีรับเงิน</label><div className="flex flex-wrap gap-1.5">{PM_OPTIONS.map((pm) => (<button key={pm.value} onClick={() => setEditForm({ ...editForm, paymentMethod: pm.value })} className={`flex items-center gap-1 px-2 py-1.5 rounded-lg text-[10px] font-medium transition-all ${chipActive(editForm.paymentMethod === pm.value, "bg-green-500 text-white")}`}><BrandIcon brand={pm.value} size={14} /> {pm.label}</button>))}</div></div>
                   <div><label className={lbl}>หมายเหตุ</label><textarea rows={2} value={editForm.note || ""} onChange={(e) => setEditForm({ ...editForm, note: e.target.value })} placeholder="รายละเอียดเพิ่มเติม..." className={`${field} h-auto py-2`} /></div>
                 </div>
-              )}
+                {/* Category */}
+                <div className={section}>
+                  <p className="text-xs font-semibold text-green-500/70">หมวดรายรับ</p>
+                  <div className="grid grid-cols-3 gap-2">{cats.map((c) => (<button key={c.name} onClick={() => setEditForm({ ...editForm, category: c.name, categoryIcon: c.icon })} className={`flex items-center justify-center gap-1.5 px-2 py-2.5 rounded-xl text-xs font-medium transition-all ${editForm.category === c.name ? "bg-green-500 text-white shadow-md shadow-green-500/20" : isDark ? "bg-white/5 text-white/60" : "bg-gray-50 text-gray-600 border border-gray-200"}`}><span className="text-base">{c.icon}</span>{c.name}</button>))}</div>
+                </div>
+                {/* Payment */}
+                <div className={section}>
+                  <p className="text-xs font-semibold text-green-500/70">วิธีรับเงิน</p>
+                  <div className="grid grid-cols-3 gap-2">{PM_OPTIONS.map((pm) => (<button key={pm.value} onClick={() => setEditForm({ ...editForm, paymentMethod: pm.value })} className={`flex items-center justify-center gap-1.5 px-2 py-2.5 rounded-xl text-xs font-medium transition-all ${editForm.paymentMethod === pm.value ? "bg-green-500 text-white shadow-md shadow-green-500/20" : isDark ? "bg-white/5 text-white/60" : "bg-gray-50 text-gray-600 border border-gray-200"}`}><BrandIcon brand={pm.value} size={18} />{pm.label}</button>))}</div>
+                </div>
+              </>)}
 
               {/* ═══ SAVINGS ═══ */}
-              {editForm.direction === "savings" && (
+              {editForm.direction === "savings" && (<>
                 <div className={section}>
                   <p className="text-xs font-semibold text-pink-400/70">บันทึกเงินออม</p>
                   <div><label className={lbl}>เป้าหมาย</label><input value={editForm.merchant || ""} onChange={(e) => setEditForm({ ...editForm, merchant: e.target.value })} placeholder="เช่น ท่องเที่ยวญี่ปุ่น, MacBook Pro" className={field} /></div>
@@ -777,10 +789,14 @@ function ReceiptsTab({ receipts: initialReceipts, isDark }: { receipts: any[]; i
                     <div><label className={lbl}>วันที่ออม</label><input type="date" value={editForm.rawDate ? new Date(editForm.rawDate).toISOString().slice(0, 10) : ""} onChange={(e) => setEditForm({ ...editForm, rawDate: e.target.value })} className={field} /></div>
                     <div><label className={lbl}>วิธีออม</label><select value={editForm.paymentMethod || "transfer"} onChange={(e) => setEditForm({ ...editForm, paymentMethod: e.target.value })} className={field}>{[["transfer","โอนเข้าบัญชีออม"],["cash","หยอดกระปุก"],["debit","ตัดบัตรอัตโนมัติ"],["other","อื่นๆ"]].map(([v,l]) => <option key={v} value={v}>{l}</option>)}</select></div>
                   </div>
-                  <div><label className={lbl}>หมวดออม</label><div className="flex flex-wrap gap-1.5">{cats.map((c) => (<button key={c.name} onClick={() => setEditForm({ ...editForm, category: c.name, categoryIcon: c.icon })} className={`flex items-center gap-1 px-2 py-1.5 rounded-lg text-[11px] font-medium transition-all ${chipActive(editForm.category === c.name, "bg-pink-500 text-white")}`}>{c.icon} {c.name}</button>))}</div></div>
                   <div><label className={lbl}>หมายเหตุ</label><textarea rows={2} value={editForm.note || ""} onChange={(e) => setEditForm({ ...editForm, note: e.target.value })} placeholder="เช่น ออมจากเงินทอน, โบนัส..." className={`${field} h-auto py-2`} /></div>
                 </div>
-              )}
+                {/* Category */}
+                <div className={section}>
+                  <p className="text-xs font-semibold text-pink-400/70">หมวดออม</p>
+                  <div className="grid grid-cols-3 gap-2">{cats.map((c) => (<button key={c.name} onClick={() => setEditForm({ ...editForm, category: c.name, categoryIcon: c.icon })} className={`flex items-center justify-center gap-1.5 px-2 py-2.5 rounded-xl text-xs font-medium transition-all ${editForm.category === c.name ? "bg-pink-500 text-white shadow-md shadow-pink-500/20" : isDark ? "bg-white/5 text-white/60" : "bg-gray-50 text-gray-600 border border-gray-200"}`}><span className="text-base">{c.icon}</span>{c.name}</button>))}</div>
+                </div>
+              </>)}
 
               {/* ═══ VAT / WHT ═══ */}
               {(editForm.direction === "expense" || editForm.direction === "income") && (
