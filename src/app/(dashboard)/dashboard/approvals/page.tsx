@@ -27,11 +27,13 @@ async function ApprovalsData() {
     .limit(200)
     .lean();
 
+  // Only show items that have been approved from Receipts page (confirmed/paid/cancelled)
+  // pending items stay in Receipts page only
   const data = receipts
-    .filter((r: any) => ["pending", "confirmed", "paid", "cancelled"].includes(r.status))
+    .filter((r: any) => ["confirmed", "paid", "cancelled"].includes(r.status))
     .map((r: any) => {
       const isReimbursement = (r.note || "").includes("ค่าใช้จ่ายบริษัท จากส่วนตัว");
-      let displayStatus: "pending" | "approved" | "paid" | "rejected" = "pending";
+      let displayStatus: "pending" | "approved" | "paid" | "rejected" = "approved";
       if (r.status === "confirmed") displayStatus = "approved";
       else if (r.status === "paid") displayStatus = "paid";
       else if (r.status === "cancelled") displayStatus = "rejected";

@@ -24,13 +24,13 @@ export default async function DashboardLayout({ children }: { children: React.Re
   const [user, pendingReceipts, pendingApprovals, pendingReimbursement, pendingPayroll, pendingClaims] = await Promise.all([
     User.findById(userId).select("lineDisplayName lineProfilePic name").lean(),
     Receipt.countDocuments({ userId, accountType, status: "pending" }),
-    // Business: receipts waiting approval
+    // Business: approvals — confirmed items waiting to be paid
     accountType === "business"
-      ? Receipt.countDocuments({ userId, accountType: "business", status: { $in: ["pending", "confirmed"] } })
+      ? Receipt.countDocuments({ userId, accountType: "business", status: "confirmed" })
       : Promise.resolve(0),
-    // Business: reimbursement pending
+    // Business: reimbursement — confirmed items from personal waiting to be paid
     accountType === "business"
-      ? Receipt.countDocuments({ userId, accountType: "business", status: "pending", note: /ค่าใช้จ่ายบริษัท จากส่วนตัว/ })
+      ? Receipt.countDocuments({ userId, accountType: "business", status: "confirmed", note: /ค่าใช้จ่ายบริษัท จากส่วนตัว/ })
       : Promise.resolve(0),
     // Business: payroll pending
     accountType === "business"

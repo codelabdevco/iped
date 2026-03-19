@@ -17,10 +17,11 @@ async function ReimbursementData() {
 
   await connectDB();
 
-  // Find business receipts that came from personal (ค่าใช้จ่ายบริษัท)
+  // Find business receipts that were approved from Receipts page (confirmed/paid/cancelled only)
   const receipts = await Receipt.find({
     userId: session.userId,
     accountType: "business",
+    status: { $in: ["confirmed", "paid", "cancelled"] },
   })
     .select("-imageUrl -ocrRawText")
     .sort({ createdAt: -1 })
