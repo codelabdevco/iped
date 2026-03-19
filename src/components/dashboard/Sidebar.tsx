@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { usePathname, useRouter } from "next/navigation";
 import {
   LayoutDashboard, Receipt, FolderOpen, PiggyBank, BarChart3,
@@ -120,6 +120,15 @@ const businessNav: NavGroup[] = [
 export default function Sidebar({ onNavigate, badges = {}, hasOrg = false, planUsage }: { onNavigate?: () => void; badges?: Record<string, number>; hasOrg?: boolean; planUsage?: any }) {
   const [collapsed, setCollapsed] = useState(false);
   const [collapsedGroups, setCollapsedGroups] = useState<Record<string, boolean>>({});
+  const navRef = useRef<HTMLElement>(null);
+
+  // Auto-scroll active nav item into view on mount
+  useEffect(() => {
+    setTimeout(() => {
+      const active = navRef.current?.querySelector("[data-active='true']");
+      if (active) active.scrollIntoView({ block: "nearest", behavior: "instant" });
+    }, 100);
+  }, []);
   const pathname = usePathname();
   const router = useRouter();
   const { isDark, toggleTheme } = useTheme();
@@ -147,8 +156,17 @@ export default function Sidebar({ onNavigate, badges = {}, hasOrg = false, planU
     ? (hasOrg ? personalNav : personalNav.filter((g) => g.label !== "บริษัท"))
     : businessNav;
 
-  const isActive = (href: string) =>
-    rawPath === href || (href !== "/dashboard" && rawPath.startsWith(href));
+  // Check which nav items exist to determine if a path has children
+  const allHrefs = navGroups.flatMap((g) => g.items.map((i) => i.href));
+  const isActive = (href: string) => {
+    if (rawPath === href) return true;
+    if (href === "/dashboard") return rawPath === "/dashboard";
+    // If another nav item starts with this href (it's a parent), only exact match
+    const hasChild = allHrefs.some((h) => h !== href && h.startsWith(href + "/"));
+    if (hasChild) return rawPath === href;
+    // Otherwise allow prefix match for sub-pages not in nav
+    return rawPath.startsWith(href + "/");
+  };
 
   const handleLogout = async () => {
     document.cookie = "iped-token=; Path=/; Expires=Thu, 01 Jan 1970 00:00:00 GMT";
@@ -251,7 +269,7 @@ export default function Sidebar({ onNavigate, badges = {}, hasOrg = false, planU
       )}
 
       {/* Nav Groups */}
-      <nav className="flex-1 py-2 px-3 space-y-0.5 overflow-y-auto overflow-x-hidden">
+      <nav ref={navRef} className="flex-1 py-2 px-3 space-y-0.5 overflow-y-auto overflow-x-hidden">
         {navGroups.map((group, gi) => {
           const isGroupCollapsed = collapsedGroups[group.label];
           return (
@@ -297,6 +315,7 @@ export default function Sidebar({ onNavigate, badges = {}, hasOrg = false, planU
                       key={item.href}
                       href={modeHref(item.href)}
                       onClick={onNavigate}
+                      data-active={active ? "true" : undefined}
                       className={`flex items-center gap-3 px-3 py-2 rounded-lg text-[13px] font-medium transition-colors whitespace-nowrap overflow-hidden ${
                         active ? activeCls : txt
                       }`}
