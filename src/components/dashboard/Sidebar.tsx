@@ -81,6 +81,7 @@ const businessNav: NavGroup[] = [
       { label: "ใบแจ้งหนี้ขาออก", href: "/dashboard/invoices", icon: FileInput },
       { label: "ยอดค้างชำระ", href: "/dashboard/receivables", icon: CircleDollarSign },
       { label: "หนี้สินบริษัท", href: "/dashboard/debts", icon: Landmark },
+      { label: "ทรัพย์สิน & ครุภัณฑ์", href: "/dashboard/assets", icon: Package },
     ],
   },
   {
