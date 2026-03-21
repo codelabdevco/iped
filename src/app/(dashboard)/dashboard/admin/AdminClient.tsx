@@ -1,7 +1,6 @@
 "use client";
 
 import { useState, useMemo, useCallback } from "react";
-import { useRouter } from "next/navigation";
 import { useReactiveData } from "@/hooks/useReactiveMode";
 import { useTheme } from "@/contexts/ThemeContext";
 import {
@@ -81,7 +80,6 @@ const defaultForm = { name: "", email: "", role: "user", accountType: "personal"
 
 export default function AdminClient({ currentUserId, stats: initialStats, users: initialUsers }: Props) {
   const { isDark } = useTheme();
-  const router = useRouter();
   const c = (d: string, l: string) => (isDark ? d : l);
   const [users, setUsers] = useReactiveData(initialUsers);
 
@@ -142,12 +140,16 @@ export default function AdminClient({ currentUserId, stats: initialStats, users:
       } else {
         const res = await fetch("/api/admin/users", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(form) });
         if (res.ok) {
-          router.refresh();
+          const json = await res.json();
+          const newUser = json.data?.user;
+          if (newUser) {
+            setUsers(prev => [{ ...newUser, _id: String(newUser._id), lineUserId: newUser.lineUserId || "", lineDisplayName: newUser.lineDisplayName || "", lineProfilePic: newUser.lineProfilePic || "", loginCount: newUser.loginCount || 0, documentsCount: newUser.documentsCount || 0, onboardingComplete: newUser.onboardingComplete || false, lastLogin: newUser.lastLogin || "", phone: "", orgId: "", orgName: "" }, ...prev]);
+          }
           setShowPanel(false);
         }
       }
     } catch {} finally { setSaving(false); }
-  }, [form, editingId, router]);
+  }, [form, editingId]);
 
   const handleDelete = useCallback(async () => {
     if (!deleteTarget) return;

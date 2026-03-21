@@ -1,7 +1,6 @@
 "use client";
 
 import { useState, useMemo } from "react";
-import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { useReactiveData } from "@/hooks/useReactiveMode";
 import { useTheme } from "@/contexts/ThemeContext";
@@ -89,7 +88,6 @@ export default function TeamClient({ members: initialMembers, departments, stats
   const { mode } = useMode();
   const modeHref = (path: string) => `/${mode}${path}`;
   const c = (d: string, l: string) => (isDark ? d : l);
-  const router = useRouter();
   const [members, setMembers] = useReactiveData(initialMembers);
   const [tab, setTab] = useState<"team" | "structure" | "permissions">("team");
 
@@ -106,14 +104,14 @@ export default function TeamClient({ members: initialMembers, departments, stats
     if (!newDept.trim()) return;
     setStructSaving(true);
     const res = await fetch("/api/org/departments", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ type: "department", name: newDept.trim() }) });
-    if (res.ok) { setNewDept(""); router.refresh(); const d = await fetch("/api/org/departments").then(r => r.json()); setOrgDepts(d.departments); setOrgPos(d.positions); }
+    if (res.ok) { setNewDept(""); const d = await fetch("/api/org/departments").then(r => r.json()); setOrgDepts(d.departments); setOrgPos(d.positions); }
     setStructSaving(false);
   };
   const handleAddPos = async () => {
     if (!newPos.trim()) return;
     setStructSaving(true);
     const res = await fetch("/api/org/departments", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ type: "position", name: newPos.trim() }) });
-    if (res.ok) { setNewPos(""); router.refresh(); const d = await fetch("/api/org/departments").then(r => r.json()); setOrgDepts(d.departments); setOrgPos(d.positions); }
+    if (res.ok) { setNewPos(""); const d = await fetch("/api/org/departments").then(r => r.json()); setOrgDepts(d.departments); setOrgPos(d.positions); }
     setStructSaving(false);
   };
   const [deleteConfirm, setDeleteConfirm] = useState<{ type: "department" | "position"; id: string; name: string; count: number } | null>(null);
@@ -218,10 +216,18 @@ export default function TeamClient({ members: initialMembers, departments, stats
       };
       if (editingId) {
         const res = await fetch(`/api/employees/${editingId}`, { method: "PUT", headers: { "Content-Type": "application/json" }, body: JSON.stringify(body) });
-        if (res.ok) { router.refresh(); setShowPanel(false); }
+        if (res.ok) {
+          setMembers(prev => prev.map(m => m._id === editingId ? { ...m, ...body, baseSalary: body.baseSalary } as TeamMember : m));
+          setShowPanel(false);
+        }
       } else {
         const res = await fetch("/api/employees", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(body) });
-        if (res.ok) { router.refresh(); setShowPanel(false); }
+        if (res.ok) {
+          const json = await res.json();
+          const emp = json.data?.employee;
+          setMembers(prev => [{ _id: emp?._id || `temp-${Date.now()}`, ...body, nickname: body.nickname || "", startDate: body.startDate, lineUserId: body.lineUserId || "", email: body.email || "", status: "active" } as TeamMember, ...prev]);
+          setShowPanel(false);
+        }
       }
     } catch {} finally { setSaving(false); }
   };

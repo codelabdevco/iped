@@ -1,7 +1,6 @@
 "use client";
 
 import { useState, useMemo, useCallback } from "react";
-import { useRouter } from "next/navigation";
 import { useTheme } from "@/contexts/ThemeContext";
 import {
   Landmark, CircleDollarSign, CheckCircle, AlertTriangle, Clock, Plus,
@@ -86,7 +85,6 @@ function fmtSize(bytes: number) { return bytes > 1048576 ? `${(bytes / 1048576).
 
 export default function DebtsClient({ debts: initial, stats }: Props) {
   const { isDark } = useTheme();
-  const router = useRouter();
   const c = (d: string, l: string) => (isDark ? d : l);
   const [debts, setDebts] = useState(initial);
   const [search, setSearch] = useState("");
@@ -164,9 +162,21 @@ export default function DebtsClient({ debts: initial, stats }: Props) {
       const url = editingId ? `/api/debts/${editingId}` : "/api/debts";
       const method = editingId ? "PUT" : "POST";
       const res = await fetch(url, { method, headers: { "Content-Type": "application/json" }, body: JSON.stringify({ ...form, files: formFiles }) });
-      if (res.ok) { router.refresh(); setShowPanel(false); window.location.reload(); }
+      if (res.ok) {
+        const json = await res.json();
+        const saved = json.data?.debt;
+        if (saved) {
+          if (editingId) {
+            setDebts(prev => prev.map(d => d._id === editingId ? { ...d, ...saved, _id: editingId, payments: saved.payments?.map((p: any) => ({ ...p, _id: String(p._id) })) || d.payments } : d));
+          } else {
+            setDebts(prev => [{ ...saved, totalPaid: 0, totalInterestPaid: 0, paymentsCount: 0, filesCount: saved.files?.length || 0, payments: [] }, ...prev]);
+          }
+        }
+        setShowPanel(false);
+        setFormFiles([]);
+      }
     } catch {} finally { setSaving(false); }
-  }, [form, editingId, router]);
+  }, [form, editingId, formFiles]);
 
   const handlePayment = useCallback(async () => {
     if (!payDebtId || !payForm.amount) return;
@@ -176,7 +186,23 @@ export default function DebtsClient({ debts: initial, stats }: Props) {
         method: "PUT", headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ action: "payment", amount: Number(payForm.amount), interest: Number(payForm.interest) || 0, paymentType: payForm.paymentType, date: payForm.date, note: payForm.note, files: payFiles }),
       });
-      if (res.ok) { setPayDebtId(null); window.location.reload(); }
+      if (res.ok) {
+        const json = await res.json();
+        const updated = json.data?.debt;
+        if (updated) {
+          setDebts(prev => prev.map(d => d._id === payDebtId ? {
+            ...d,
+            remainingBalance: updated.remainingBalance,
+            totalPaid: updated.totalPaid,
+            totalInterestPaid: updated.totalInterestPaid,
+            paymentsCount: updated.payments?.length || d.paymentsCount + 1,
+            payments: (updated.payments || []).map((p: any) => ({ ...p, _id: String(p._id) })),
+            status: updated.status,
+          } : d));
+        }
+        setPayDebtId(null);
+        setPayFiles([]);
+      }
     } catch {} finally { setPaying(false); }
   }, [payDebtId, payForm]);
 

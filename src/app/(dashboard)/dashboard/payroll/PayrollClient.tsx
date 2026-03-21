@@ -1,7 +1,6 @@
 "use client";
 
 import { useState, useMemo, useCallback } from "react";
-import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { useReactiveData } from "@/hooks/useReactiveMode";
 import { useTheme } from "@/contexts/ThemeContext";
@@ -105,7 +104,6 @@ const defaultEmpForm = {
 
 export default function PayrollClient({ employees: initialEmp, payrolls: initialPay, stats: initialStats, currentMonth, currentYear }: Props) {
   const { isDark } = useTheme();
-  const router = useRouter();
   const c = (d: string, l: string) => (isDark ? d : l);
 
   /* ── Reactive data ── */
@@ -186,11 +184,24 @@ export default function PayrollClient({ employees: initialEmp, payrolls: initial
       });
       if (res.ok) {
         const json = await res.json();
-        setRunResult({ created: json.created || 0, skipped: json.skipped || 0 });
-        router.refresh();
+        const data = json.data || json;
+        setRunResult({ created: data.created || 0, skipped: data.skipped || 0 });
+        // Fetch updated payrolls since the run API doesn't return them
+        if (data.created > 0) {
+          const payRes = await fetch(`/api/payroll?month=${selectedMonth}&year=${selectedYear}`);
+          if (payRes.ok) {
+            const payJson = await payRes.json();
+            const newPayrolls = payJson.data?.payrolls || payJson.payrolls || [];
+            setPayrolls(prev => {
+              const existingIds = new Set(prev.map(p => p._id));
+              const toAdd = newPayrolls.filter((p: PayrollRow) => !existingIds.has(p._id));
+              return [...prev, ...toAdd];
+            });
+          }
+        }
       }
     } catch {} finally { setRunning(false); }
-  }, [selectedMonth, selectedYear, router]);
+  }, [selectedMonth, selectedYear]);
 
   /* ── Employee form helpers ── */
   const openAddEmployee = () => {
@@ -496,7 +507,7 @@ export default function PayrollClient({ employees: initialEmp, payrolls: initial
                     <p className={`text-sm ${c("text-white", "text-gray-900")}`}>สร้างสำเร็จ: <span className="font-bold text-green-400">{runResult.created}</span> รายการ</p>
                     <p className={`text-sm ${c("text-white/60", "text-gray-600")}`}>ข้ามไป (มีแล้ว): <span className="font-medium">{runResult.skipped}</span> รายการ</p>
                   </div>
-                  <button onClick={() => { setShowRunModal(false); setRunResult(null); router.refresh(); }} className="w-full py-2.5 rounded-xl text-sm font-medium bg-[#FA3633] text-white hover:bg-[#e0302d] transition-colors">ปิด</button>
+                  <button onClick={() => { setShowRunModal(false); setRunResult(null); }} className="w-full py-2.5 rounded-xl text-sm font-medium bg-[#FA3633] text-white hover:bg-[#e0302d] transition-colors">ปิด</button>
                 </>
               )}
             </div>

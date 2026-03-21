@@ -84,7 +84,19 @@ export default function SubsClient({ subs: initial, packages, stats }: Props) {
         body: JSON.stringify({ userId, packageTier: newTier }),
       });
       if (res.ok) {
-        window.location.reload();
+        const json = await res.json();
+        const updated = json.data?.subscription;
+        if (updated) {
+          setSubs(prev => prev.map(s => s.userId === userId ? {
+            ...s,
+            packageName: updated.packageName || newTier,
+            packageTier: updated.packageTier || newTier,
+            status: updated.status || s.status,
+            currentPeriodStart: updated.currentPeriodStart || s.currentPeriodStart,
+            currentPeriodEnd: updated.currentPeriodEnd || s.currentPeriodEnd,
+            billingCycle: updated.billingCycle || s.billingCycle,
+          } : s));
+        }
       }
     } catch {} finally { setChanging(null); }
   }, [modal]);

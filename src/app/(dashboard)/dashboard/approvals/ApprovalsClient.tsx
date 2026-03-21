@@ -68,32 +68,43 @@ export default function ApprovalsClient({ items: initial }: { items: ItemRow[] }
     const item = items.find((r) => r._id === id);
     try {
       if (item?.isReimbursement) {
-        await fetch(`/api/receipts/${id}/reimburse`, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ action }) });
+        const res = await fetch(`/api/receipts/${id}/reimburse`, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ action }) });
+        if (res.ok) {
+          const newStatus: ItemRow["status"] = action === "approve" ? "approved" : "rejected";
+          setItems(prev => prev.map(r => r._id === id ? { ...r, status: newStatus } : r));
+        }
       } else {
-        const statusMap: Record<string, string> = { approve: "confirmed", reject: "cancelled" };
-        await fetch(`/api/receipts/${id}`, { method: "PUT", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ status: statusMap[action] }) });
+        const statusMap: Record<string, { api: string; ui: ItemRow["status"] }> = {
+          approve: { api: "confirmed", ui: "approved" },
+          reject: { api: "cancelled", ui: "rejected" },
+        };
+        const res = await fetch(`/api/receipts/${id}`, { method: "PUT", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ status: statusMap[action].api }) });
+        if (res.ok) {
+          setItems(prev => prev.map(r => r._id === id ? { ...r, status: statusMap[action].ui } : r));
+        }
       }
     } catch {}
-    // Always reload after action — no modal blocking
-    window.location.reload();
+    setActing(null);
   }, [items]);
 
   const handlePay = useCallback(async () => {
     if (!payTarget) return;
     setPaying(true);
     try {
+      let res: Response;
       if (payTarget.isReimbursement) {
-        await fetch(`/api/receipts/${payTarget._id}/reimburse`, {
+        res = await fetch(`/api/receipts/${payTarget._id}/reimburse`, {
           method: "POST", headers: { "Content-Type": "application/json" },
           body: JSON.stringify({ action: "pay", bankTransferRef: payRef, note: payNote, companyNote: payCompanyNote, slipImage: paySlip }),
         });
       } else {
-        await fetch(`/api/receipts/${payTarget._id}`, { method: "PUT", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ status: "paid" }) });
+        res = await fetch(`/api/receipts/${payTarget._id}`, { method: "PUT", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ status: "paid" }) });
+      }
+      if (res.ok) {
+        setItems(prev => prev.map(r => r._id === payTarget._id ? { ...r, status: "paid" as const } : r));
       }
       setPayTarget(null); setPaySlip(null);
-    } catch {}
-    // Always reload after pay
-    window.location.reload();
+    } catch {} finally { setPaying(false); }
   }, [payTarget, payRef, payNote, payCompanyNote, paySlip]);
 
   const handleBulkApprove = useCallback(async () => {
