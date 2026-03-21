@@ -120,6 +120,7 @@ const businessNav: NavGroup[] = [
     items: [
       { label: "จัดการผู้ใช้งาน", href: "/dashboard/admin", icon: ShieldCheck },
       { label: "จัดการ Subscription", href: "/dashboard/admin/subscriptions", icon: CreditCard },
+      { label: "รายการชำระเงิน", href: "/dashboard/admin/payments", icon: Receipt },
       { label: "Package & Billing", href: "/dashboard/billing", icon: Package },
     ],
   },
