@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { useReactiveData } from "@/hooks/useReactiveMode";
 import { useTheme } from "@/contexts/ThemeContext";
+import { useMode } from "@/contexts/ModeContext";
 import {
   Users, UserCheck, UserPlus, Clock, Search, Pencil,
   Banknote, Shield,
@@ -59,6 +60,8 @@ const statusLabel: Record<string, { label: string; cls: string }> = {
 
 export default function TeamClient({ members: initialMembers, departments, stats: initialStats }: Props) {
   const { isDark } = useTheme();
+  const { mode } = useMode();
+  const modeHref = (path: string) => `/${mode}${path}`;
   const c = (d: string, l: string) => (isDark ? d : l);
   const [members] = useReactiveData(initialMembers);
   const [tab, setTab] = useState<"team" | "permissions">("team");
@@ -142,7 +145,7 @@ export default function TeamClient({ members: initialMembers, departments, stats
       key: "actions", label: "จัดการ", configurable: false,
       render: (r) => (
         <Link
-          href={`/dashboard/payroll?tab=employees&edit=${r._id}`}
+          href={modeHref(`/dashboard/payroll?tab=employees&edit=${r._id}`)}
           className={`p-2 rounded-lg transition-colors inline-flex ${c("hover:bg-white/5 text-white/40 hover:text-blue-400", "hover:bg-gray-100 text-gray-400 hover:text-blue-500")}`}
         ><Pencil size={14} /></Link>
       ),
@@ -234,13 +237,13 @@ export default function TeamClient({ members: initialMembers, departments, stats
           <Select value={statusFilter} onChange={setStatusFilter} options={statusOptions} />
         </div>
         <Link
-          href="/dashboard/payroll?tab=employees"
+          href={modeHref("/dashboard/payroll?tab=employees")}
           className="flex items-center gap-2 px-4 py-2.5 rounded-xl text-sm font-medium bg-[#FA3633] text-white hover:bg-[#e0302d] transition-colors shadow-sm shadow-[#FA3633]/25"
         >
           <UserPlus size={16} />เพิ่มพนักงาน
         </Link>
         <Link
-          href="/dashboard/payroll"
+          href={modeHref("/dashboard/payroll")}
           className={`flex items-center gap-2 px-4 py-2.5 rounded-xl text-sm font-medium transition-colors ${c("bg-white/5 text-white/70 hover:bg-white/10 border border-white/10", "bg-gray-100 text-gray-700 hover:bg-gray-200 border border-gray-200")}`}
         >
           <Banknote size={16} />จ่ายเงินเดือน

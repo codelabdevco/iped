@@ -53,7 +53,9 @@ export function middleware(request: NextRequest) {
   if (pathname.startsWith("/dashboard")) {
     if (!token) return NextResponse.redirect(new URL("/login", request.url));
     const mode = request.cookies.get("iped-mode")?.value || "personal";
-    return NextResponse.redirect(new URL(`/${mode}${pathname}`, request.url));
+    const redirectUrl = new URL(`/${mode}${pathname}`, request.url);
+    redirectUrl.search = request.nextUrl.search; // preserve query string
+    return NextResponse.redirect(redirectUrl);
   }
 
   // ── Root / ──
