@@ -19,7 +19,7 @@ async function BillingData() {
   await connectDB();
 
   const [userPlan, packages] = await Promise.all([
-    getUserPlan(session.userId),
+    getUserPlan(session.userId, session.orgId),
     Package.find({ status: "active" }).sort({ sortOrder: 1 }).lean(),
   ]);
 

@@ -4,7 +4,7 @@ import { getUserPlan } from "@/lib/quota";
 
 export async function GET(request: NextRequest) {
   return withAuth(request, async (session) => {
-    const plan = await getUserPlan(session.userId);
+    const plan = await getUserPlan(session.userId, session.orgId);
     return apiSuccess({ ...plan });
   });
 }

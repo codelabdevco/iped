@@ -43,7 +43,8 @@ const SubscriptionSchema = new Schema<ISubscription>(
   { timestamps: true }
 );
 
-SubscriptionSchema.index({ userId: 1 }, { unique: true });
+// Personal sub: userId + no orgId | Business sub: orgId (shared by org members)
+SubscriptionSchema.index({ userId: 1, orgId: 1 }, { unique: true, sparse: true });
 SubscriptionSchema.index({ orgId: 1 });
 SubscriptionSchema.index({ status: 1 });
 

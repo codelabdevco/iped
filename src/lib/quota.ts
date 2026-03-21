@@ -23,55 +23,42 @@ export interface QuotaResult {
   message?: string;
 }
 
-/**
- * Check if user can perform an action based on their subscription plan.
- * Returns { allowed, current, limit, plan, message }
- */
-export async function checkQuota(
-  userId: string,
-  resource: QuotaResource
-): Promise<QuotaResult> {
-  await connectDB();
+export interface QuotaOptions {
+  mode?: "personal" | "business";
+  orgId?: string;
+}
 
-  const now = new Date();
-  const month = now.getMonth() + 1;
-  const year = now.getFullYear();
+// ─── Internal helpers ───
 
-  // Get user's subscription -> package
-  const sub = (await Subscription.findOne({
+async function findSubscription(userId: string, options?: QuotaOptions) {
+  if (options?.mode === "business" && options?.orgId) {
+    // Business: look up org subscription
+    return (await Subscription.findOne({
+      orgId: options.orgId,
+      status: { $in: ["active", "trial"] },
+    }).populate("packageId").lean()) as any;
+  }
+  // Personal: look up user subscription (without orgId)
+  return (await Subscription.findOne({
     userId,
+    $or: [{ orgId: { $exists: false } }, { orgId: null }, { orgId: "" }],
     status: { $in: ["active", "trial"] },
-  })
-    .populate("packageId")
-    .lean()) as any;
+  }).populate("packageId").lean()) as any;
+}
 
-  // Default to free plan if no subscription
-  const pkg = sub?.packageId || ((await Package.findOne({ tier: "free" }).lean()) as any);
-  if (!pkg) return { allowed: true, current: 0, limit: -1, plan: "free" };
+function usageKey(userId: string, options?: QuotaOptions): string {
+  if (options?.mode === "business" && options?.orgId) {
+    return `org:${options.orgId}`;
+  }
+  return userId;
+}
 
-  // Get or create usage for this month
-  let usage = (await Usage.findOne({ userId, month, year }).lean()) as any;
-  if (!usage)
-    usage = {
-      receipts: 0,
-      ocr: 0,
-      storageBytes: 0,
-      gmailScans: 0,
-      transfers: 0,
-      aiChats: 0,
-      invoices: 0,
-      quotations: 0,
-    };
-
-  const limits = pkg.limits;
-  const features = pkg.features;
-  const plan = pkg.tier || pkg.name || "free";
-
-  // Map resource to limit + current usage
-  const checks: Record<
-    QuotaResource,
-    { current: number; limit: number; featureGate?: boolean }
-  > = {
+function buildChecks(
+  usage: any,
+  limits: any,
+  features: any,
+): Record<QuotaResource, { current: number; limit: number; featureGate?: boolean }> {
+  return {
     receipts: {
       current: usage.receipts,
       limit: limits.receiptsPerMonth ?? limits.documentsPerMonth ?? 30,
@@ -87,7 +74,7 @@ export async function checkQuota(
     employees: {
       current: 0,
       limit: limits.employees ?? 0,
-    }, // count separately
+    },
     departments: {
       current: 0,
       limit: limits.departments ?? 0,
@@ -116,34 +103,56 @@ export async function checkQuota(
       limit: limits.quotationsPerMonth ?? 0,
     },
   };
+}
 
+const emptyUsage = {
+  receipts: 0, ocr: 0, storageBytes: 0, gmailScans: 0,
+  transfers: 0, aiChats: 0, invoices: 0, quotations: 0,
+};
+
+// ─── Exported functions ───
+
+/**
+ * Check if user can perform an action based on their subscription plan.
+ * options.mode: "business" checks org subscription, "personal" (default) checks user subscription.
+ */
+export async function checkQuota(
+  userId: string,
+  resource: QuotaResource,
+  options?: QuotaOptions,
+): Promise<QuotaResult> {
+  await connectDB();
+
+  const now = new Date();
+  const month = now.getMonth() + 1;
+  const year = now.getFullYear();
+
+  const sub = await findSubscription(userId, options);
+
+  // Default to free plan if no subscription
+  const pkg = sub?.packageId || ((await Package.findOne({ tier: "free" }).lean()) as any);
+  if (!pkg) return { allowed: true, current: 0, limit: -1, plan: "free" };
+
+  const key = usageKey(userId, options);
+  let usage = (await Usage.findOne({ userId: key, month, year }).lean()) as any;
+  if (!usage) usage = emptyUsage;
+
+  const limits = pkg.limits;
+  const features = pkg.features;
+  const plan = pkg.tier || pkg.name || "free";
+
+  const checks = buildChecks(usage, limits, features);
   const check = checks[resource];
   if (!check) return { allowed: true, current: 0, limit: -1, plan };
 
-  // Feature gate - feature not available in this plan
   if (check.featureGate) {
-    return {
-      allowed: false,
-      current: check.current,
-      limit: 0,
-      plan,
-      message: `ฟีเจอร์นี้ไม่รวมในแพ็กเกจ ${plan}`,
-    };
+    return { allowed: false, current: check.current, limit: 0, plan, message: `ฟีเจอร์นี้ไม่รวมในแพ็กเกจ ${plan}` };
   }
 
-  // Unlimited
-  if (check.limit === -1)
-    return { allowed: true, current: check.current, limit: -1, plan };
+  if (check.limit === -1) return { allowed: true, current: check.current, limit: -1, plan };
 
-  // Check limit
   if (check.current >= check.limit) {
-    return {
-      allowed: false,
-      current: check.current,
-      limit: check.limit,
-      plan,
-      message: `ใช้ครบ ${check.limit} แล้วในเดือนนี้`,
-    };
+    return { allowed: false, current: check.current, limit: check.limit, plan, message: `ใช้ครบ ${check.limit} แล้วในเดือนนี้` };
   }
 
   return { allowed: true, current: check.current, limit: check.limit, plan };
@@ -151,12 +160,13 @@ export async function checkQuota(
 
 /**
  * Increment usage counter for a resource.
- * Call AFTER the action succeeds.
+ * In business mode, usage is shared across the whole org.
  */
 export async function incrementUsage(
   userId: string,
   resource: QuotaResource,
-  amount: number = 1
+  amount: number = 1,
+  options?: QuotaOptions,
 ): Promise<void> {
   await connectDB();
   const now = new Date();
@@ -164,74 +174,99 @@ export async function incrementUsage(
   const year = now.getFullYear();
 
   const fieldMap: Record<string, string> = {
-    receipts: "receipts",
-    ocr: "ocr",
-    storage: "storageBytes",
-    gmail: "gmailScans",
-    transfers: "transfers",
-    aiChat: "aiChats",
-    invoices: "invoices",
-    quotations: "quotations",
+    receipts: "receipts", ocr: "ocr", storage: "storageBytes",
+    gmail: "gmailScans", transfers: "transfers", aiChat: "aiChats",
+    invoices: "invoices", quotations: "quotations",
   };
 
   const field = fieldMap[resource];
   if (!field) return;
 
+  const key = usageKey(userId, options);
   await Usage.findOneAndUpdate(
-    { userId, month, year },
+    { userId: key, month, year },
     { $inc: { [field]: amount } },
-    { upsert: true }
+    { upsert: true },
   );
 }
 
 /**
  * Get user's current plan details + usage for display.
+ * Returns both personal and business plan info.
  */
-export async function getUserPlan(userId: string) {
+export async function getUserPlan(userId: string, orgId?: string) {
   await connectDB();
   const now = new Date();
+  const month = now.getMonth() + 1;
+  const year = now.getFullYear();
 
-  const sub = (await Subscription.findOne({
-    userId,
-    status: { $in: ["active", "trial"] },
-  })
-    .populate("packageId")
-    .lean()) as any;
+  // Personal subscription
+  const personalSub = await findSubscription(userId);
+  const personalPkg = personalSub?.packageId || ((await Package.findOne({ tier: "free" }).lean()) as any);
+  const personalUsage = (await Usage.findOne({ userId, month, year }).lean()) as any;
 
-  const pkg =
-    sub?.packageId ||
-    ((await Package.findOne({ tier: "free" }).lean()) as any);
-
-  const usage = (await Usage.findOne({
-    userId,
-    month: now.getMonth() + 1,
-    year: now.getFullYear(),
-  }).lean()) as any;
+  // Business subscription (if user belongs to an org)
+  let businessPlan = null;
+  if (orgId) {
+    const bizSub = await findSubscription(userId, { mode: "business", orgId });
+    if (bizSub?.packageId) {
+      const bizPkg = bizSub.packageId as any;
+      const bizKey = `org:${orgId}`;
+      const bizUsage = (await Usage.findOne({ userId: bizKey, month, year }).lean()) as any;
+      businessPlan = {
+        plan: bizPkg.tier || "free",
+        planName: bizPkg.name || "Free",
+        type: "business",
+        limits: bizPkg.limits || {},
+        features: bizPkg.features || {},
+        subscription: {
+          status: bizSub.status,
+          billingCycle: bizSub.billingCycle,
+          currentPeriodEnd: bizSub.currentPeriodEnd,
+          trialEnd: bizSub.trialEnd,
+          autoRenew: bizSub.autoRenew,
+        },
+        usage: {
+          receipts: bizUsage?.receipts || 0,
+          ocr: bizUsage?.ocr || 0,
+          storageBytes: bizUsage?.storageBytes || 0,
+          gmailScans: bizUsage?.gmailScans || 0,
+          transfers: bizUsage?.transfers || 0,
+          aiChats: bizUsage?.aiChats || 0,
+          invoices: bizUsage?.invoices || 0,
+          quotations: bizUsage?.quotations || 0,
+        },
+      };
+    }
+  }
 
   return {
-    plan: pkg?.tier || "free",
-    planName: pkg?.name || "Free",
-    type: pkg?.type || "personal",
-    limits: pkg?.limits || {},
-    features: pkg?.features || {},
-    subscription: sub
+    // Top-level = personal (backward compat)
+    plan: personalPkg?.tier || "free",
+    planName: personalPkg?.name || "Free",
+    type: personalPkg?.type || "personal",
+    limits: personalPkg?.limits || {},
+    features: personalPkg?.features || {},
+    subscription: personalSub
       ? {
-          status: sub.status,
-          billingCycle: sub.billingCycle,
-          currentPeriodEnd: sub.currentPeriodEnd,
-          trialEnd: sub.trialEnd,
-          autoRenew: sub.autoRenew,
+          status: personalSub.status,
+          billingCycle: personalSub.billingCycle,
+          currentPeriodEnd: personalSub.currentPeriodEnd,
+          trialEnd: personalSub.trialEnd,
+          autoRenew: personalSub.autoRenew,
         }
       : null,
     usage: {
-      receipts: usage?.receipts || 0,
-      ocr: usage?.ocr || 0,
-      storageBytes: usage?.storageBytes || 0,
-      gmailScans: usage?.gmailScans || 0,
-      transfers: usage?.transfers || 0,
-      aiChats: usage?.aiChats || 0,
-      invoices: usage?.invoices || 0,
-      quotations: usage?.quotations || 0,
+      receipts: personalUsage?.receipts || 0,
+      ocr: personalUsage?.ocr || 0,
+      storageBytes: personalUsage?.storageBytes || 0,
+      gmailScans: personalUsage?.gmailScans || 0,
+      transfers: personalUsage?.transfers || 0,
+      aiChats: personalUsage?.aiChats || 0,
+      invoices: personalUsage?.invoices || 0,
+      quotations: personalUsage?.quotations || 0,
     },
+    // New: business plan (null if no org)
+    business: businessPlan,
   };
 }

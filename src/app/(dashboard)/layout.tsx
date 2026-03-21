@@ -43,7 +43,7 @@ export default async function DashboardLayout({ children }: { children: React.Re
       : Promise.resolve(0),
   ]);
 
-  const userPlan = await getUserPlan(payload.userId);
+  const userPlan = await getUserPlan(payload.userId, (payload as any).orgId);
 
   const displayName = user?.lineDisplayName || user?.name || "User";
   const pictureUrl = user?.lineProfilePic || "";

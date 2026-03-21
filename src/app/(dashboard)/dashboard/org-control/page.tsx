@@ -31,7 +31,7 @@ async function OrgControlData() {
   const [org, employees, userPlan] = await Promise.all([
     Organization.findById(session.orgId).lean(),
     Employee.find({ userId: session.userId, status: "active" }).lean(),
-    getUserPlan(session.userId),
+    getUserPlan(session.userId, session.orgId),
   ]);
 
   if (!org) redirect("/dashboard");
