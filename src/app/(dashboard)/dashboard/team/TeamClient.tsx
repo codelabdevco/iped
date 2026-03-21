@@ -8,7 +8,7 @@ import { useTheme } from "@/contexts/ThemeContext";
 import { useMode } from "@/contexts/ModeContext";
 import {
   Users, UserCheck, UserPlus, Clock, Search, Pencil,
-  Banknote, Shield,
+  Banknote, Shield, Loader2, Trash2, X,
 } from "lucide-react";
 import PageHeader from "@/components/dashboard/PageHeader";
 import StatsCard from "@/components/dashboard/StatsCard";
@@ -63,11 +63,39 @@ export default function TeamClient({ members: initialMembers, departments, stats
   const { mode } = useMode();
   const modeHref = (path: string) => `/${mode}${path}`;
   const c = (d: string, l: string) => (isDark ? d : l);
-  const [members] = useReactiveData(initialMembers);
+  const router = useRouter();
+  const [members, setMembers] = useReactiveData(initialMembers);
   const [tab, setTab] = useState<"team" | "permissions">("team");
   const [search, setSearch] = useState("");
   const [statusFilter, setStatusFilter] = useState("all");
   const [deptFilter, setDeptFilter] = useState("all");
+
+  // ── Add/Edit Employee Panel ──
+  const [showPanel, setShowPanel] = useState(false);
+  const [editingId, setEditingId] = useState<string | null>(null);
+  const [saving, setSaving] = useState(false);
+  const defaultForm = { employeeCode: "", name: "", nickname: "", position: "", department: "", employmentType: "full-time", baseSalary: 0, bankName: "", bankAccount: "", taxId: "", email: "" };
+  const [form, setForm] = useState(defaultForm);
+
+  const openAdd = () => { setEditingId(null); setForm(defaultForm); setShowPanel(true); };
+  const openEdit = (m: TeamMember) => {
+    setEditingId(m._id);
+    setForm({ employeeCode: m.employeeCode, name: m.name, nickname: m.nickname, position: m.position === "-" ? "" : m.position, department: m.department === "-" ? "" : m.department, employmentType: m.employmentType, baseSalary: m.baseSalary, bankName: m.bankName, bankAccount: "", taxId: "", email: m.email });
+    setShowPanel(true);
+  };
+  const handleSave = async () => {
+    if (!form.name || !form.employeeCode) return;
+    setSaving(true);
+    try {
+      if (editingId) {
+        const res = await fetch(`/api/employees/${editingId}`, { method: "PUT", headers: { "Content-Type": "application/json" }, body: JSON.stringify(form) });
+        if (res.ok) { router.refresh(); setShowPanel(false); }
+      } else {
+        const res = await fetch("/api/employees", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(form) });
+        if (res.ok) { router.refresh(); setShowPanel(false); }
+      }
+    } catch {} finally { setSaving(false); }
+  };
 
   const statusOptions = [
     { value: "all", label: "ทุกสถานะ" },
@@ -144,10 +172,10 @@ export default function TeamClient({ members: initialMembers, departments, stats
     {
       key: "actions", label: "จัดการ", configurable: false,
       render: (r) => (
-        <Link
-          href={modeHref(`/dashboard/payroll?tab=employees&edit=${r._id}`)}
+        <button
+          onClick={() => openEdit(r)}
           className={`p-2 rounded-lg transition-colors inline-flex ${c("hover:bg-white/5 text-white/40 hover:text-blue-400", "hover:bg-gray-100 text-gray-400 hover:text-blue-500")}`}
-        ><Pencil size={14} /></Link>
+        ><Pencil size={14} /></button>
       ),
     },
   ], [isDark]);
@@ -186,8 +214,65 @@ export default function TeamClient({ members: initialMembers, departments, stats
 
   const inputCls = c("bg-white/5 border-white/10 text-white placeholder-white/30", "bg-white border-gray-200 text-gray-900 placeholder-gray-400");
 
+  const inp = `w-full h-9 px-3 ${c("bg-white/5 border-white/10 text-white", "bg-gray-50 border-gray-200 text-gray-900")} border rounded-lg text-sm focus:outline-none focus:border-[#FA3633]/50`;
+  const lbl = `block text-xs ${c("text-white/40", "text-gray-500")} mb-1`;
+  const panelBg = c("bg-[#0a0a0a] border-white/10", "bg-white border-gray-200");
+  const cardBg = c("bg-[rgba(255,255,255,0.04)] border-[rgba(255,255,255,0.06)]", "bg-white border-gray-200");
+
+  const empTypeOptions = [
+    { value: "full-time", label: "เต็มเวลา" },
+    { value: "part-time", label: "พาร์ทไทม์" },
+    { value: "contract", label: "สัญญาจ้าง" },
+    { value: "freelance", label: "ฟรีแลนซ์" },
+  ];
+
   return (
     <div className="space-y-6">
+      {/* ── Add/Edit Employee Panel ── */}
+      {showPanel && <div className="fixed inset-0 z-40 bg-black/60" onClick={() => setShowPanel(false)} />}
+      {showPanel && (
+        <div className={`fixed inset-y-0 right-0 z-50 w-[440px] max-w-[95vw] ${panelBg} border-l shadow-2xl overflow-y-auto animate-slide-in-right`}>
+          <div className="p-6 space-y-5">
+            <div className="flex items-center justify-between">
+              <h2 className={`text-lg font-bold ${c("text-white", "text-gray-900")}`}>{editingId ? "แก้ไขพนักงาน" : "เพิ่มพนักงาน"}</h2>
+              <button onClick={() => setShowPanel(false)} className={`w-8 h-8 rounded-lg ${c("hover:bg-white/5 text-white/40", "hover:bg-gray-100 text-gray-400")} flex items-center justify-center`}><X size={18} /></button>
+            </div>
+
+            <div className={`rounded-xl ${cardBg} border p-4 space-y-3`}>
+              <p className="text-xs font-semibold text-[#FA3633]/70">ข้อมูลพนักงาน</p>
+              <div className="grid grid-cols-2 gap-3">
+                <div><label className={lbl}>รหัสพนักงาน *</label><input value={form.employeeCode} onChange={(e) => setForm({ ...form, employeeCode: e.target.value })} placeholder="EMP001" className={inp} /></div>
+                <div><label className={lbl}>ชื่อเล่น</label><input value={form.nickname} onChange={(e) => setForm({ ...form, nickname: e.target.value })} placeholder="ชื่อเล่น" className={inp} /></div>
+              </div>
+              <div><label className={lbl}>ชื่อ-นามสกุล *</label><input value={form.name} onChange={(e) => setForm({ ...form, name: e.target.value })} placeholder="ชื่อ-นามสกุล" className={inp} /></div>
+              <div className="grid grid-cols-2 gap-3">
+                <div><label className={lbl}>ตำแหน่ง</label><input value={form.position} onChange={(e) => setForm({ ...form, position: e.target.value })} placeholder="ตำแหน่ง" className={inp} /></div>
+                <div><label className={lbl}>แผนก</label><input value={form.department} onChange={(e) => setForm({ ...form, department: e.target.value })} placeholder="แผนก" className={inp} /></div>
+              </div>
+              <div><label className={lbl}>ประเภทการจ้าง</label><Select value={form.employmentType} onChange={(v) => setForm({ ...form, employmentType: v })} options={empTypeOptions} /></div>
+              <div><label className={lbl}>อีเมล</label><input type="email" value={form.email} onChange={(e) => setForm({ ...form, email: e.target.value })} placeholder="email@company.com" className={inp} /></div>
+            </div>
+
+            <div className={`rounded-xl ${cardBg} border p-4 space-y-3`}>
+              <p className="text-xs font-semibold text-[#FA3633]/70">เงินเดือน & ธนาคาร</p>
+              <div><label className={lbl}>เงินเดือน (฿) *</label><input type="number" value={form.baseSalary || ""} onChange={(e) => setForm({ ...form, baseSalary: Number(e.target.value) })} placeholder="15000" className={inp} /></div>
+              <div className="grid grid-cols-2 gap-3">
+                <div><label className={lbl}>ธนาคาร</label><input value={form.bankName} onChange={(e) => setForm({ ...form, bankName: e.target.value })} placeholder="กสิกร" className={inp} /></div>
+                <div><label className={lbl}>เลขบัญชี</label><input value={form.bankAccount} onChange={(e) => setForm({ ...form, bankAccount: e.target.value })} placeholder="xxx-x-xxxxx-x" className={inp} /></div>
+              </div>
+              <div><label className={lbl}>เลขประจำตัวผู้เสียภาษี</label><input value={form.taxId} onChange={(e) => setForm({ ...form, taxId: e.target.value })} placeholder="1-xxxx-xxxxx-xx-x" className={inp} /></div>
+            </div>
+
+            <div className={`flex gap-2 pt-2 sticky bottom-0 pb-6 ${c("bg-[#0a0a0a]", "bg-white")}`}>
+              <button onClick={handleSave} disabled={saving || !form.name || !form.employeeCode} className="flex-1 py-2.5 rounded-xl text-sm font-medium bg-[#FA3633] text-white hover:bg-[#e0302d] transition-colors disabled:opacity-40 flex items-center justify-center gap-2">
+                {saving && <Loader2 size={14} className="animate-spin" />}{editingId ? "บันทึก" : "เพิ่มพนักงาน"}
+              </button>
+              <button onClick={() => setShowPanel(false)} className={`flex-1 py-2.5 rounded-xl text-sm font-medium ${c("bg-white/5 text-white/60", "bg-gray-100 text-gray-600")} transition-colors`}>ยกเลิก</button>
+            </div>
+          </div>
+        </div>
+      )}
+
       <PageHeader title="พนักงาน & แผนก" description="จัดการทีมงาน สิทธิ์การใช้งาน และแผนกในองค์กร" />
 
       {/* ── Stats cards ── */}
@@ -236,12 +321,12 @@ export default function TeamClient({ members: initialMembers, departments, stats
         <div className="w-36">
           <Select value={statusFilter} onChange={setStatusFilter} options={statusOptions} />
         </div>
-        <Link
-          href={modeHref("/dashboard/payroll?tab=employees")}
+        <button
+          onClick={openAdd}
           className="flex items-center gap-2 px-4 py-2.5 rounded-xl text-sm font-medium bg-[#FA3633] text-white hover:bg-[#e0302d] transition-colors shadow-sm shadow-[#FA3633]/25"
         >
           <UserPlus size={16} />เพิ่มพนักงาน
-        </Link>
+        </button>
         <Link
           href={modeHref("/dashboard/payroll")}
           className={`flex items-center gap-2 px-4 py-2.5 rounded-xl text-sm font-medium transition-colors ${c("bg-white/5 text-white/70 hover:bg-white/10 border border-white/10", "bg-gray-100 text-gray-700 hover:bg-gray-200 border border-gray-200")}`}
