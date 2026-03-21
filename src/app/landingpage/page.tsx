@@ -319,6 +319,7 @@ export default function LandingPage() {
           <div className="hidden sm:flex items-center gap-6 text-[13px] text-white/50">
             <a href="#features" className="hover:text-white transition-colors">ฟีเจอร์</a>
             <a href="#demo" className="hover:text-white transition-colors">สาธิต</a>
+            <a href="#business" className="hover:text-white transition-colors">ธุรกิจ</a>
             <a href="#pricing" className="hover:text-white transition-colors">ราคา</a>
             <a href="#faq" className="hover:text-white transition-colors">คำถาม</a>
           </div>
@@ -456,6 +457,99 @@ export default function LandingPage() {
           </FadeIn>
           <FadeIn delay={200}>
             <InteractiveDemo />
+          </FadeIn>
+        </div>
+      </section>
+
+      {/* ─── BUSINESS SECTION ─── */}
+      <section id="business" className="py-20 px-4 border-t border-white/[0.04] relative overflow-hidden">
+        <div className="absolute top-1/2 right-0 -translate-y-1/2 w-[400px] h-[400px] rounded-full opacity-10 blur-[100px] pointer-events-none"
+          style={{ background: `radial-gradient(circle, #3B82F6, transparent 70%)` }} />
+
+        <div className="relative max-w-6xl mx-auto">
+          <FadeIn>
+            <div className="text-center mb-14">
+              <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full bg-blue-500/10 border border-blue-500/20 mb-5">
+                <Users size={14} className="text-blue-400" />
+                <span className="text-[12px] text-blue-300/80">สำหรับองค์กร</span>
+              </div>
+              <h2 className="text-3xl sm:text-4xl font-bold">ระบบจัดการ<span className="text-blue-400">สำหรับบริษัท</span></h2>
+              <p className="mt-3 text-white/40 text-sm max-w-lg mx-auto">เชื่อมต่อพนักงานเข้าองค์กร จัดการเบิกจ่าย อนุมัติ และ Payroll ในระบบเดียว</p>
+            </div>
+          </FadeIn>
+
+          {/* How it works — company flow */}
+          <div className="grid lg:grid-cols-2 gap-10 items-center mb-16">
+            {/* Left: Flow diagram */}
+            <FadeIn>
+              <div className="space-y-4">
+                {[
+                  { step: "1", icon: "🏢", title: "สร้างองค์กร", desc: "ผู้ดูแลสร้างบริษัทในระบบ รับรหัสเชิญอัตโนมัติ", color: "#3B82F6" },
+                  { step: "2", icon: "🔗", title: "เชิญพนักงาน", desc: "แชร์รหัสเชิญ — พนักงานพิมพ์ \"เชื่อม XXXX\" ใน LINE Bot หรือกรอกในแอป", color: "#8B5CF6" },
+                  { step: "3", icon: "🧾", title: "พนักงานส่งสลิป", desc: "สแกนสลิปตามปกติ แล้วกด \"ส่งเข้าบริษัท\" — ใบเสร็จคัดลอกเข้าบัญชีธุรกิจ", color: "#06B6D4" },
+                  { step: "4", icon: "✅", title: "บริษัทอนุมัติ + จ่ายเงิน", desc: "ผู้ดูแลเห็นรายการเบิกจ่าย → อนุมัติ → โอนเงิน → พนักงานได้รับแจ้งเตือนผ่าน LINE", color: "#10B981" },
+                ].map((item, i) => (
+                  <div key={i} className="flex gap-4 items-start">
+                    <div className="flex flex-col items-center">
+                      <div className="w-10 h-10 rounded-xl flex items-center justify-center text-lg shrink-0"
+                        style={{ backgroundColor: `${item.color}15` }}>
+                        {item.icon}
+                      </div>
+                      {i < 3 && <div className="w-px h-6 bg-white/[0.08] mt-1" />}
+                    </div>
+                    <div className="pt-1">
+                      <div className="text-sm font-semibold text-white/90">{item.title}</div>
+                      <div className="text-xs text-white/40 leading-relaxed mt-0.5">{item.desc}</div>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </FadeIn>
+
+            {/* Right: Business features cards */}
+            <FadeIn delay={200}>
+              <div className="grid grid-cols-2 gap-3">
+                {[
+                  { icon: "📋", title: "เบิกจ่าย", desc: "พนักงานส่งใบเสร็จเข้าบริษัท รอผู้ดูแลอนุมัติ", stat: "อนุมัติผ่าน LINE" },
+                  { icon: "💰", title: "Payroll", desc: "คำนวณเงินเดือน ค่าล่วงเวลา ภาษี ประกันสังคม", stat: "สลิปเงินเดือนอัตโนมัติ" },
+                  { icon: "👥", title: "จัดการทีม", desc: "เพิ่มพนักงาน กำหนดแผนก ตำแหน่ง สิทธิ์การเข้าถึง", stat: "รหัสเชิญ 1 คลิก" },
+                  { icon: "📊", title: "รายงานบริษัท", desc: "สรุปค่าใช้จ่ายทั้งองค์กร แยกแผนก หมวดหมู่ พนักงาน", stat: "Dashboard เรียลไทม์" },
+                  { icon: "🧾", title: "ใบกำกับภาษี", desc: "บันทึกเลขประจำตัวผู้เสียภาษี VAT WHT อัตโนมัติ", stat: "OCR อ่านให้ทันที" },
+                  { icon: "🔔", title: "แจ้งเตือนทาง LINE", desc: "อนุมัติ/จ่ายเงิน → พนักงานได้รับ Flex Message ทันที", stat: "Real-time notification" },
+                ].map((card, i) => (
+                  <div key={i} className="p-4 rounded-xl border border-white/[0.06] bg-white/[0.02] hover:bg-white/[0.05] transition-all"
+                    style={{ animation: `fadeIn 0.5s ease ${i * 80}ms both` }}>
+                    <span className="text-xl">{card.icon}</span>
+                    <div className="text-[13px] font-semibold text-white/85 mt-2">{card.title}</div>
+                    <div className="text-[11px] text-white/35 leading-relaxed mt-1">{card.desc}</div>
+                    <div className="mt-2 text-[10px] font-medium text-blue-400/70">{card.stat}</div>
+                  </div>
+                ))}
+              </div>
+            </FadeIn>
+          </div>
+
+          {/* Business CTA */}
+          <FadeIn delay={300}>
+            <div className="text-center p-8 rounded-2xl border border-blue-500/10 bg-blue-500/[0.03]">
+              <h3 className="text-xl font-bold mb-2">พร้อมเชื่อมต่อทีมของคุณ?</h3>
+              <p className="text-sm text-white/40 mb-5">แพ็กเกจ Business เริ่มต้น ฿499/เดือน รองรับ 20 พนักงาน</p>
+              <div className="flex flex-col sm:flex-row items-center justify-center gap-3">
+                <Link
+                  href="/pricing"
+                  className="inline-flex items-center gap-2 px-6 py-3 rounded-xl text-white font-semibold text-sm transition-transform hover:scale-[1.02]"
+                  style={{ backgroundColor: "#3B82F6" }}
+                >
+                  ดูแพ็กเกจธุรกิจ <ArrowRight size={16} />
+                </Link>
+                <Link
+                  href="/login"
+                  className="inline-flex items-center gap-2 px-6 py-3 rounded-xl font-medium text-sm text-white/60 border border-white/[0.12] hover:bg-white/[0.06] transition-colors"
+                >
+                  ทดลองใช้ฟรีก่อน
+                </Link>
+              </div>
+            </div>
           </FadeIn>
         </div>
       </section>
