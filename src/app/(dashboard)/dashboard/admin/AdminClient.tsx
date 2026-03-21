@@ -7,7 +7,7 @@ import { useTheme } from "@/contexts/ThemeContext";
 import {
   Users, UserPlus, Receipt, ShieldCheck, Search,
   Pencil, Trash2, X, Loader2, Check, Ban, UserCheck,
-  Clock, AlertTriangle,
+  Clock, AlertTriangle, Building2,
 } from "lucide-react";
 import PageHeader from "@/components/dashboard/PageHeader";
 import StatsCard from "@/components/dashboard/StatsCard";
@@ -32,6 +32,8 @@ interface UserRow {
   occupation: string;
   phone: string;
   createdAt: string;
+  orgId: string;
+  orgName: string;
 }
 
 interface Props {
@@ -203,12 +205,23 @@ export default function AdminClient({ currentUserId, stats: initialStats, users:
         : <span className={`text-[10px] ${c("text-white/30", "text-gray-400")}`}>ยังไม่เสร็จ</span>,
     },
     {
+      key: "orgName", label: "บริษัท",
+      render: (r) => r.orgName
+        ? <div className="flex items-center gap-1.5"><Building2 size={13} className="text-blue-400 shrink-0" /><span className={`text-xs font-medium ${c("text-blue-300", "text-blue-600")}`}>{r.orgName}</span></div>
+        : <span className={`text-[10px] ${c("text-white/20", "text-gray-300")}`}>—</span>,
+    },
+    {
       key: "loginCount", label: "เข้าใช้",
       render: (r) => <span className={`text-xs ${c("text-white/50", "text-gray-500")}`}>{r.loginCount} ครั้ง</span>,
     },
     {
       key: "createdAt", label: "วันสมัคร",
-      render: (r) => <span className={`text-xs ${c("text-white/50", "text-gray-500")}`}>{r.createdAt ? new Date(r.createdAt).toLocaleDateString("th-TH", { day: "numeric", month: "short", year: "2-digit" }) : "-"}</span>,
+      render: (r) => r.createdAt ? (
+        <div>
+          <span className={`text-xs ${c("text-white/60", "text-gray-600")}`}>{new Date(r.createdAt).toLocaleDateString("th-TH", { day: "numeric", month: "short", year: "2-digit" })}</span>
+          <span className={`text-[10px] ml-1 ${c("text-white/30", "text-gray-400")}`}>{new Date(r.createdAt).toLocaleTimeString("th-TH", { hour: "2-digit", minute: "2-digit" })}</span>
+        </div>
+      ) : <span className={`text-xs ${c("text-white/30", "text-gray-400")}`}>-</span>,
     },
     {
       key: "status", label: "สถานะ",

@@ -4,6 +4,7 @@ import { redirect } from "next/navigation";
 import { connectDB } from "@/lib/mongodb";
 import User from "@/models/User";
 import Receipt from "@/models/Receipt";
+import Organization from "@/models/Organization";
 import AdminClient from "./AdminClient";
 
 function serialize(obj: any) {
@@ -30,11 +31,19 @@ async function AdminData() {
     User.countDocuments({ status: "active" }),
     User.countDocuments({ status: "suspended" }),
     User.find()
-      .select("name email lineUserId lineDisplayName lineProfilePic role accountType status onboardingComplete lastLogin loginCount documentsCount createdAt updatedAt occupation phone")
+      .select("name email lineUserId lineDisplayName lineProfilePic role accountType status onboardingComplete lastLogin loginCount documentsCount createdAt updatedAt occupation phone orgId")
       .sort({ createdAt: -1 })
       .limit(500)
       .lean(),
   ]);
+
+  // Build org name map
+  const orgIds = [...new Set(users.filter((u: any) => u.orgId).map((u: any) => String(u.orgId)))];
+  const orgs = orgIds.length > 0
+    ? await Organization.find({ _id: { $in: orgIds } }).select("name").lean()
+    : [];
+  const orgMap: Record<string, string> = {};
+  orgs.forEach((o: any) => { orgMap[String(o._id)] = o.name; });
 
   const userData = users.map((u: any) => ({
     _id: String(u._id),
@@ -53,6 +62,8 @@ async function AdminData() {
     occupation: u.occupation || "",
     phone: u.phone || "",
     createdAt: u.createdAt ? new Date(u.createdAt).toISOString() : "",
+    orgId: u.orgId ? String(u.orgId) : "",
+    orgName: u.orgId ? (orgMap[String(u.orgId)] || "") : "",
   }));
 
   return (
