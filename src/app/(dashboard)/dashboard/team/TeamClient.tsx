@@ -8,7 +8,7 @@ import { useTheme } from "@/contexts/ThemeContext";
 import { useMode } from "@/contexts/ModeContext";
 import {
   Users, UserCheck, UserPlus, Clock, Search, Pencil,
-  Banknote, Shield, Loader2, Trash2, X, Link2, Copy, Share2, Building2,
+  Banknote, Shield, Loader2, Trash2, X, Link2, Copy, Share2, Building2, AlertTriangle,
 } from "lucide-react";
 import PageHeader from "@/components/dashboard/PageHeader";
 import StatsCard from "@/components/dashboard/StatsCard";
@@ -116,13 +116,27 @@ export default function TeamClient({ members: initialMembers, departments, stats
     if (res.ok) { setNewPos(""); router.refresh(); const d = await fetch("/api/org/departments").then(r => r.json()); setOrgDepts(d.departments); setOrgPos(d.positions); }
     setStructSaving(false);
   };
-  const handleDeleteDept = async (id: string) => {
-    const res = await fetch("/api/org/departments", { method: "DELETE", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ type: "department", id }) });
-    if (res.ok) { setOrgDepts(prev => prev.filter(d => d._id !== id)); }
+  const [deleteConfirm, setDeleteConfirm] = useState<{ type: "department" | "position"; id: string; name: string; count: number } | null>(null);
+  const [deleteLoading, setDeleteLoading] = useState(false);
+
+  const confirmDeleteDept = (d: OrgDept) => {
+    const count = members.filter(m => m.department === d.name).length;
+    setDeleteConfirm({ type: "department", id: d._id, name: d.name, count });
   };
-  const handleDeletePos = async (id: string) => {
-    const res = await fetch("/api/org/departments", { method: "DELETE", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ type: "position", id }) });
-    if (res.ok) { setOrgPos(prev => prev.filter(p => p._id !== id)); }
+  const confirmDeletePos = (p: OrgPos) => {
+    const count = members.filter(m => m.position === p.name).length;
+    setDeleteConfirm({ type: "position", id: p._id, name: p.name, count });
+  };
+  const handleConfirmDelete = async () => {
+    if (!deleteConfirm) return;
+    setDeleteLoading(true);
+    const res = await fetch("/api/org/departments", { method: "DELETE", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ type: deleteConfirm.type, id: deleteConfirm.id }) });
+    if (res.ok) {
+      if (deleteConfirm.type === "department") setOrgDepts(prev => prev.filter(d => d._id !== deleteConfirm.id));
+      else setOrgPos(prev => prev.filter(p => p._id !== deleteConfirm.id));
+    }
+    setDeleteConfirm(null);
+    setDeleteLoading(false);
   };
   const handleUpdateDept = async () => {
     if (!editDept) return;
@@ -427,6 +441,45 @@ export default function TeamClient({ members: initialMembers, departments, stats
         </div>
       )}
 
+      {/* ── Delete Confirmation Modal ── */}
+      {deleteConfirm && (
+        <>
+          <div className="fixed inset-0 z-[60] bg-black/60" onClick={() => setDeleteConfirm(null)} />
+          <div className={`fixed top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 z-[61] w-[420px] max-w-[90vw] ${panelBg} border rounded-2xl shadow-2xl`}>
+            <div className="p-6 space-y-4">
+              <div className="flex items-center gap-3">
+                <div className="w-10 h-10 rounded-xl bg-red-500/10 flex items-center justify-center"><AlertTriangle size={20} className="text-red-400" /></div>
+                <h2 className={`text-lg font-bold ${c("text-white", "text-gray-900")}`}>
+                  ลบ{deleteConfirm.type === "department" ? "แผนก" : "ตำแหน่ง"}
+                </h2>
+              </div>
+              <p className={`text-sm ${c("text-white/60", "text-gray-600")}`}>
+                คุณแน่ใจหรือไม่ว่าต้องการลบ{deleteConfirm.type === "department" ? "แผนก" : "ตำแหน่ง"} <span className="font-bold">&ldquo;{deleteConfirm.name}&rdquo;</span>?
+              </p>
+              {deleteConfirm.count > 0 && (
+                <div className={`flex items-center gap-2 p-3 rounded-xl ${c("bg-yellow-500/10 border border-yellow-500/20", "bg-yellow-50 border border-yellow-200")}`}>
+                  <AlertTriangle size={16} className="text-yellow-400 shrink-0" />
+                  <p className={`text-xs ${c("text-yellow-300", "text-yellow-700")}`}>
+                    มีพนักงาน <span className="font-bold">{deleteConfirm.count} คน</span> อยู่ใน{deleteConfirm.type === "department" ? "แผนก" : "ตำแหน่ง"}นี้ — ข้อมูลพนักงานจะไม่ถูกลบ แต่{deleteConfirm.type === "department" ? "แผนก" : "ตำแหน่ง"}จะหายจากตัวเลือก
+                  </p>
+                </div>
+              )}
+              {deleteConfirm.count === 0 && (
+                <p className={`text-xs ${c("text-white/40", "text-gray-500")}`}>
+                  ไม่มีพนักงานใน{deleteConfirm.type === "department" ? "แผนก" : "ตำแหน่ง"}นี้ — สามารถลบได้อย่างปลอดภัย
+                </p>
+              )}
+              <div className="flex gap-2 pt-2">
+                <button onClick={handleConfirmDelete} disabled={deleteLoading} className="flex-1 py-2.5 rounded-xl text-sm font-medium bg-red-500 text-white hover:bg-red-600 transition-colors disabled:opacity-40 flex items-center justify-center gap-2">
+                  {deleteLoading && <Loader2 size={14} className="animate-spin" />}ลบ{deleteConfirm.type === "department" ? "แผนก" : "ตำแหน่ง"}
+                </button>
+                <button onClick={() => setDeleteConfirm(null)} className={`flex-1 py-2.5 rounded-xl text-sm font-medium ${c("bg-white/5 text-white/60", "bg-gray-100 text-gray-600")} transition-colors`}>ยกเลิก</button>
+              </div>
+            </div>
+          </div>
+        </>
+      )}
+
       <PageHeader title="พนักงาน & แผนก" description="จัดการทีมงาน สิทธิ์การใช้งาน และแผนกในองค์กร" />
 
       {/* ── Stats cards ── */}
@@ -606,7 +659,7 @@ export default function TeamClient({ members: initialMembers, departments, stats
                       <span className={`text-sm flex-1 ${c("text-white/80", "text-gray-700")}`}>{d.name}</span>
                       <span className={`text-[10px] ${c("text-white/30", "text-gray-400")}`}>{members.filter(m => m.department === d.name).length} คน</span>
                       <button onClick={() => setEditDept({ id: d._id, name: d.name })} className={`p-1.5 rounded-lg ${c("text-white/30 hover:text-blue-400 hover:bg-white/5", "text-gray-400 hover:text-blue-500 hover:bg-gray-100")}`}><Pencil size={12} /></button>
-                      <button onClick={() => handleDeleteDept(d._id)} className={`p-1.5 rounded-lg ${c("text-white/30 hover:text-red-400 hover:bg-white/5", "text-gray-400 hover:text-red-500 hover:bg-gray-100")}`}><Trash2 size={12} /></button>
+                      <button onClick={() => confirmDeleteDept(d)} className={`p-1.5 rounded-lg ${c("text-white/30 hover:text-red-400 hover:bg-white/5", "text-gray-400 hover:text-red-500 hover:bg-gray-100")}`}><Trash2 size={12} /></button>
                     </>
                   )}
                 </div>
@@ -641,7 +694,7 @@ export default function TeamClient({ members: initialMembers, departments, stats
                       <span className={`text-sm flex-1 ${c("text-white/80", "text-gray-700")}`}>{p.name}</span>
                       <span className={`text-[10px] ${c("text-white/30", "text-gray-400")}`}>{members.filter(m => m.position === p.name).length} คน</span>
                       <button onClick={() => setEditPos({ id: p._id, name: p.name })} className={`p-1.5 rounded-lg ${c("text-white/30 hover:text-blue-400 hover:bg-white/5", "text-gray-400 hover:text-blue-500 hover:bg-gray-100")}`}><Pencil size={12} /></button>
-                      <button onClick={() => handleDeletePos(p._id)} className={`p-1.5 rounded-lg ${c("text-white/30 hover:text-red-400 hover:bg-white/5", "text-gray-400 hover:text-red-500 hover:bg-gray-100")}`}><Trash2 size={12} /></button>
+                      <button onClick={() => confirmDeletePos(p)} className={`p-1.5 rounded-lg ${c("text-white/30 hover:text-red-400 hover:bg-white/5", "text-gray-400 hover:text-red-500 hover:bg-gray-100")}`}><Trash2 size={12} /></button>
                     </>
                   )}
                 </div>
