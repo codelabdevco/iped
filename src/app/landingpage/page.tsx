@@ -269,35 +269,115 @@ function InteractiveDemo() {
 
 /* ─── FAQ ─── */
 function FAQ() {
-  const faqs = [
-    { q: "ใช้ฟรีได้จริงหรือ?", a: "ได้เลย! แพ็กเกจ Free ให้สแกน OCR 10 ครั้ง/เดือน, บันทึก 30 ใบเสร็จ, LINE Bot, แจ้งเตือนสรุปรายวัน ไม่มีค่าใช้จ่ายใดๆ" },
-    { q: "ต้องลงทะเบียนก่อนใช้งานไหม?", a: "ไม่ต้อง! แค่เพิ่มเพื่อน LINE Bot แล้วส่งรูปสลิปมาได้เลย ระบบจะสร้างบัญชีให้อัตโนมัติ" },
-    { q: "ข้อมูลปลอดภัยไหม?", a: "ปลอดภัย — ข้อมูลเข้ารหัส AES-256, token ปลอดภัย, rate limiting ป้องกัน abuse, ผ่าน security audit 95/100" },
-    { q: "รองรับใบเสร็จภาษาอะไรบ้าง?", a: "รองรับทั้งไทยและอังกฤษ รวมถึงสลิปโอนเงิน PromptPay ใบกำกับภาษี และ e-receipt" },
-    { q: "ใช้งานกับบริษัทได้ไหม?", a: "ได้! แพ็กเกจ Business รองรับหลายคนในองค์กร ระบบเบิกจ่าย อนุมัติ และ payroll" },
+  const categories = [
+    {
+      title: "เริ่มต้นใช้งาน",
+      icon: Zap,
+      color: "#F59E0B",
+      items: [
+        { q: "ใช้ฟรีได้จริงหรือ?", a: "ได้เลย! แพ็กเกจ Free ให้สแกน OCR 10 ครั้ง/เดือน, บันทึก 30 ใบเสร็จ, LINE Bot, แจ้งเตือนสรุปรายวัน ไม่มีค่าใช้จ่ายใดๆ" },
+        { q: "ต้องลงทะเบียนก่อนใช้งานไหม?", a: "ไม่ต้อง! แค่เพิ่มเพื่อน LINE Bot แล้วส่งรูปสลิปมาได้เลย ระบบจะสร้างบัญชีให้อัตโนมัติ" },
+        { q: "รองรับใบเสร็จภาษาอะไรบ้าง?", a: "รองรับทั้งไทยและอังกฤษ รวมถึงสลิปโอนเงิน PromptPay ใบกำกับภาษี และ e-receipt จากทุกธนาคาร" },
+        { q: "ใช้งานกับบริษัทได้ไหม?", a: "ได้! แพ็กเกจ Business รองรับหลายคนในองค์กร ระบบเบิกจ่าย อนุมัติ Payroll และรายงานแยกแผนก" },
+      ],
+    },
+    {
+      title: "แพ็กเกจและราคา",
+      icon: CreditCard,
+      color: "#3B82F6",
+      items: [
+        { q: "ทดลองใช้งานฟรีกี่วัน?", a: "แพ็กเกจส่วนตัว Plus/Pro ทดลองได้ 14 วัน แพ็กเกจบริษัท Starter/Business ทดลองได้ 30 วัน โดยไม่ต้องใส่บัตรเครดิต" },
+        { q: "เปลี่ยนแพ็กเกจระหว่างทางได้ไหม?", a: "ได้ครับ สามารถอัปเกรดหรือดาวน์เกรดได้ตลอดเวลา ระบบจะคำนวณส่วนต่างให้อัตโนมัติ" },
+        { q: "ยกเลิกได้เมื่อไหร่?", a: "ยกเลิกได้ทุกเมื่อ ไม่มีสัญญาผูกมัด หลังยกเลิกยังใช้งานได้จนครบรอบบิล" },
+        { q: "รองรับการชำระเงินช่องทางไหนบ้าง?", a: "รองรับบัตรเครดิต/เดบิต, PromptPay, โอนผ่านธนาคาร และ LINE Pay" },
+      ],
+    },
+    {
+      title: "ความปลอดภัยและข้อมูล",
+      icon: Shield,
+      color: "#8B5CF6",
+      items: [
+        { q: "ข้อมูลปลอดภัยไหม?", a: "ข้อมูลทั้งหมดเข้ารหัส AES-256 และเก็บบนเซิร์ฟเวอร์ในประเทศไทย เป็นไปตามมาตรฐาน PDPA ผ่าน security audit 95/100" },
+        { q: "สามารถลบข้อมูลทั้งหมดได้ไหม?", a: "ได้ครับ ไปที่โปรไฟล์ → ตั้งค่า → ลบบัญชี ข้อมูลทั้งหมดจะถูกลบถาวรทันที ตาม PDPA" },
+        { q: "ใครเข้าถึงข้อมูลของฉันได้บ้าง?", a: "เฉพาะคุณเท่านั้น ข้อมูลแยก user ทั้งหมด แม้แต่ผู้ดูแลระบบก็ไม่สามารถดูข้อมูลส่วนตัวของคุณได้" },
+      ],
+    },
   ];
-  const [open, setOpen] = useState<number | null>(null);
+
+  const [openCat, setOpenCat] = useState(0);
+  const [openItem, setOpenItem] = useState<number | null>(0);
 
   return (
-    <div className="max-w-2xl mx-auto space-y-2">
-      {faqs.map((f, i) => (
-        <button
-          key={i}
-          onClick={() => setOpen(open === i ? null : i)}
-          className="w-full text-left p-4 rounded-xl border border-white/[0.06] hover:bg-white/[0.03] transition-colors"
-        >
-          <div className="flex items-center justify-between gap-4">
-            <span className="text-sm font-medium text-white/80">{f.q}</span>
-            <ChevronDown size={16} className={`text-white/30 transition-transform duration-300 shrink-0 ${open === i ? "rotate-180" : ""}`} />
-          </div>
-          <div
-            className="overflow-hidden transition-all duration-300"
-            style={{ maxHeight: open === i ? "200px" : "0", opacity: open === i ? 1 : 0, marginTop: open === i ? "8px" : "0" }}
+    <div className="max-w-3xl mx-auto">
+      {/* Category tabs */}
+      <div className="flex flex-wrap justify-center gap-2 mb-8">
+        {categories.map((cat, i) => (
+          <button
+            key={i}
+            onClick={() => { setOpenCat(i); setOpenItem(0); }}
+            className={`flex items-center gap-2 px-4 py-2.5 rounded-xl text-[13px] font-medium transition-all duration-300 ${
+              openCat === i
+                ? "bg-white/[0.08] border border-white/[0.12] text-white shadow-lg"
+                : "text-white/40 hover:text-white/60 border border-transparent"
+            }`}
           >
-            <p className="text-xs text-white/50 leading-relaxed">{f.a}</p>
-          </div>
-        </button>
-      ))}
+            <cat.icon size={15} style={{ color: openCat === i ? cat.color : undefined }} />
+            {cat.title}
+          </button>
+        ))}
+      </div>
+
+      {/* FAQ items */}
+      <div className="space-y-2">
+        {categories[openCat].items.map((f, i) => (
+          <button
+            key={`${openCat}-${i}`}
+            onClick={() => setOpenItem(openItem === i ? null : i)}
+            className={`w-full text-left p-5 rounded-xl border transition-all duration-300 ${
+              openItem === i
+                ? "bg-white/[0.04] border-white/[0.10]"
+                : "border-white/[0.06] hover:bg-white/[0.03]"
+            }`}
+          >
+            <div className="flex items-center justify-between gap-4">
+              <div className="flex items-center gap-3">
+                <div className={`w-7 h-7 rounded-lg flex items-center justify-center shrink-0 transition-colors duration-300 ${
+                  openItem === i ? "bg-white/[0.08]" : "bg-white/[0.04]"
+                }`}>
+                  <ChevronRight size={14} className={`transition-transform duration-300 ${openItem === i ? "rotate-90" : ""}`}
+                    style={{ color: openItem === i ? categories[openCat].color : "rgba(255,255,255,0.3)" }} />
+                </div>
+                <span className={`text-sm font-medium transition-colors duration-300 ${openItem === i ? "text-white" : "text-white/70"}`}>{f.q}</span>
+              </div>
+            </div>
+            <div
+              className="overflow-hidden transition-all duration-400"
+              style={{
+                maxHeight: openItem === i ? "200px" : "0",
+                opacity: openItem === i ? 1 : 0,
+                marginTop: openItem === i ? "12px" : "0",
+                paddingLeft: "40px",
+              }}
+            >
+              <p className="text-[13px] text-white/50 leading-relaxed">{f.a}</p>
+            </div>
+          </button>
+        ))}
+      </div>
+
+      {/* Contact CTA */}
+      <div className="mt-8 text-center p-6 rounded-xl border border-white/[0.06] bg-white/[0.02]">
+        <p className="text-sm text-white/50 mb-3">ไม่พบคำตอบที่ต้องการ?</p>
+        <a
+          href="https://line.me/R/ti/p/@iped"
+          target="_blank"
+          rel="noopener noreferrer"
+          className="inline-flex items-center gap-2 px-5 py-2.5 rounded-xl text-[13px] font-semibold text-white transition-colors hover:opacity-90"
+          style={{ backgroundColor: GREEN }}
+        >
+          <Bot size={16} /> สอบถามผ่าน LINE
+        </a>
+      </div>
     </div>
   );
 }
