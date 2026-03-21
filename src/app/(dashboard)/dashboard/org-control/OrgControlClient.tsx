@@ -2,9 +2,10 @@
 
 import { useMemo } from "react";
 import { useTheme } from "@/contexts/ThemeContext";
+import { useState } from "react";
 import {
   Crown, Users, Banknote, Receipt, ClipboardCheck, FileBarChart,
-  BarChart3, Zap, ArrowUpRight, CreditCard, Building2,
+  BarChart3, Zap, ArrowUpRight, CreditCard, Building2, Copy, Check, Share2,
 } from "lucide-react";
 import PageHeader from "@/components/dashboard/PageHeader";
 import StatsCard from "@/components/dashboard/StatsCard";
@@ -19,6 +20,10 @@ interface OrgInfo {
   type: string;
   membersCount: number;
   status: string;
+  inviteCode: string;
+  address: string;
+  phone: string;
+  email: string;
 }
 
 interface EmployeeRow {
@@ -162,6 +167,9 @@ export default function OrgControlClient({
 }: Props) {
   const { isDark } = useTheme();
   const c = (d: string, l: string) => (isDark ? d : l);
+  const [copied, setCopied] = useState(false);
+  const inviteLink = org.inviteCode ? `https://iped.codelabdev.co/join/${org.inviteCode}` : "";
+  const copyInvite = () => { navigator.clipboard.writeText(inviteLink); setCopied(true); setTimeout(() => setCopied(false), 2000); };
   const card = c(
     "bg-[rgba(255,255,255,0.04)] border-[rgba(255,255,255,0.06)]",
     "bg-white border-gray-200"
@@ -281,6 +289,55 @@ export default function OrgControlClient({
         title="ควบคุมองค์กร"
         description="ภาพรวมและจัดการทั้งหมดขององค์กร"
       />
+
+      {/* Section 1.5: Org Info + Invite */}
+      <div className="grid md:grid-cols-2 gap-4">
+        <div className={`${card} border rounded-2xl p-5`}>
+          <div className="flex items-center gap-3 mb-4">
+            <div className={`w-10 h-10 rounded-xl flex items-center justify-center ${c("bg-blue-500/10", "bg-blue-50")}`}>
+              <Building2 size={20} className="text-blue-400" />
+            </div>
+            <div>
+              <h3 className={`text-base font-bold ${txt}`}>{org.name}</h3>
+              <p className={`text-xs ${sub}`}>{org.type === "company" ? "บริษัท" : org.type === "partnership" ? "ห้างหุ้นส่วน" : org.type === "foundation" ? "มูลนิธิ" : "บุคคลธรรมดา"}</p>
+            </div>
+          </div>
+          <div className="space-y-2">
+            {org.taxId && <div className="flex justify-between text-xs"><span className={sub}>เลขประจำตัวผู้เสียภาษี</span><span className={txt}>{org.taxId}</span></div>}
+            {org.address && <div className="flex justify-between text-xs"><span className={sub}>ที่อยู่</span><span className={`${txt} text-right max-w-[60%]`}>{org.address}</span></div>}
+            {org.phone && <div className="flex justify-between text-xs"><span className={sub}>โทรศัพท์</span><span className={txt}>{org.phone}</span></div>}
+            {org.email && <div className="flex justify-between text-xs"><span className={sub}>อีเมล</span><span className={txt}>{org.email}</span></div>}
+            <div className="flex justify-between text-xs"><span className={sub}>สมาชิก</span><span className={txt}>{org.membersCount} คน</span></div>
+          </div>
+        </div>
+
+        {org.inviteCode && (
+          <div className={`${card} border rounded-2xl p-5`}>
+            <div className="flex items-center gap-3 mb-4">
+              <div className={`w-10 h-10 rounded-xl flex items-center justify-center ${c("bg-green-500/10", "bg-green-50")}`}>
+                <Share2 size={20} className="text-green-400" />
+              </div>
+              <div>
+                <h3 className={`text-sm font-bold ${txt}`}>เชิญพนักงาน</h3>
+                <p className={`text-xs ${sub}`}>แชร์ลิงก์หรือรหัสเชิญ</p>
+              </div>
+            </div>
+            <div className={`p-3 rounded-xl ${c("bg-white/[0.04]", "bg-gray-50")} space-y-3`}>
+              <div className="flex items-center justify-between">
+                <span className={`text-xs ${sub}`}>รหัสเชิญ</span>
+                <span className={`text-sm font-mono font-bold ${txt}`}>{org.inviteCode}</span>
+              </div>
+              <button onClick={copyInvite} className={`w-full flex items-center justify-center gap-2 py-2.5 rounded-xl text-sm font-medium transition-all ${copied ? "bg-green-500/20 text-green-400" : "bg-[#FA3633] text-white hover:bg-[#e0302d]"}`}>
+                {copied ? <><Check size={14} /> คัดลอกแล้ว!</> : <><Copy size={14} /> คัดลอกลิงก์เชิญ</>}
+              </button>
+              <div className={`text-[10px] ${muted} space-y-0.5`}>
+                <p>LINE Bot: พิมพ์ &ldquo;เชื่อม {org.inviteCode}&rdquo;</p>
+                <p>ลิงก์: {inviteLink}</p>
+              </div>
+            </div>
+          </div>
+        )}
+      </div>
 
       {/* Section 2: Stats Cards */}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-4">

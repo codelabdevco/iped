@@ -2,6 +2,7 @@
 
 import { useState, useMemo, useCallback } from "react";
 import { useRouter } from "next/navigation";
+import Link from "next/link";
 import { useReactiveData } from "@/hooks/useReactiveMode";
 import { useTheme } from "@/contexts/ThemeContext";
 import {
@@ -546,35 +547,16 @@ export default function PayrollClient({ employees: initialEmp, payrolls: initial
         </div>
 
         {/* Action buttons */}
-        {tab === "payroll" && (
-          <button onClick={() => setShowRunModal(true)} className="flex items-center gap-2 px-4 py-2.5 rounded-xl text-sm font-medium bg-[#FA3633] text-white hover:bg-[#e0302d] transition-colors shadow-sm shadow-[#FA3633]/25">
-            <Play size={16} />สร้างเงินเดือน
-          </button>
-        )}
-        {tab === "employees" && (
-          <button onClick={openAddEmployee} className="flex items-center gap-2 px-4 py-2.5 rounded-xl text-sm font-medium bg-[#FA3633] text-white hover:bg-[#e0302d] transition-colors shadow-sm shadow-[#FA3633]/25">
-            <Plus size={16} />เพิ่มพนักงาน
-          </button>
-        )}
+        <button onClick={() => setShowRunModal(true)} className="flex items-center gap-2 px-4 py-2.5 rounded-xl text-sm font-medium bg-[#FA3633] text-white hover:bg-[#e0302d] transition-colors shadow-sm shadow-[#FA3633]/25">
+          <Play size={16} />สร้างเงินเดือน
+        </button>
+        <Link href="/dashboard/team" className={`flex items-center gap-2 px-4 py-2.5 rounded-xl text-sm font-medium transition-colors ${c("bg-white/5 text-white/70 hover:bg-white/10 border border-white/10", "bg-gray-100 text-gray-700 hover:bg-gray-200 border border-gray-200")}`}>
+          <Users size={16} />จัดการพนักงาน
+        </Link>
       </div>
 
-      {/* ── Tabs ── */}
-      <div className={`flex gap-1 p-1 rounded-xl w-fit ${c("bg-white/[0.04]", "bg-gray-100")}`}>
-        <button onClick={() => { setTab("payroll"); setSearch(""); setStatusFilter("all"); }} className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors ${tab === "payroll" ? c("bg-white/10 text-white", "bg-white text-gray-900 shadow-sm") : c("text-white/50 hover:text-white/70", "text-gray-500 hover:text-gray-700")}`}>
-          สลิปเงินเดือน
-        </button>
-        <button onClick={() => { setTab("employees"); setSearch(""); setStatusFilter("all"); }} className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors ${tab === "employees" ? c("bg-white/10 text-white", "bg-white text-gray-900 shadow-sm") : c("text-white/50 hover:text-white/70", "text-gray-500 hover:text-gray-700")}`}>
-          พนักงาน
-        </button>
-      </div>
-
-      {/* ── Tables ── */}
-      {tab === "payroll" && (
-        <DataTable columns={payrollColumns} data={filteredPayrolls} rowKey={(r) => r._id} emptyText="ยังไม่มีข้อมูลเงินเดือนเดือนนี้ — กด 'สร้างเงินเดือน' เพื่อเริ่มต้น" columnConfigKey="payroll-slips" />
-      )}
-      {tab === "employees" && (
-        <DataTable columns={employeeColumns} data={filteredEmployees} rowKey={(r) => r._id} emptyText="ยังไม่มีพนักงาน — กด 'เพิ่มพนักงาน' เพื่อเริ่มต้น" columnConfigKey="payroll-employees" />
-      )}
+      {/* ── Table ── */}
+      <DataTable columns={payrollColumns} data={filteredPayrolls} rowKey={(r) => r._id} emptyText="ยังไม่มีข้อมูลเงินเดือนเดือนนี้ — กด 'สร้างเงินเดือน' เพื่อเริ่มต้น" columnConfigKey="payroll-slips" />
     </div>
   );
 }

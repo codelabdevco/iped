@@ -30,7 +30,7 @@ async function OrgControlData() {
 
   const [org, employees, userPlan] = await Promise.all([
     Organization.findById(session.orgId).lean(),
-    Employee.find({ userId: session.userId, status: "active" }).lean(),
+    Employee.find(session.orgId ? { $or: [{ orgId: session.orgId }, { userId: session.userId }] } : { userId: session.userId }).lean(),
     getUserPlan(session.userId, session.orgId),
   ]);
 
@@ -87,6 +87,10 @@ async function OrgControlData() {
         type: (org as any).type || "company",
         membersCount: (org as any).members?.length || 0,
         status: (org as any).status || "active",
+        inviteCode: (org as any).inviteCode || "",
+        address: (org as any).address || "",
+        phone: (org as any).phone || "",
+        email: (org as any).email || "",
       })}
       employees={serialize(
         employees.map((e: any) => ({
