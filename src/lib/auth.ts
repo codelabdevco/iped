@@ -38,7 +38,19 @@ export async function getSession(): Promise<JWTPayload | null> {
   const cookieStore = await cookies();
   const token = cookieStore.get(TOKEN_NAME)?.value;
   if (!token) return null;
-  return verifyToken(token);
+  const payload = await verifyToken(token);
+  if (!payload) return null;
+
+  // Hydrate orgId from DB if JWT doesn't have it (user joined org after login)
+  if (!payload.orgId) {
+    try {
+      await connectDB();
+      const user = await User.findById(payload.userId).select("orgId").lean() as any;
+      if (user?.orgId) payload.orgId = String(user.orgId);
+    } catch {}
+  }
+
+  return payload;
 }
 
 export async function getCurrentUser() {
