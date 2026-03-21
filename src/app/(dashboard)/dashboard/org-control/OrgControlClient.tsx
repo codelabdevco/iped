@@ -2,10 +2,11 @@
 
 import { useMemo } from "react";
 import { useTheme } from "@/contexts/ThemeContext";
-import { useState } from "react";
+import { useState, useCallback } from "react";
 import {
   Crown, Users, Banknote, Receipt, ClipboardCheck, FileBarChart,
   BarChart3, Zap, ArrowUpRight, CreditCard, Building2, Copy, Check, Share2,
+  Stamp, PenTool, Upload, Loader2, Trash2,
 } from "lucide-react";
 import PageHeader from "@/components/dashboard/PageHeader";
 import StatsCard from "@/components/dashboard/StatsCard";
@@ -24,6 +25,10 @@ interface OrgInfo {
   address: string;
   phone: string;
   email: string;
+  stampImage: string;
+  signatureImage: string;
+  signatureName: string;
+  signaturePosition: string;
 }
 
 interface EmployeeRow {
@@ -168,6 +173,37 @@ export default function OrgControlClient({
   const { isDark } = useTheme();
   const c = (d: string, l: string) => (isDark ? d : l);
   const [copied, setCopied] = useState(false);
+
+  // Stamp & Signature
+  const [stampImg, setStampImg] = useState(org.stampImage || "");
+  const [signImg, setSignImg] = useState(org.signatureImage || "");
+  const [signName, setSignName] = useState(org.signatureName || "");
+  const [signPos, setSignPos] = useState(org.signaturePosition || "");
+  const [stampSaving, setStampSaving] = useState(false);
+
+  const handleImageUpload = (e: React.ChangeEvent<HTMLInputElement>, type: "stamp" | "sign") => {
+    const file = e.target.files?.[0];
+    if (!file || file.size > 5 * 1024 * 1024) return;
+    const reader = new FileReader();
+    reader.onload = () => {
+      const dataUrl = reader.result as string;
+      if (type === "stamp") setStampImg(dataUrl);
+      else setSignImg(dataUrl);
+    };
+    reader.readAsDataURL(file);
+    e.target.value = "";
+  };
+
+  const handleSaveStamps = useCallback(async () => {
+    setStampSaving(true);
+    try {
+      await fetch("/api/org/stamps", {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ stampImage: stampImg, signatureImage: signImg, signatureName: signName, signaturePosition: signPos }),
+      });
+    } catch {} finally { setStampSaving(false); }
+  }, [stampImg, signImg, signName, signPos]);
   const inviteLink = org.inviteCode ? `https://iped.codelabdev.co/join/${org.inviteCode}` : "";
   const copyInvite = () => { navigator.clipboard.writeText(inviteLink); setCopied(true); setTimeout(() => setCopied(false), 2000); };
   const card = c(
@@ -337,6 +373,65 @@ export default function OrgControlClient({
             </div>
           </div>
         )}
+      </div>
+
+      {/* Section 1.7: Stamp & Signature */}
+      <div className={`${card} border rounded-2xl p-5`}>
+        <div className="flex items-center gap-3 mb-4">
+          <div className={`w-10 h-10 rounded-xl flex items-center justify-center ${c("bg-purple-500/10", "bg-purple-50")}`}>
+            <Stamp size={20} className="text-purple-400" />
+          </div>
+          <div>
+            <h3 className={`text-sm font-bold ${txt}`}>ตรายาง & ลายเซ็น</h3>
+            <p className={`text-xs ${sub}`}>ใช้ประทับในสลิปเงินเดือนและใบภาษี</p>
+          </div>
+        </div>
+
+        <div className="grid md:grid-cols-2 gap-4">
+          {/* Stamp */}
+          <div className={`rounded-xl p-4 ${c("bg-white/[0.03] border border-white/[0.04]", "bg-gray-50 border border-gray-100")}`}>
+            <p className={`text-xs font-medium mb-3 ${c("text-white/60", "text-gray-600")}`}><Stamp size={13} className="inline mr-1 -mt-0.5" />ตรายาง</p>
+            {stampImg ? (
+              <div className="relative group">
+                <img src={stampImg} alt="ตรายาง" className="w-32 h-32 object-contain mx-auto rounded-lg border border-dashed border-white/10" />
+                <button onClick={() => setStampImg("")} className="absolute top-1 right-1 p-1 rounded-full bg-red-500/80 text-white opacity-0 group-hover:opacity-100 transition-opacity"><Trash2 size={12} /></button>
+              </div>
+            ) : (
+              <label className={`flex flex-col items-center justify-center gap-2 py-6 rounded-xl border-2 border-dashed cursor-pointer transition-colors ${c("border-white/10 hover:border-white/20 text-white/30", "border-gray-200 hover:border-gray-300 text-gray-400")}`}>
+                <Upload size={20} />
+                <span className="text-xs">อัปโหลดตรายาง</span>
+                <span className={`text-[10px] ${c("text-white/20", "text-gray-400")}`}>PNG โปร่งใส แนะนำ</span>
+                <input type="file" accept="image/*" onChange={e => handleImageUpload(e, "stamp")} className="hidden" />
+              </label>
+            )}
+          </div>
+
+          {/* Signature */}
+          <div className={`rounded-xl p-4 ${c("bg-white/[0.03] border border-white/[0.04]", "bg-gray-50 border border-gray-100")}`}>
+            <p className={`text-xs font-medium mb-3 ${c("text-white/60", "text-gray-600")}`}><PenTool size={13} className="inline mr-1 -mt-0.5" />ลายเซ็น</p>
+            {signImg ? (
+              <div className="relative group">
+                <img src={signImg} alt="ลายเซ็น" className="w-32 h-16 object-contain mx-auto rounded-lg border border-dashed border-white/10" />
+                <button onClick={() => setSignImg("")} className="absolute top-1 right-1 p-1 rounded-full bg-red-500/80 text-white opacity-0 group-hover:opacity-100 transition-opacity"><Trash2 size={12} /></button>
+              </div>
+            ) : (
+              <label className={`flex flex-col items-center justify-center gap-2 py-6 rounded-xl border-2 border-dashed cursor-pointer transition-colors ${c("border-white/10 hover:border-white/20 text-white/30", "border-gray-200 hover:border-gray-300 text-gray-400")}`}>
+                <PenTool size={20} />
+                <span className="text-xs">อัปโหลดลายเซ็น</span>
+                <span className={`text-[10px] ${c("text-white/20", "text-gray-400")}`}>PNG โปร่งใส แนะนำ</span>
+                <input type="file" accept="image/*" onChange={e => handleImageUpload(e, "sign")} className="hidden" />
+              </label>
+            )}
+            <div className="mt-3 space-y-2">
+              <input value={signName} onChange={e => setSignName(e.target.value)} placeholder="ชื่อผู้ลงนาม" className={`w-full h-8 px-3 text-xs ${c("bg-white/5 border-white/10 text-white", "bg-white border-gray-200 text-gray-900")} border rounded-lg focus:outline-none focus:border-[#FA3633]/50`} />
+              <input value={signPos} onChange={e => setSignPos(e.target.value)} placeholder="ตำแหน่ง เช่น กรรมการผู้จัดการ" className={`w-full h-8 px-3 text-xs ${c("bg-white/5 border-white/10 text-white", "bg-white border-gray-200 text-gray-900")} border rounded-lg focus:outline-none focus:border-[#FA3633]/50`} />
+            </div>
+          </div>
+        </div>
+
+        <button onClick={handleSaveStamps} disabled={stampSaving} className="mt-4 w-full py-2.5 rounded-xl text-sm font-medium bg-[#FA3633] text-white hover:bg-[#e0302d] disabled:opacity-40 flex items-center justify-center gap-2 transition-colors">
+          {stampSaving ? <Loader2 size={14} className="animate-spin" /> : <Check size={14} />}บันทึกตรายาง & ลายเซ็น
+        </button>
       </div>
 
       {/* Section 2: Stats Cards */}

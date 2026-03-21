@@ -91,6 +91,10 @@ async function OrgControlData() {
         address: (org as any).address || "",
         phone: (org as any).phone || "",
         email: (org as any).email || "",
+        stampImage: (org as any).stampImage || "",
+        signatureImage: (org as any).signatureImage || "",
+        signatureName: (org as any).signatureName || "",
+        signaturePosition: (org as any).signaturePosition || "",
       })}
       employees={serialize(
         employees.map((e: any) => ({

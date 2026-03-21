@@ -28,6 +28,10 @@ export interface IOrganization extends Document {
   departments: { name: string; description?: string }[];
   positions: { name: string; level?: number }[];
   assetCategories: { name: string; icon?: string; description?: string }[];
+  stampImage?: string; // base64 ตรายาง
+  signatureImage?: string; // base64 ลายเซ็น
+  signatureName?: string; // ชื่อผู้ลงนาม
+  signaturePosition?: string; // ตำแหน่งผู้ลงนาม
   inviteCode?: string;
   packageId?: mongoose.Types.ObjectId;
   packageExpiry?: Date;
@@ -67,6 +71,10 @@ const OrganizationSchema = new Schema<IOrganization>(
     departments: [{ name: String, description: String }],
     positions: [{ name: String, level: Number }],
     assetCategories: [{ name: String, icon: String, description: String }],
+    stampImage: String,
+    signatureImage: String,
+    signatureName: String,
+    signaturePosition: String,
     inviteCode: { type: String, unique: true, sparse: true },
     packageId: { type: Schema.Types.ObjectId, ref: "Package" },
     packageExpiry: Date,

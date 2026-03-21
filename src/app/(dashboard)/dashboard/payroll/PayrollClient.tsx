@@ -6,7 +6,7 @@ import { useReactiveData } from "@/hooks/useReactiveMode";
 import { useTheme } from "@/contexts/ThemeContext";
 import {
   Banknote, Users, CheckCircle, Clock, Plus, Play, Loader2,
-  Pencil, Check, CreditCard, Trash2, Search, Filter, Paperclip, Upload, X, Image,
+  Pencil, Check, CreditCard, Trash2, Search, Filter, Paperclip, Upload, X, Image, FileText, Send, Stamp,
 } from "lucide-react";
 import PageHeader from "@/components/dashboard/PageHeader";
 import StatsCard from "@/components/dashboard/StatsCard";
@@ -170,6 +170,28 @@ export default function PayrollClient({ employees: initialEmp, payrolls: initial
       setPayRef("");
     } catch {} finally { setPayingSlip(false); }
   }, [payModalId, payRef, payNote, paySlipFiles]);
+
+  // ── Send slip modal ──
+  const [slipModalId, setSlipModalId] = useState<string | null>(null);
+  const [slipStamp, setSlipStamp] = useState(true);
+  const [slipSign, setSlipSign] = useState(true);
+  const [slipSendLine, setSlipSendLine] = useState(true);
+  const [slipSendEmail, setSlipSendEmail] = useState(false);
+  const [sendingSlip, setSendingSlip] = useState(false);
+  const [slipSent, setSlipSent] = useState(false);
+
+  const handleSendSlip = useCallback(async () => {
+    if (!slipModalId) return;
+    setSendingSlip(true);
+    try {
+      const res = await fetch(`/api/payroll/${slipModalId}/slip`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ addStamp: slipStamp, addSignature: slipSign, sendLine: slipSendLine, sendEmail: slipSendEmail }),
+      });
+      if (res.ok) { setSlipSent(true); setTimeout(() => { setSlipModalId(null); setSlipSent(false); }, 2000); }
+    } catch {} finally { setSendingSlip(false); }
+  }, [slipModalId, slipStamp, slipSign, slipSendLine, slipSendEmail]);
 
   /* ── Stats (recompute from local state) ── */
   const stats = useMemo(() => {
@@ -381,6 +403,12 @@ export default function PayrollClient({ employees: initialEmp, payrolls: initial
               onClick={() => { setPayModalId(r._id); setPaySlipFiles([]); setPayNote(""); setPayRef(""); }}
               className={`px-2.5 py-1 rounded-lg text-[11px] font-medium transition-colors ${dark ? "bg-green-500/15 text-green-400 hover:bg-green-500/25" : "bg-green-50 text-green-600 hover:bg-green-100"}`}
             ><CreditCard className="w-3 h-3 inline mr-1" />จ่ายเงิน</button>
+          )}
+          {r.status === "paid" && (
+            <button
+              onClick={() => { setSlipModalId(r._id); setSlipStamp(true); setSlipSign(true); setSlipSendLine(true); }}
+              className={`px-2.5 py-1 rounded-lg text-[11px] font-medium transition-colors ${dark ? "bg-purple-500/15 text-purple-400 hover:bg-purple-500/25" : "bg-purple-50 text-purple-600 hover:bg-purple-100"}`}
+            ><FileText className="w-3 h-3 inline mr-1" />ส่งสลิป</button>
           )}
         </div>
       ),
@@ -662,6 +690,71 @@ export default function PayrollClient({ employees: initialEmp, payrolls: initial
                 </button>
                 <button onClick={() => setPayModalId(null)} className={`flex-1 py-2.5 rounded-xl text-sm font-medium ${c("bg-white/5 text-white/60", "bg-gray-100 text-gray-600")} transition-colors`}>ยกเลิก</button>
               </div>
+            </div>
+          </div>
+        </>
+      )}
+
+      {/* ── Send Slip Modal ── */}
+      {slipModalId && (
+        <>
+          <div className="fixed inset-0 z-40 bg-black/60" onClick={() => { setSlipModalId(null); setSlipSent(false); }} />
+          <div className={`fixed top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 z-50 w-[440px] max-w-[90vw] ${c("bg-[#0a0a0a] border-white/10", "bg-white border-gray-200")} border rounded-2xl shadow-2xl`}>
+            <div className="p-6 space-y-4">
+              {slipSent ? (
+                <div className="text-center py-6">
+                  <div className="w-14 h-14 rounded-full bg-green-500/10 flex items-center justify-center mx-auto mb-4"><Check size={28} className="text-green-400" /></div>
+                  <h2 className={`text-lg font-bold ${c("text-white", "text-gray-900")}`}>ส่งสลิปเรียบร้อย!</h2>
+                  <p className={`text-xs mt-1 ${c("text-white/40", "text-gray-500")}`}>พนักงานจะได้รับสลิปเงินเดือนผ่าน LINE</p>
+                </div>
+              ) : (
+                <>
+                  <div className="flex items-center gap-3">
+                    <div className="w-10 h-10 rounded-xl bg-purple-500/10 flex items-center justify-center"><FileText size={20} className="text-purple-400" /></div>
+                    <div>
+                      <h2 className={`text-lg font-bold ${c("text-white", "text-gray-900")}`}>ส่งสลิปเงินเดือน</h2>
+                      <p className={`text-xs ${c("text-white/40", "text-gray-500")}`}>{payrolls.find(p => p._id === slipModalId)?.employeeName} — {baht(payrolls.find(p => p._id === slipModalId)?.netPay || 0)}</p>
+                    </div>
+                  </div>
+
+                  <div className={`rounded-xl p-4 space-y-3 ${c("bg-white/[0.04] border border-white/[0.06]", "bg-gray-50 border border-gray-100")}`}>
+                    <p className={`text-xs font-semibold ${c("text-white/60", "text-gray-600")}`}>ตั้งค่าสลิป</p>
+                    <label className="flex items-center gap-3 cursor-pointer">
+                      <input type="checkbox" checked={slipStamp} onChange={e => setSlipStamp(e.target.checked)} className="rounded border-white/20 bg-white/5 text-[#FA3633] focus:ring-[#FA3633]/30" />
+                      <div>
+                        <span className={`text-sm ${c("text-white", "text-gray-900")}`}>ประทับตรายาง</span>
+                        <p className={`text-[10px] ${c("text-white/30", "text-gray-400")}`}>ใช้ตรายางจากตั้งค่าองค์กร</p>
+                      </div>
+                    </label>
+                    <label className="flex items-center gap-3 cursor-pointer">
+                      <input type="checkbox" checked={slipSign} onChange={e => setSlipSign(e.target.checked)} className="rounded border-white/20 bg-white/5 text-[#FA3633] focus:ring-[#FA3633]/30" />
+                      <div>
+                        <span className={`text-sm ${c("text-white", "text-gray-900")}`}>ลายเซ็นผู้มีอำนาจ</span>
+                        <p className={`text-[10px] ${c("text-white/30", "text-gray-400")}`}>ใช้ลายเซ็นจากตั้งค่าองค์กร</p>
+                      </div>
+                    </label>
+                  </div>
+
+                  <div className={`rounded-xl p-4 space-y-3 ${c("bg-white/[0.04] border border-white/[0.06]", "bg-gray-50 border border-gray-100")}`}>
+                    <p className={`text-xs font-semibold ${c("text-white/60", "text-gray-600")}`}>ช่องทางส่ง</p>
+                    <label className="flex items-center gap-3 cursor-pointer">
+                      <input type="checkbox" checked={slipSendLine} onChange={e => setSlipSendLine(e.target.checked)} className="rounded border-white/20 bg-white/5 text-[#06C755] focus:ring-[#06C755]/30" />
+                      <span className={`text-sm ${c("text-white", "text-gray-900")}`}>LINE (Flex Message)</span>
+                    </label>
+                    <label className="flex items-center gap-3 cursor-pointer">
+                      <input type="checkbox" checked={slipSendEmail} onChange={e => setSlipSendEmail(e.target.checked)} className="rounded border-white/20 bg-white/5 text-blue-500 focus:ring-blue-500/30" />
+                      <span className={`text-sm ${c("text-white", "text-gray-900")}`}>Email</span>
+                    </label>
+                  </div>
+
+                  <div className="flex gap-2 pt-2">
+                    <button onClick={handleSendSlip} disabled={sendingSlip || (!slipSendLine && !slipSendEmail)} className="flex-1 py-2.5 rounded-xl text-sm font-medium bg-purple-500 text-white hover:bg-purple-600 disabled:opacity-40 flex items-center justify-center gap-2">
+                      {sendingSlip ? <Loader2 size={14} className="animate-spin" /> : <Send size={14} />}ส่งสลิป
+                    </button>
+                    <button onClick={() => { setSlipModalId(null); setSlipSent(false); }} className={`flex-1 py-2.5 rounded-xl text-sm font-medium ${c("bg-white/5 text-white/60", "bg-gray-100 text-gray-600")} transition-colors`}>ยกเลิก</button>
+                  </div>
+                </>
+              )}
             </div>
           </div>
         </>
