@@ -3,6 +3,7 @@ import { connectDB } from '@/lib/mongodb';
 import User from '@/models/User';
 import { pushMessage } from '@/lib/line-bot';
 import { completeFlex } from '@/lib/onboarding';
+import { logger } from "@/lib/logger";
 
 export async function POST(req: NextRequest) {
   try {
@@ -37,7 +38,7 @@ export async function POST(req: NextRequest) {
         displayName || '-', String(age), gender, occupation, pictureUrl || undefined, lineUserId);
       await pushMessage(lineUserId, [flex]);
     } catch (pushErr) {
-      console.error('Push message error:', pushErr);
+      logger.error("Push message error", { error: pushErr instanceof Error ? pushErr.message : String(pushErr) });
     }
 
     return NextResponse.json({
@@ -48,7 +49,7 @@ export async function POST(req: NextRequest) {
       occupation,
     });
   } catch (err) {
-    console.error('Register API error:', err);
+    logger.error("Register API error", { error: err instanceof Error ? err.message : String(err) });
     return NextResponse.json({ success: false, message: 'Server error' }, { status: 500 });
   }
 }

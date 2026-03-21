@@ -3,6 +3,7 @@ import { getSession } from "@/lib/auth";
 import { connectDB } from "@/lib/mongodb";
 import Match from "@/models/Match";
 import Receipt from "@/models/Receipt";
+import { logger } from "@/lib/logger";
 
 // GET /api/matches — list matches with receipt details
 export async function GET(request: NextRequest) {
@@ -40,7 +41,7 @@ export async function GET(request: NextRequest) {
 
     return NextResponse.json({ matches: enriched });
   } catch (error) {
-    console.error("Matches GET Error:", error);
+    logger.error("Matches GET error", { error: error instanceof Error ? error.message : String(error) });
     return NextResponse.json({ error: "เกิดข้อผิดพลาดในการโหลดข้อมูลการจับคู่" }, { status: 500 });
   }
 }
@@ -58,7 +59,7 @@ export async function PUT(request: NextRequest) {
     await Match.findOneAndUpdate({ _id: id, userId: session.userId }, { status });
     return NextResponse.json({ success: true });
   } catch (error) {
-    console.error("Matches PUT Error:", error);
+    logger.error("Matches PUT error", { error: error instanceof Error ? error.message : String(error) });
     return NextResponse.json({ error: "เกิดข้อผิดพลาดในการอัปเดตสถานะการจับคู่" }, { status: 500 });
   }
 }

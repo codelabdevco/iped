@@ -5,6 +5,7 @@ import { connectDB } from "@/lib/mongodb";
 import Receipt from "@/models/Receipt";
 import crypto from "crypto";
 import { rateLimitByUser } from "@/lib/rate-limit";
+import { logger } from "@/lib/logger";
 
 export async function POST(request: NextRequest) {
   try {
@@ -123,8 +124,8 @@ export async function POST(request: NextRequest) {
     try {
       const { findMatches } = await import("@/lib/auto-match");
       const matches = await findMatches(String(receipt._id), session.userId);
-      console.log("Auto-match:", matches.length, "found for", receipt._id);
-    } catch (e) { console.error("Auto-match error:", e); }
+      logger.info("Auto-match completed", { count: matches.length, receiptId: String(receipt._id) });
+    } catch (e) { logger.error("Auto-match error", { error: e instanceof Error ? e.message : String(e) }); }
 
     // Track OCR + receipt usage
     await incrementUsage(session.userId, "ocr");
@@ -136,7 +137,7 @@ export async function POST(request: NextRequest) {
       receipt: { _id: String(receipt._id), status: "pending" },
     });
   } catch (error) {
-    console.error("OCR Error:", error);
+    logger.error("OCR error", { error: error instanceof Error ? error.message : String(error) });
     return NextResponse.json({ error: "เกิดข้อผิดพลาดในการอ่านใบเสร็จ" }, { status: 500 });
   }
 }

@@ -4,6 +4,7 @@ import User from "@/models/User";
 import Receipt from "@/models/Receipt";
 import { pushMessage } from "@/lib/line-bot";
 import { dailySummaryFlex } from "@/lib/line-flex";
+import { logger } from "@/lib/logger";
 
 const CRON_SECRET = process.env.CRON_SECRET || "iped-cron-secret";
 
@@ -24,7 +25,7 @@ export async function GET(request: NextRequest) {
       status: "active",
     }).select("_id lineUserId lineDisplayName settings.notifications.dailySummaryTime").lean();
 
-    console.log(`[Daily Summary] Found ${users.length} users with daily summary enabled`);
+    logger.info("Daily summary: found eligible users", { count: users.length });
 
     let sent = 0;
     let errors = 0;
@@ -36,7 +37,7 @@ export async function GET(request: NextRequest) {
 
         // Skip if no activity today
         if (summary.count === 0 && summary.totalExpense === 0 && summary.totalIncome === 0) {
-          console.log(`[Daily Summary] Skip ${user.lineDisplayName} — no activity`);
+          logger.info("Daily summary: skip user, no activity", { user: user.lineDisplayName });
           continue;
         }
 
@@ -50,13 +51,13 @@ export async function GET(request: NextRequest) {
         ]);
 
         sent++;
-        console.log(`[Daily Summary] Sent to ${user.lineDisplayName}`);
+        logger.info("Daily summary: sent", { user: user.lineDisplayName });
 
         // Small delay to avoid LINE rate limit
         await new Promise((r) => setTimeout(r, 200));
       } catch (err: any) {
         errors++;
-        console.error(`[Daily Summary] Error for ${user.lineDisplayName}:`, err.message);
+        logger.error("Daily summary: error for user", { user: user.lineDisplayName, error: err.message });
       }
     }
 
@@ -68,7 +69,7 @@ export async function GET(request: NextRequest) {
       skipped: users.length - sent - errors,
     });
   } catch (error: any) {
-    console.error("[Daily Summary] Fatal error:", error.message);
+    logger.error("Daily summary: fatal error", { error: error.message });
     return NextResponse.json({ error: error.message }, { status: 500 });
   }
 }

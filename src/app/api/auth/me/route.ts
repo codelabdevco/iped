@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { getSession } from "@/lib/auth";
 import { connectDB } from "@/lib/mongodb";
+import { logger } from "@/lib/logger";
 import User from "@/models/User";
 
 export async function GET() {
@@ -31,7 +32,7 @@ export async function GET() {
       },
     });
   } catch (error) {
-    console.error("Auth me error:", error);
+    logger.error("Auth me error", { error: error instanceof Error ? error.message : String(error) });
     return NextResponse.json({ user: null }, { status: 500 });
   }
 }

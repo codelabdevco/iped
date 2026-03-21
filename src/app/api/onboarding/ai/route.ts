@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import User from "@/models/User";
 import { connectDB } from "@/lib/mongodb";
 import Anthropic from "@anthropic-ai/sdk";
+import { logger } from "@/lib/logger";
 
 const anthropic = new Anthropic({
   apiKey: process.env.ANTHROPIC_API_KEY || "",
@@ -98,7 +99,7 @@ export async function POST(request: NextRequest) {
       complete,
     });
   } catch (e: any) {
-    console.error("Onboarding AI error:", e.message);
+    logger.error("Onboarding AI error", { error: e.message });
     return NextResponse.json(
       {
         message:

@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { connectDB } from "@/lib/mongodb";
 import { createToken, setTokenCookie } from "@/lib/auth";
 import { logAuthAction } from "@/lib/audit";
+import { logger } from "@/lib/logger";
 import User from "@/models/User";
 
 export async function POST(request: NextRequest) {
@@ -48,7 +49,7 @@ export async function POST(request: NextRequest) {
 
     return response;
   } catch (error) {
-    console.error("Demo login error:", error);
+    logger.error("Demo login error", { error: error instanceof Error ? error.message : String(error) });
     return NextResponse.json({ error: "เกิดข้อผิดพลาด" }, { status: 500 });
   }
 }

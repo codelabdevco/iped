@@ -4,6 +4,7 @@ import { connectDB } from "@/lib/mongodb";
 import Receipt from "@/models/Receipt";
 import User from "@/models/User";
 import { pushMessage } from "@/lib/line-bot";
+import { logger } from "@/lib/logger";
 
 // POST /api/receipts/[id]/reimburse — approve or pay a reimbursement
 // body: { action: "approve" | "pay" | "reject", bankTransferRef?, slipImage?, note? }
@@ -84,7 +85,7 @@ export async function POST(
               ]},
             },
           }]);
-        } catch (e) { console.error("LINE notify approve error:", e); }
+        } catch (e) { logger.error("LINE notify approve error", { error: e instanceof Error ? e.message : String(e) }); }
       }
 
       return NextResponse.json({ success: true, status: "confirmed" });
@@ -173,7 +174,7 @@ export async function POST(
               ]},
             },
           }]);
-        } catch (e) { console.error("LINE notify pay error:", e); }
+        } catch (e) { logger.error("LINE notify pay error", { error: e instanceof Error ? e.message : String(e) }); }
       }
 
       return NextResponse.json({ success: true, status: "paid" });
@@ -197,7 +198,7 @@ export async function POST(
             type: "text",
             text: `❌ เบิกจ่ายถูกปฏิเสธ\nรายการ: ${receipt.merchant}\nจำนวน: ฿${fmtAmt(receipt.amount)}${note ? `\nเหตุผล: ${note}` : ""}`,
           }]);
-        } catch (e) { console.error("LINE notify reject error:", e); }
+        } catch (e) { logger.error("LINE notify reject error", { error: e instanceof Error ? e.message : String(e) }); }
       }
 
       return NextResponse.json({ success: true, status: "cancelled" });

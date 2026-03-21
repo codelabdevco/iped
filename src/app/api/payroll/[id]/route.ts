@@ -5,6 +5,7 @@ import { JWTPayload } from "@/lib/auth";
 import Payroll from "@/models/Payroll";
 import Employee from "@/models/Employee";
 import { sendPayrollNotification } from "@/lib/payroll-notify";
+import { logger } from "@/lib/logger";
 
 function recalculateTotals(payroll: Record<string, unknown>) {
   const baseSalary = (payroll.baseSalary as number) || 0;
@@ -125,10 +126,10 @@ export async function PUT(
             },
             body.status as "approved" | "paid",
             { lineUserId: employee.lineUserId, email: employee.email }
-          ).catch((err) => console.error("Payroll notification failed:", err));
+          ).catch((err) => logger.error("Payroll notification failed", { error: err instanceof Error ? err.message : String(err) }));
         }
       } catch (notifErr) {
-        console.error("Payroll notification lookup error:", notifErr);
+        logger.error("Payroll notification lookup error", { error: notifErr instanceof Error ? notifErr.message : String(notifErr) });
       }
     }
 

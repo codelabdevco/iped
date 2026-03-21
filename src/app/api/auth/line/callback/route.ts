@@ -3,6 +3,7 @@ import { exchangeLineCode, getLineProfile, createToken, setTokenCookie } from "@
 import { connectDB } from "@/lib/mongodb";
 import User from "@/models/User";
 import { rateLimitByIP } from "@/lib/rate-limit";
+import { logger } from "@/lib/logger";
 
 export async function GET(req: NextRequest) {
   try {
@@ -33,7 +34,7 @@ export async function GET(req: NextRequest) {
       return NextResponse.redirect(new URL("/login?error=profile_failed", baseUrl));
     }
 
-    console.log("LINE login success for userId:", profile.userId);
+    logger.info("LINE login success", { lineUserId: profile.userId });
 
     await connectDB();
 
@@ -75,7 +76,7 @@ export async function GET(req: NextRequest) {
     return response;
   } catch (err: any) {
     const baseUrl = process.env.NEXT_PUBLIC_APP_URL || req.url;
-    console.error("LINE callback error:", err instanceof Error ? err.message : JSON.stringify(err));
+    logger.error("LINE callback error", { error: err instanceof Error ? err.message : JSON.stringify(err) });
     return NextResponse.redirect(new URL("/login?error=server_error", baseUrl));
   }
 }

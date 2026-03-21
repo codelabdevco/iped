@@ -7,6 +7,7 @@ import User from "@/models/User";
 import Anthropic from "@anthropic-ai/sdk";
 import crypto from "crypto";
 import { handleFollow, handleImageOnboarding, handleOnboarding, handleLogout } from "@/lib/onboarding";
+import { logger } from "@/lib/logger";
 
 const TOKEN = process.env.LINE_CHANNEL_ACCESS_TOKEN || "";
 const APP_URL = process.env.NEXT_PUBLIC_APP_URL || "";
@@ -19,9 +20,9 @@ async function showLoading(chatId: string, sec: number = 60) {
       headers: { "Content-Type": "application/json", Authorization: "Bearer " + TOKEN },
       body: JSON.stringify({ chatId, loadingSeconds: sec }),
     });
-    console.log("Loading API:", res.status);
+    logger.debug("Loading API", { status: res.status });
   } catch (e: any) {
-    console.error("Loading error:", e.message);
+    logger.error("Loading error", { error: e.message });
   }
 }
 
@@ -103,7 +104,7 @@ If it IS a receipt/invoice/bill, extract and return ONLY this JSON:
     ]}],
   });
   const text = response.content[0].type === "text" ? response.content[0].text : "";
-  console.log("OCR raw:", text.substring(0, 200));
+  logger.debug("OCR raw", { preview: text.substring(0, 200) });
   try {
     const clean = text.replace(/```json\n?/g, "").replace(/```\n?/g, "").trim();
     return JSON.parse(clean);
@@ -182,10 +183,10 @@ async function saveReceipt(ocr: any, lineUserId: string, imgHash: string, imageB
       userId: mongoUserId,
       accountType,
     });
-    console.log("Saved receipt:", r._id, "userId:", mongoUserId, "accountType:", accountType);
+    logger.info("Saved receipt", { receiptId: String(r._id), userId: mongoUserId, accountType });
     return r._id.toString();
   } catch (e: any) {
-    console.error("Save error:", e.message);
+    logger.error("Save error", { error: e.message });
     return "";
   }
 }
@@ -282,7 +283,7 @@ function getStatus(ocr: any, isDuplicate: any): StatusResult {
 }
 
 export async function POST(request: NextRequest) {
-  console.log("=== Webhook hit ===");
+  logger.debug("Webhook hit");
   try {
     const body = await request.text();
     const sig = request.headers.get("x-line-signature") || "";
@@ -291,17 +292,17 @@ export async function POST(request: NextRequest) {
     if (secret && sig) {
       const hash = crypto.createHmac("SHA256", secret).update(body).digest("base64");
       if (hash !== sig) {
-        console.log("Sig mismatch, secretLen:", secret.length);
+        logger.warn("Sig mismatch", { secretLen: secret.length });
         return NextResponse.json({ error: "Invalid signature" }, { status: 401 });
       }
     }
     const data = JSON.parse(body);
     const events = data.events || [];
-    console.log("Events:", events.length);
+    logger.debug("Events received", { count: events.length });
 
     for (const ev of events) {
       const uid = ev.source?.userId;
-      console.log("Type:", ev.type, ev.message?.type);
+      logger.debug("Event type", { type: ev.type, messageType: ev.message?.type });
 
       // === ONBOARDING CHECK ===
     if (uid && ev.type === "message" && ev.message?.type === "text") {
@@ -315,7 +316,7 @@ export async function POST(request: NextRequest) {
         }
         const handled = await handleOnboarding(ev.replyToken, uid, ev.message.text, dn);
       if (handled) {
-        console.log("Reply: onboarding step");
+        logger.debug("Reply: onboarding step");
         continue;
       }
     }
@@ -333,7 +334,7 @@ export async function POST(request: NextRequest) {
       // Check if user needs onboarding first
       const needsOnboard = await handleImageOnboarding(ev.replyToken, uid);
       if (needsOnboard) {
-        console.log("User needs onboarding, skipping image processing");
+        logger.debug("User needs onboarding, skipping image processing");
         continue;
       }
         const rt = ev.replyToken;
@@ -347,14 +348,14 @@ export async function POST(request: NextRequest) {
             getMerchantKnowledge(),
             getUserNameContext(uid || ""),
           ]);
-          console.log("Knowledge merchants:", knowledge ? "yes" : "none", "userCtx:", userNameCtx ? "yes" : "none");
+          logger.debug("Context loaded", { merchants: knowledge ? "yes" : "none", userCtx: userNameCtx ? "yes" : "none" });
 
           // 2. Download image & OCR
           const imageBuffer = await getMessageContent(ev.message.id);
           const imgHash = crypto.createHash("md5").update(imageBuffer).digest("hex");
-          console.log("Image size:", imageBuffer.length, "hash:", imgHash);
+          logger.debug("Image received", { size: imageBuffer.length, hash: imgHash });
           const ocr = await ocrReceipt(imageBuffer, knowledge, userNameCtx);
-          console.log("OCR:", JSON.stringify(ocr));
+          logger.debug("OCR result", { merchant: ocr?.merchant, amount: ocr?.amount, isReceipt: ocr?.isReceipt });
 
           // 3. Not a receipt? → save as draft + ask to confirm
           if (!ocr || ocr.isReceipt === false) {
@@ -380,7 +381,7 @@ export async function POST(request: NextRequest) {
             });
             const nrFlex = notReceiptFlex(String(nrReceipt._id));
             await replyMessage(rt, [{ type: "text", text: "📄 ภาพนี้อาจไม่ใช่ใบเสร็จ", quoteToken: qt }, nrFlex]);
-            console.log("Reply: not_receipt (draft:", nrReceipt._id, ")");
+            logger.debug("Reply: not_receipt", { draftId: String(nrReceipt._id) });
             continue;
           }
 
@@ -388,7 +389,7 @@ export async function POST(request: NextRequest) {
     if (!ocr.amount) {
       const errFlex = errorFlex(ocr.confidence);
       await replyMessage(rt, [{ type: "text", text: "❌ ไม่สามารถอ่านใบเสร็จได้", quoteToken: qt }, errFlex]);
-      console.log("Reply: error no amount");
+      logger.debug("Reply: error no amount");
       continue;
     }
 
@@ -396,7 +397,7 @@ export async function POST(request: NextRequest) {
           const mongoUid = await resolveUserId(uid || "");
           const dup = await checkDuplicate(ocr.merchant, ocr.amount, ocr.date, mongoUid);
           const status = getStatus(ocr, dup);
-          console.log("Status", status.type, status.emoji);
+          logger.debug("Receipt status", { type: status.type, emoji: status.emoji });
           
           if (status.type === "duplicate") {
             // Save as draft — not shown in normal receipts until confirmed
@@ -426,7 +427,7 @@ export async function POST(request: NextRequest) {
               accountType: dupAccountType,
               note: `พบสลิปซ้ำกับ ${dup.merchant} (${dup.date ? new Date(dup.date).toLocaleDateString("th-TH") : ""})`,
             });
-            console.log("Saved draft (duplicate):", dupReceipt._id);
+            logger.debug("Saved draft (duplicate)", { draftId: String(dupReceipt._id) });
 
             const dupFlex = duplicateWarningFlex({
               merchant: ocr.merchant,
@@ -438,7 +439,7 @@ export async function POST(request: NextRequest) {
               { type: "text", text: status.emoji + " " + status.title + "\n" + status.sub, quoteToken: qt },
               dupFlex
             ]);
-            console.log("Reply: duplicate (draft)");
+            logger.debug("Reply: duplicate (draft)");
             continue;
           }
 
@@ -467,10 +468,10 @@ export async function POST(request: NextRequest) {
             { type: "text", text: statusText, quoteToken: qt },
             { ...flexMsg, quickReply: quickReplyButtons() },
           ]);
-        console.log("Reply:", status.type);
+        logger.info("Reply sent", { type: status.type });
 
         } catch (err: any) {
-          console.error("Process error:", err.message || err);
+          logger.error("Process error", { error: err.message || String(err) });
           try {
             await replyMessage(rt, [{ type: "text", text: "\u274c \u0e40\u0e01\u0e34\u0e14\u0e02\u0e49\u0e2d\u0e1c\u0e34\u0e14\u0e1e\u0e25\u0e32\u0e14 \u0e01\u0e23\u0e38\u0e13\u0e32\u0e25\u0e2d\u0e07\u0e2d\u0e35\u0e01\u0e04\u0e23\u0e31\u0e49\u0e07", quoteToken: qt }]);
           } catch {}
@@ -490,9 +491,9 @@ export async function POST(request: NextRequest) {
           const summary = await getDailySummary(mongoId);
           const flex = dailySummaryFlex(summary);
           await replyMessage(ev.replyToken, [flex]);
-          console.log("Reply: daily summary");
+          logger.debug("Reply: daily summary");
         } catch (e: any) {
-          console.error("Summary error:", e.message);
+          logger.error("Summary error", { error: e.message });
           await replyMessage(ev.replyToken, [{ type: "text", text: "❌ ไม่สามารถดึงข้อมูลสรุปได้" }]);
         }
 
@@ -524,9 +525,9 @@ export async function POST(request: NextRequest) {
               }
             }
           }
-          console.log("Reply: join org");
+          logger.debug("Reply: join org");
         } catch (e: any) {
-          console.error("Join org error:", e.message);
+          logger.error("Join org error", { error: e.message });
           await replyMessage(ev.replyToken, [{ type: "text", text: "❌ เกิดข้อผิดพลาด กรุณาลองใหม่" }]);
         }
 
@@ -538,9 +539,9 @@ export async function POST(request: NextRequest) {
           const result = await aiChat(msgText, mongoId);
           const flex = chatResponseFlex({ question: msgText, answer: result.answer, details: result.details });
           await replyMessage(ev.replyToken, [flex]);
-          console.log("Reply: AI chat");
+          logger.debug("Reply: AI chat");
         } catch (e: any) {
-          console.error("AI chat error:", e.message);
+          logger.error("AI chat error", { error: e.message });
           await replyMessage(ev.replyToken, [{ type: "text", text: "ส่งรูปสลิปหรือใบเสร็จมาได้เลยครับ 📸\nหรือพิมพ์ถามเรื่องการเงินได้เลย" }]);
         }
       }
@@ -555,7 +556,7 @@ export async function POST(request: NextRequest) {
         const params = new URLSearchParams(pd);
         const action = params.get("action");
         const id = params.get("id");
-        console.log("Postback:", action, id);
+        logger.debug("Postback received", { action, id });
 
         try {
           await connectDB();
@@ -604,14 +605,14 @@ export async function POST(request: NextRequest) {
             await replyMessage(ev.replyToken, [{ type: "text", text: "ไม่พบคำสั่ง" }]);
           }
         } catch (e: any) {
-          console.error("Postback error:", e.message);
+          logger.error("Postback error", { error: e.message });
           await replyMessage(ev.replyToken, [{ type: "text", text: "❌ เกิดข้อผิดพลาด กรุณาลองใหม่" }]);
         }
       }
     }
     return NextResponse.json({ success: true });
   } catch (err: any) {
-    console.error("Webhook err:", err.message || err);
+    logger.error("Webhook error", { error: err.message || String(err) });
     return NextResponse.json({ success: true });
   }
 }

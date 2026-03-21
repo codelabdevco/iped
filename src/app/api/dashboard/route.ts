@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { verifyToken } from "@/lib/auth";
 import { connectDB } from "@/lib/mongodb";
 import Receipt from "@/models/Receipt";
+import { logger } from "@/lib/logger";
 import User from "@/models/User";
 
 export async function GET(req: NextRequest) {
@@ -119,7 +120,7 @@ export async function GET(req: NextRequest) {
       savingsByCategory,
     });
   } catch (err) {
-    console.error("Dashboard API error:", err);
+    logger.error("Dashboard API error", { error: err instanceof Error ? err.message : String(err) });
     return NextResponse.json({ error: "Server error" }, { status: 500 });
   }
 }

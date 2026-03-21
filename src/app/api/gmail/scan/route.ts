@@ -9,6 +9,7 @@ import { findMatches } from "@/lib/auto-match";
 import FileModel from "@/models/File";
 import crypto from "crypto";
 import { encrypt, decrypt } from "@/lib/encrypt";
+import { logger } from "@/lib/logger";
 
 // Helper: find attachments recursively (handles nested multipart)
 function findAttachments(parts: any[]): { mimeType: string; attachmentId: string; filename: string }[] {
@@ -143,7 +144,7 @@ export async function POST(request: NextRequest) {
           }
           return data.access_token;
         }
-      } catch (e) { console.error("Token refresh error:", e); }
+      } catch (e) { logger.error("Token refresh error", { error: e instanceof Error ? e.message : String(e) }); }
       return null;
     }
 
@@ -270,7 +271,7 @@ export async function POST(request: NextRequest) {
                     userId: userId,
                   });
                   await Receipt.findByIdAndUpdate(receipt._id, { $push: { fileIds: String(savedFile._id) } });
-                } catch (fileErr) { console.error("File save error:", fileErr); }
+                } catch (fileErr) { logger.error("File save error", { error: fileErr instanceof Error ? fileErr.message : String(fileErr) }); }
 
                 await findMatches(String(receipt._id), userId);
 
@@ -285,7 +286,7 @@ export async function POST(request: NextRequest) {
                       await Receipt.findByIdAndUpdate(receipt._id, { driveFileId: driveResult.id, driveLink: driveResult.webViewLink });
                     }
                   }
-                } catch (driveErr) { console.error("Drive sync error:", driveErr); }
+                } catch (driveErr) { logger.error("Drive sync error", { error: driveErr instanceof Error ? driveErr.message : String(driveErr) }); }
 
                 results.push({ subject, from: cleanEmail(from), date: dateStr, status: "saved", receiptId: String(receipt._id), account: account.email });
               } catch (e) {
@@ -320,7 +321,7 @@ export async function POST(request: NextRequest) {
                     userId: userId,
                   });
                   await Receipt.findByIdAndUpdate(receipt._id, { $push: { fileIds: String(savedFile._id) } });
-                } catch (fileErr) { console.error("File save error:", fileErr); }
+                } catch (fileErr) { logger.error("File save error", { error: fileErr instanceof Error ? fileErr.message : String(fileErr) }); }
 
                 results.push({ subject, from: cleanEmail(from), date: dateStr, status: "ocr_failed", receiptId: String(receipt._id), account: account.email });
               }
@@ -363,7 +364,7 @@ export async function POST(request: NextRequest) {
                   };
                 }
               } catch (e) {
-                console.error("Email body analysis error:", e);
+                logger.error("Email body analysis error", { error: e instanceof Error ? e.message : String(e) });
               }
             }
 
@@ -378,7 +379,7 @@ export async function POST(request: NextRequest) {
             });
           }
         } catch (msgErr) {
-          console.error("Error processing message:", msgErr);
+          logger.error("Error processing Gmail message", { error: msgErr instanceof Error ? msgErr.message : String(msgErr) });
         }
       }
 
@@ -389,7 +390,7 @@ export async function POST(request: NextRequest) {
         await GoogleAccount.findByIdAndUpdate(account._id, { lastScanAt: new Date() });
       }
     } catch (err: any) {
-      console.error(`Gmail scan error for ${account.email}:`, err.message);
+      logger.error("Gmail scan error", { account: account.email, error: err.message });
       allResults.push({ subject: `[${account.email}] error`, from: account.email, date: "", status: "error", account: account.email });
     }
   }

@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import User from "@/models/User";
 import { connectDB } from "@/lib/mongodb";
+import { logger } from "@/lib/logger";
 
 export async function POST(request: NextRequest) {
   try {
@@ -35,7 +36,7 @@ export async function POST(request: NextRequest) {
 
     return NextResponse.json({ success: true });
   } catch (e: any) {
-    console.error("Onboarding API error:", e.message);
+    logger.error("Onboarding API error", { error: e.message });
     return NextResponse.json({ error: e.message }, { status: 500 });
   }
 }

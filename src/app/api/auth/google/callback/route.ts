@@ -3,6 +3,7 @@ import { connectDB } from "@/lib/mongodb";
 import User from "@/models/User";
 import GoogleAccount from "@/models/GoogleAccount";
 import { encrypt } from "@/lib/encrypt";
+import { logger } from "@/lib/logger";
 
 // GET /api/auth/google/callback — handle OAuth callback
 export async function GET(request: NextRequest) {
@@ -32,7 +33,7 @@ export async function GET(request: NextRequest) {
 
     const tokens = await tokenRes.json();
     if (!tokens.access_token) {
-      console.error("Google token error:", tokens);
+      logger.error("Google token error", { tokens });
       return NextResponse.redirect(`${baseUrl}/dashboard/settings?google=error`);
     }
 
@@ -65,10 +66,10 @@ export async function GET(request: NextRequest) {
       googleConnectedAt: new Date(),
     });
 
-    console.log("Google connected:", profile.email, "for user:", state);
+    logger.info("Google connected", { email: profile.email, userId: state });
     return NextResponse.redirect(`${baseUrl}/dashboard/settings?google=success`);
   } catch (err: any) {
-    console.error("Google callback error:", err.message);
+    logger.error("Google callback error", { error: err.message });
     return NextResponse.redirect(`${baseUrl}/dashboard/settings?google=error`);
   }
 }

@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createToken, setTokenCookie } from "@/lib/auth";
 import { connectDB } from "@/lib/mongodb";
+import { logger } from "@/lib/logger";
 import User from "@/models/User";
 
 export async function POST(request: NextRequest) {
@@ -66,7 +67,7 @@ export async function POST(request: NextRequest) {
     res.headers.set("Set-Cookie", cookie["Set-Cookie"]);
     return res;
   } catch (error: any) {
-    console.error("LIFF auth error:", error.message);
+    logger.error("LIFF auth error", { error: error.message });
     return NextResponse.json({ error: "เกิดข้อผิดพลาด" }, { status: 500 });
   }
 }
