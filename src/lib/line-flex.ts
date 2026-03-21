@@ -588,7 +588,7 @@ export function receiptConfirmFlex(data: ReceiptFlexData) {
     contents: {
       type: "bubble",
       size: "mega",
-      hero: heroBanner(BANNERS.success),
+      header: headerBar(statusText, statusColor, bandColor),
       body: {
         type: "box",
         layout: "vertical",
@@ -727,7 +727,7 @@ export function duplicateWarningFlex(data: {
     contents: {
       type: "bubble",
       size: "mega",
-      hero: heroBanner(BANNERS.duplicate),
+      header: headerBar("🔄 พบรายการซ้ำ", C.blue, C.blueBg),
       body: {
         type: "box",
         layout: "vertical",
@@ -873,7 +873,7 @@ export function errorFlex(confidence?: number) {
     contents: {
       type: "bubble",
       size: "mega",
-      hero: heroBanner(BANNERS.error),
+      header: headerBar("❌ ผิดพลาด", C.red, C.redBg),
       body: {
         type: "box",
         layout: "vertical",
@@ -971,7 +971,7 @@ export function notReceiptFlex(receiptId?: string) {
     contents: {
       type: "bubble",
       size: "mega",
-      hero: heroBanner(BANNERS.notReceipt),
+      header: headerBar("ไม่ใช่ใบเสร็จ", C.amber, C.amberBg),
       body: {
         type: "box",
         layout: "vertical",
@@ -1085,7 +1085,7 @@ export function dailySummaryFlex(data: {
     contents: {
       type: "bubble",
       size: "mega",
-      hero: heroBanner(BANNERS.dailySummary),
+      header: headerBar("📊 สรุปวันนี้", C.green, C.greenBg),
       body: {
         type: "box",
         layout: "vertical",
