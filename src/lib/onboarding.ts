@@ -438,11 +438,17 @@ export async function handleImageOnboarding(
     return false; // User is registered, proceed with image processing
   }
 
-    // User not registered yet - show registration prompt
+  // Auto-complete onboarding if user has filled profile data elsewhere (mobile/web)
+  if (user.gender && user.occupation) {
+    user.onboardingStep = 4;
+    user.onboardingComplete = true;
+    await user.save();
+    return false; // Profile complete, proceed with image processing
+  }
 
-  // Send registration prompt with age question
-  await replyMessage(replyToken, [needRegisterFlex(userId)]);
-  return true; // Caller should NOT process the image
+  // Allow image processing even without registration — just show a soft prompt once
+  // Don't block the user from scanning receipts
+  return false;
 }
 
 /**
@@ -536,7 +542,7 @@ export async function handleOnboarding(
     }
     if (t === "ยังก่อน") {
       await replyMessage(replyToken, [
-        { type: "text", text: "ไม่เป็นไรครับ เมื่อพร้อมลงทะเบียนสามารถส่งสลิปมาได้เลยนะครับ 😊" },
+        { type: "text", text: "ไม่เป็นไรครับ ส่งรูปสลิปมาได้เลย 📸\nเมื่อพร้อมลงทะเบียนพิมพ์ \"ตกลง\" ได้ทุกเมื่อครับ 😊" },
       ]);
       return true;
     }

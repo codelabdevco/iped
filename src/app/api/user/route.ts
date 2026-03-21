@@ -59,6 +59,17 @@ export async function PUT(request: NextRequest) {
       return apiError("No valid fields to update", 400);
     }
 
+    // Auto-complete onboarding when user fills required profile fields
+    if (update.gender || update.occupation) {
+      const current = await User.findById(session.userId).select("gender occupation onboardingComplete").lean() as any;
+      const hasGender = update.gender || current?.gender;
+      const hasOccupation = update.occupation || current?.occupation;
+      if (hasGender && hasOccupation && !current?.onboardingComplete) {
+        update.onboardingComplete = true;
+        update.onboardingStep = 4;
+      }
+    }
+
     const user = await User.findByIdAndUpdate(
       session.userId,
       { $set: update },
