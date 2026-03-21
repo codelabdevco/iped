@@ -11,7 +11,7 @@ import {
   Users, Building2, CheckSquare, FileSpreadsheet, Shield,
   Package, Globe, BadgeDollarSign, ChevronDown,
   ContactRound, FileOutput, FileInput, CircleDollarSign, ShieldCheck,
-  ArrowRightLeft,
+  ArrowRightLeft, Landmark,
 } from "lucide-react";
 import { useTheme } from "@/contexts/ThemeContext";
 import { useMode } from "@/contexts/ModeContext";
@@ -80,6 +80,7 @@ const businessNav: NavGroup[] = [
       { label: "ใบเสนอราคา", href: "/dashboard/quotations", icon: FileOutput },
       { label: "ใบแจ้งหนี้ขาออก", href: "/dashboard/invoices", icon: FileInput },
       { label: "ยอดค้างชำระ", href: "/dashboard/receivables", icon: CircleDollarSign },
+      { label: "หนี้สินบริษัท", href: "/dashboard/debts", icon: Landmark },
     ],
   },
   {
