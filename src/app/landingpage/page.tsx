@@ -307,6 +307,28 @@ export default function LandingPage() {
         @keyframes growUp { from { transform: scaleY(0); } to { transform: scaleY(1); } }
         @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
         .animate-fadeIn { animation: fadeIn 0.5s ease both; }
+
+        @keyframes mascotFloat {
+          0%, 100% { transform: translateY(0); }
+          50% { transform: translateY(-12px); }
+        }
+        @keyframes mascotBlink {
+          0%, 42%, 44%, 96%, 98%, 100% { opacity: 1; transform: scaleY(1); }
+          43%, 97% { opacity: 1; transform: scaleY(0.05); }
+        }
+        @keyframes mascotMouth {
+          0%, 40%, 60%, 100% { rx: 8; ry: 10; }
+          45%, 55% { rx: 10; ry: 6; }
+        }
+        @keyframes mascotClip {
+          0%, 100% { transform: rotate(0deg); }
+          25% { transform: rotate(3deg); }
+          75% { transform: rotate(-3deg); }
+        }
+        .mascot-float { animation: mascotFloat 3s ease-in-out infinite; }
+        .mascot-blink { animation: mascotBlink 4s ease-in-out infinite; transform-origin: center; }
+        .mascot-mouth { animation: mascotMouth 5s ease-in-out infinite; }
+        .mascot-clip { animation: mascotClip 3s ease-in-out infinite; transform-origin: 148px 40px; }
       `}</style>
 
       {/* ─── NAV ─── */}
@@ -338,58 +360,81 @@ export default function LandingPage() {
         </div>
       </nav>
 
-      {/* ─── HERO ─── */}
-      <section className="relative pt-28 pb-16 sm:pt-36 sm:pb-24 px-4 overflow-hidden">
-        {/* Glow */}
-        <div className="absolute top-0 left-1/2 -translate-x-1/2 w-[600px] h-[400px] rounded-full opacity-20 blur-[120px] pointer-events-none"
-          style={{ background: `radial-gradient(circle, ${RED}40, transparent 70%)` }} />
+      {/* ─── MASCOT HERO ─── */}
+      <section className="relative pt-14 overflow-hidden" style={{ backgroundColor: RED }}>
+        <div className="relative max-w-4xl mx-auto flex flex-col items-center pt-16 pb-8 sm:pt-20 sm:pb-12 px-4">
+          {/* Mascot SVG */}
+          <div className="mascot-float relative w-48 h-48 sm:w-64 sm:h-64 mb-6">
+            <svg viewBox="0 0 300 300" className="w-full h-full" xmlns="http://www.w3.org/2000/svg">
+              {/* Hair clip */}
+              <g className="mascot-clip">
+                <line x1="148" y1="38" x2="168" y2="28" stroke="#4a5568" strokeWidth="3" strokeLinecap="round" />
+                <line x1="148" y1="42" x2="168" y2="32" stroke="#4a5568" strokeWidth="3" strokeLinecap="round" />
+              </g>
+              {/* Hair/head outline */}
+              <ellipse cx="150" cy="165" rx="105" ry="115" fill="#1a1a1a" />
+              {/* Face */}
+              <ellipse cx="150" cy="170" rx="80" ry="88" fill="#f0d0be" />
+              {/* Left eye ring */}
+              <circle cx="118" cy="160" r="28" fill="none" stroke={RED} strokeWidth="4" />
+              {/* Right eye ring */}
+              <circle cx="182" cy="160" r="28" fill="none" stroke={RED} strokeWidth="4" />
+              {/* Left pupil */}
+              <g className="mascot-blink">
+                <line x1="106" y1="160" x2="130" y2="160" stroke="#1a1a1a" strokeWidth="4" strokeLinecap="round" />
+                <circle cx="118" cy="160" r="3" fill="#1a1a1a" />
+              </g>
+              {/* Right pupil */}
+              <g className="mascot-blink">
+                <line x1="170" y1="160" x2="194" y2="160" stroke="#1a1a1a" strokeWidth="4" strokeLinecap="round" />
+                <circle cx="182" cy="160" r="3" fill="#1a1a1a" />
+              </g>
+              {/* Nose/mouth */}
+              <ellipse cx="150" cy="200" rx="8" ry="10" fill="#1a1a1a" className="mascot-mouth" />
+            </svg>
+          </div>
 
-        <div className="relative max-w-4xl mx-auto text-center">
-          <FadeIn>
-            <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full bg-white/[0.06] border border-white/[0.08] mb-6">
-              <Sparkles size={14} style={{ color: RED }} />
-              <span className="text-[12px] text-white/60">ใช้ฟรี ไม่ต้องลงทะเบียน</span>
-            </div>
-          </FadeIn>
-          <FadeIn delay={100}>
-            <h1 className="text-4xl sm:text-5xl lg:text-6xl font-bold leading-tight tracking-tight">
-              จัดการใบเสร็จ
-              <br />
-              <span style={{ color: RED }}>อัจฉริยะ</span> ด้วย AI
-            </h1>
-          </FadeIn>
-          <FadeIn delay={200}>
-            <p className="mt-5 text-base sm:text-lg text-white/50 max-w-xl mx-auto leading-relaxed">
-              ถ่ายรูปสลิป — AI อ่านให้ — บันทึกอัตโนมัติ
-              <br className="hidden sm:block" />
-              สรุปรายรับรายจ่ายแบบเรียลไทม์ ผ่าน LINE Bot
-            </p>
-          </FadeIn>
-          <FadeIn delay={300}>
-            <div className="mt-8 flex flex-col sm:flex-row items-center justify-center gap-3">
-              <Link
-                href="/login"
-                className="inline-flex items-center gap-2 px-7 py-3.5 rounded-xl text-white font-semibold text-base shadow-lg transition-transform hover:scale-[1.02]"
-                style={{ backgroundColor: RED }}
-              >
-                เริ่มใช้งานฟรี <ArrowRight size={18} />
-              </Link>
-              <a
-                href="#demo"
-                className="inline-flex items-center gap-2 px-7 py-3.5 rounded-xl font-medium text-base text-white/60 bg-white/[0.06] border border-white/[0.08] hover:bg-white/[0.1] transition-colors"
-              >
-                <Smartphone size={18} /> ดูสาธิต
-              </a>
-            </div>
-          </FadeIn>
-          <FadeIn delay={400}>
-            <div className="mt-10 flex items-center justify-center gap-8 text-[13px] text-white/30">
-              <span className="flex items-center gap-1.5"><Check size={14} className="text-green-400" /> ฟรี ไม่มีบัตรเครดิต</span>
-              <span className="flex items-center gap-1.5"><Check size={14} className="text-green-400" /> เริ่มใช้ใน 10 วินาที</span>
-              <span className="flex items-center gap-1.5"><Check size={14} className="text-green-400" /> ปลอดภัย 100%</span>
-            </div>
-          </FadeIn>
+          {/* Text overlay */}
+          <h1 className="text-3xl sm:text-5xl lg:text-6xl font-bold leading-tight tracking-tight text-white text-center">
+            จัดการใบเสร็จ<span className="text-white/90">อัจฉริยะ</span>
+          </h1>
+          <p className="mt-3 text-sm sm:text-base text-white/70 text-center max-w-md">
+            ถ่ายรูปสลิป — AI อ่านให้ — บันทึกอัตโนมัติ
+          </p>
+          <div className="mt-6 flex flex-col sm:flex-row items-center gap-3">
+            <Link
+              href="/login"
+              className="inline-flex items-center gap-2 px-7 py-3.5 rounded-xl font-semibold text-base shadow-lg transition-transform hover:scale-[1.02]"
+              style={{ backgroundColor: "#1a1a1a", color: "white" }}
+            >
+              เริ่มใช้งานฟรี <ArrowRight size={18} />
+            </Link>
+            <a
+              href="#demo"
+              className="inline-flex items-center gap-2 px-7 py-3.5 rounded-xl font-medium text-base text-white/80 border border-white/30 hover:bg-white/10 transition-colors"
+            >
+              <Smartphone size={18} /> ดูสาธิต
+            </a>
+          </div>
+
+          {/* Wave divider */}
+          <div className="absolute bottom-0 left-0 right-0">
+            <svg viewBox="0 0 1440 60" fill="none" xmlns="http://www.w3.org/2000/svg" preserveAspectRatio="none" className="w-full h-8 sm:h-12">
+              <path d="M0 60V30C240 0 480 0 720 30C960 60 1200 60 1440 30V60H0Z" fill={DARK} />
+            </svg>
+          </div>
         </div>
+      </section>
+
+      {/* ─── TRUST BADGES ─── */}
+      <section className="py-6 px-4">
+        <FadeIn>
+          <div className="flex flex-wrap items-center justify-center gap-6 sm:gap-8 text-[13px] text-white/30">
+            <span className="flex items-center gap-1.5"><Check size={14} className="text-green-400" /> ฟรี ไม่มีบัตรเครดิต</span>
+            <span className="flex items-center gap-1.5"><Check size={14} className="text-green-400" /> เริ่มใช้ใน 10 วินาที</span>
+            <span className="flex items-center gap-1.5"><Check size={14} className="text-green-400" /> ปลอดภัย 100%</span>
+          </div>
+        </FadeIn>
       </section>
 
       {/* ─── STATS ─── */}
