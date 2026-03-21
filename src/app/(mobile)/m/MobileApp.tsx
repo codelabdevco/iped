@@ -65,19 +65,26 @@ function useS(isDark: boolean) {
 //  NAME PROMPT — ask Thai name on first use
 // ════════════════════════════════════════
 function NamePrompt({ isDark, onSaved }: { isDark: boolean; onSaved: () => void }) {
-  const [firstName, setFirstName] = useState("");
-  const [lastName, setLastName] = useState("");
+  const [firstNameTh, setFirstNameTh] = useState("");
+  const [lastNameTh, setLastNameTh] = useState("");
+  const [firstNameEn, setFirstNameEn] = useState("");
+  const [lastNameEn, setLastNameEn] = useState("");
   const [saving, setSaving] = useState(false);
   const s = useS(isDark);
 
   const handleSave = async () => {
-    if (!firstName.trim()) return;
+    if (!firstNameTh.trim()) return;
     setSaving(true);
     try {
       const res = await fetch("/api/user", {
         method: "PUT",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ firstNameTh: firstName.trim(), lastNameTh: lastName.trim() }),
+        body: JSON.stringify({
+          firstNameTh: firstNameTh.trim(),
+          lastNameTh: lastNameTh.trim(),
+          firstNameEn: firstNameEn.trim(),
+          lastNameEn: lastNameEn.trim(),
+        }),
       });
       if (res.ok) onSaved();
     } catch {} finally { setSaving(false); }
@@ -96,23 +103,20 @@ function NamePrompt({ isDark, onSaved }: { isDark: boolean; onSaved: () => void 
             <p className={`text-xs mt-1 ${s.sub}`}>ระบบจะใช้เทียบกับสลิปโอนเงิน เพื่อแยกรายรับ-รายจ่ายให้แม่นยำ</p>
           </div>
           <div className="space-y-2.5">
-            <input
-              value={firstName}
-              onChange={(e) => setFirstName(e.target.value)}
-              placeholder="ชื่อจริง (ภาษาไทย)"
-              className={s.inp}
-              autoFocus
-            />
-            <input
-              value={lastName}
-              onChange={(e) => setLastName(e.target.value)}
-              placeholder="นามสกุล (ภาษาไทย)"
-              className={s.inp}
-            />
+            <p className={`text-[11px] font-medium ${s.sub}`}>ภาษาไทย</p>
+            <div className="grid grid-cols-2 gap-2">
+              <input value={firstNameTh} onChange={(e) => setFirstNameTh(e.target.value)} placeholder="ชื่อจริง" className={s.inp} autoFocus />
+              <input value={lastNameTh} onChange={(e) => setLastNameTh(e.target.value)} placeholder="นามสกุล" className={s.inp} />
+            </div>
+            <p className={`text-[11px] font-medium ${s.sub} pt-1`}>English</p>
+            <div className="grid grid-cols-2 gap-2">
+              <input value={firstNameEn} onChange={(e) => setFirstNameEn(e.target.value)} placeholder="First name" className={s.inp} />
+              <input value={lastNameEn} onChange={(e) => setLastNameEn(e.target.value)} placeholder="Last name" className={s.inp} />
+            </div>
           </div>
           <button
             onClick={handleSave}
-            disabled={!firstName.trim() || saving}
+            disabled={!firstNameTh.trim() || saving}
             className="w-full py-3 rounded-xl text-white text-sm font-semibold transition-colors disabled:opacity-40"
             style={{ backgroundColor: "#FA3633" }}
           >
