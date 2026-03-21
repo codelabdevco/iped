@@ -1,7 +1,6 @@
 "use client";
 
 import { useState, useMemo, useCallback } from "react";
-import { useRouter } from "next/navigation";
 import { useTheme } from "@/contexts/ThemeContext";
 import {
   Package, Monitor, CheckCircle, AlertTriangle, Clock, Plus, Search,
@@ -31,7 +30,7 @@ interface AssetRow {
   vendor: string; warrantyExpiry: string; location: string; department: string;
   status: string; condition: string; currentBorrowerName: string;
   borrowDate: string; expectedReturnDate: string; borrowPurpose: string;
-  historyCount: number; fileCount: number; history: HistoryItem[]; note: string; createdAt: string;
+  historyCount: number; fileCount: number; thumbnail: string; history: HistoryItem[]; note: string; createdAt: string;
 }
 
 interface OrgCategory {
@@ -182,7 +181,6 @@ function getWarrantyStatus(warrantyExpiry: string): { label: string; style: stri
 
 export default function AssetsClient({ assets: initial, stats, orgCategories: initialOrgCats }: Props) {
   const { isDark } = useTheme();
-  const router = useRouter();
   const c = (d: string, l: string) => (isDark ? d : l);
   const [assets, setAssets] = useState(initial);
   const [orgCategories, setOrgCategories] = useState(initialOrgCats);
@@ -302,7 +300,18 @@ export default function AssetsClient({ assets: initial, stats, orgCategories: in
       }
       const url = editingId ? `/api/assets/${editingId}` : "/api/assets";
       const res = await fetch(url, { method: editingId ? "PUT" : "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(payload) });
-      if (res.ok) { setShowPanel(false); window.location.reload(); }
+      if (res.ok) {
+        const json = await res.json();
+        const saved = json.data?.asset;
+        if (saved) {
+          if (editingId) {
+            setAssets(prev => prev.map(a => a._id === editingId ? { ...a, ...saved, _id: editingId, history: saved.history?.map((h: any) => ({ ...h, _id: String(h._id) })) || a.history } : a));
+          } else {
+            setAssets(prev => [{ ...saved, historyCount: saved.history?.length || 0, fileCount: saved.files?.length || 0, currentBorrowerName: "", borrowDate: "", expectedReturnDate: "", borrowPurpose: "" }, ...prev]);
+          }
+        }
+        setShowPanel(false);
+      }
     } catch {} finally { setSaving(false); }
   }, [form, editingId, formFiles]);
 
@@ -314,7 +323,21 @@ export default function AssetsClient({ assets: initial, stats, orgCategories: in
         method: "PUT", headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ action: "borrow", ...borrowForm }),
       });
-      if (res.ok) { setBorrowAssetId(null); window.location.reload(); }
+      if (res.ok) {
+        const json = await res.json();
+        const updated = json.data?.asset;
+        if (updated) {
+          setAssets(prev => prev.map(a => a._id === borrowAssetId ? {
+            ...a, status: "borrowed",
+            currentBorrowerName: borrowForm.borrowerName,
+            borrowDate: updated.borrowDate || new Date().toISOString(),
+            expectedReturnDate: borrowForm.expectedReturnDate,
+            borrowPurpose: borrowForm.purpose,
+            historyCount: updated.history?.length || a.historyCount + 1,
+          } : a));
+        }
+        setBorrowAssetId(null);
+      }
     } catch {} finally { setBorrowing(false); }
   }, [borrowAssetId, borrowForm]);
 
@@ -326,7 +349,22 @@ export default function AssetsClient({ assets: initial, stats, orgCategories: in
         method: "PUT", headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ action: "return", ...returnForm }),
       });
-      if (res.ok) { setReturnAssetId(null); window.location.reload(); }
+      if (res.ok) {
+        const json = await res.json();
+        const updated = json.data?.asset;
+        if (updated) {
+          setAssets(prev => prev.map(a => a._id === returnAssetId ? {
+            ...a, status: "available",
+            condition: returnForm.conditionAfter || a.condition,
+            currentBorrowerName: "",
+            borrowDate: "",
+            expectedReturnDate: "",
+            borrowPurpose: "",
+            historyCount: updated.history?.length || a.historyCount + 1,
+          } : a));
+        }
+        setReturnAssetId(null);
+      }
     } catch {} finally { setReturning(false); }
   }, [returnAssetId, returnForm]);
 
@@ -393,9 +431,13 @@ export default function AssetsClient({ assets: initial, stats, orgCategories: in
         const Icon = catIcon[r.category] || Package;
         return (
           <div className="flex items-center gap-3">
-            <div className={`w-8 h-8 rounded-lg flex items-center justify-center shrink-0 ${c("bg-white/[0.06]", "bg-gray-100")}`}>
-              <Icon size={16} className="text-blue-400" />
-            </div>
+            {r.thumbnail ? (
+              <img src={r.thumbnail} alt={r.name} className="w-10 h-10 rounded-lg object-cover shrink-0 border border-white/[0.06]" />
+            ) : (
+              <div className={`w-10 h-10 rounded-lg flex items-center justify-center shrink-0 ${c("bg-white/[0.06]", "bg-gray-100")}`}>
+                <Icon size={18} className="text-blue-400" />
+              </div>
+            )}
             <div>
               <p className="font-medium text-sm">{r.name}</p>
               {(r.brand || r.model) && <p className={`text-[10px] ${c("text-white/30", "text-gray-400")}`}>{[r.brand, r.model].filter(Boolean).join(" ")}</p>}

@@ -81,6 +81,10 @@ async function AssetsData() {
       borrowPurpose: a.borrowPurpose || "",
       historyCount: a.history?.length || 0,
       fileCount: a.files?.length || 0,
+      thumbnail: (() => {
+        const imgFile = (a.files || []).find((f: any) => f.type?.startsWith("image/"));
+        return imgFile ? `data:${imgFile.type};base64,${imgFile.data}` : (a.imageUrl || "");
+      })(),
       history: (a.history || []).slice(-20).map((h: any) => ({
         _id: String(h._id), action: h.action, date: h.date ? new Date(h.date).toISOString() : "",
         borrowerName: h.borrowerName || "", department: h.department || "", purpose: h.purpose || "",
