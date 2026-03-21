@@ -25,7 +25,7 @@ async function SubsData() {
   const [subs, packages, users, usages] = await Promise.all([
     Subscription.find().populate("packageId").sort({ createdAt: -1 }).lean(),
     Package.find({ status: "active" }).sort({ sortOrder: 1 }).lean(),
-    User.find().select("name lineDisplayName email").lean(),
+    User.find().select("name lineDisplayName lineProfilePic email").lean(),
     Usage.find({ month: now.getMonth() + 1, year: now.getFullYear() }).lean(),
   ]);
 
@@ -43,11 +43,15 @@ async function SubsData() {
       userId: s.userId,
       userName: user.lineDisplayName || user.name || "ไม่ระบุ",
       userEmail: user.email || "",
+      userPic: user.lineProfilePic || "",
       packageName: pkg?.name || "Free",
       packageTier: pkg?.tier || "free",
       status: s.status,
       billingCycle: s.billingCycle || "monthly",
+      currentPeriodStart: s.currentPeriodStart ? new Date(s.currentPeriodStart).toISOString() : "",
       currentPeriodEnd: s.currentPeriodEnd ? new Date(s.currentPeriodEnd).toISOString() : "",
+      trialEnd: s.trialEnd ? new Date(s.trialEnd).toISOString() : "",
+      autoRenew: s.autoRenew ?? true,
       receiptsUsed: usage.receipts || 0,
       ocrUsed: usage.ocr || 0,
       createdAt: s.createdAt ? new Date(s.createdAt).toISOString() : "",

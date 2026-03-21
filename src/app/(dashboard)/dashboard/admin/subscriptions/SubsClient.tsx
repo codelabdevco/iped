@@ -5,6 +5,7 @@ import { useTheme } from "@/contexts/ThemeContext";
 import { useModal } from "@/components/dashboard/ConfirmModal";
 import {
   Crown, Users, CreditCard, Search, Loader2, Gift,
+  Clock, RefreshCw, CalendarClock,
 } from "lucide-react";
 import PageHeader from "@/components/dashboard/PageHeader";
 import StatsCard from "@/components/dashboard/StatsCard";
@@ -16,11 +17,15 @@ interface SubRow {
   userId: string;
   userName: string;
   userEmail: string;
+  userPic: string;
   packageName: string;
   packageTier: string;
   status: string;
   billingCycle: string;
+  currentPeriodStart: string;
   currentPeriodEnd: string;
+  trialEnd: string;
+  autoRenew: boolean;
   receiptsUsed: number;
   ocrUsed: number;
   createdAt: string;
@@ -86,31 +91,100 @@ export default function SubsClient({ subs: initial, packages, stats }: Props) {
 
   const tierOptions = [{ value: "all", label: "ทั้งหมด" }, ...packages];
 
+  const fmtDT = (iso: string) => {
+    if (!iso) return null;
+    const d = new Date(iso);
+    return {
+      date: d.toLocaleDateString("th-TH", { day: "numeric", month: "short", year: "2-digit" }),
+      time: d.toLocaleTimeString("th-TH", { hour: "2-digit", minute: "2-digit" }),
+    };
+  };
+
+  const isExpiringSoon = (iso: string) => {
+    if (!iso) return false;
+    const diff = new Date(iso).getTime() - Date.now();
+    return diff > 0 && diff < 7 * 24 * 60 * 60 * 1000; // 7 days
+  };
+
+  const isExpired = (iso: string) => {
+    if (!iso) return false;
+    return new Date(iso).getTime() < Date.now();
+  };
+
   const columns: Column<SubRow>[] = useMemo(() => [
     {
       key: "userName", label: "ผู้ใช้",
       render: (r) => (
-        <div>
-          <p className="font-medium text-sm">{r.userName}</p>
-          {r.userEmail && <p className={`text-[11px] ${c("text-white/40", "text-gray-400")}`}>{r.userEmail}</p>}
+        <div className="flex items-center gap-3">
+          {r.userPic
+            ? <img src={r.userPic} alt="" className="w-8 h-8 rounded-full object-cover shrink-0" />
+            : <div className={`w-8 h-8 rounded-full flex items-center justify-center shrink-0 text-xs font-bold ${c("bg-white/10 text-white/50", "bg-gray-100 text-gray-500")}`}>{r.userName.charAt(0)}</div>
+          }
+          <div>
+            <p className="font-medium text-sm">{r.userName}</p>
+            {r.userEmail && <p className={`text-[11px] ${c("text-white/40", "text-gray-400")}`}>{r.userEmail}</p>}
+          </div>
         </div>
       ),
     },
     {
       key: "packageTier", label: "แพ็กเกจ",
-      render: (r) => <span className={`px-2 py-1 rounded-full text-[11px] font-bold ${tierStyle[r.packageTier] || tierStyle.free}`}>{r.packageName}</span>,
+      render: (r) => (
+        <div className="flex flex-col gap-1">
+          <span className={`px-2 py-1 rounded-full text-[11px] font-bold w-fit ${tierStyle[r.packageTier] || tierStyle.free}`}>{r.packageName}</span>
+          <span className={`text-[10px] ${c("text-white/30", "text-gray-400")}`}>{r.billingCycle === "yearly" ? "รายปี" : "รายเดือน"}</span>
+        </div>
+      ),
     },
     {
       key: "status", label: "สถานะ",
-      render: (r) => <span className={`px-2 py-1 rounded-full text-[11px] font-medium ${statusStyle[r.status] || statusStyle.active}`}>{r.status}</span>,
+      render: (r) => (
+        <div className="flex flex-col gap-1">
+          <span className={`px-2 py-1 rounded-full text-[11px] font-medium w-fit ${statusStyle[r.status] || statusStyle.active}`}>{r.status}</span>
+          {r.autoRenew && r.status === "active" && <span className="flex items-center gap-1 text-[10px] text-green-400/60"><RefreshCw size={10} />ต่ออัตโนมัติ</span>}
+        </div>
+      ),
     },
     {
       key: "receiptsUsed", label: "ใช้งาน",
-      render: (r) => <span className={`text-xs ${c("text-white/50", "text-gray-500")}`}>{r.receiptsUsed} ใบเสร็จ • {r.ocrUsed} OCR</span>,
+      render: (r) => (
+        <div className={`text-xs ${c("text-white/50", "text-gray-500")}`}>
+          <div>{r.receiptsUsed} ใบเสร็จ</div>
+          <div>{r.ocrUsed} OCR</div>
+        </div>
+      ),
     },
     {
       key: "currentPeriodEnd", label: "หมดอายุ",
-      render: (r) => r.currentPeriodEnd ? <span className={`text-xs ${c("text-white/50", "text-gray-500")}`}>{new Date(r.currentPeriodEnd).toLocaleDateString("th-TH")}</span> : <span className={c("text-white/30", "text-gray-400")}>—</span>,
+      render: (r) => {
+        const dt = fmtDT(r.currentPeriodEnd);
+        if (!dt) return <span className={c("text-white/30", "text-gray-400")}>—</span>;
+        const expiring = isExpiringSoon(r.currentPeriodEnd);
+        const expired = isExpired(r.currentPeriodEnd);
+        return (
+          <div>
+            <div className={`text-xs font-medium ${expired ? "text-red-400" : expiring ? "text-yellow-400" : c("text-white/60", "text-gray-600")}`}>
+              {dt.date}
+            </div>
+            <div className={`text-[10px] ${expired ? "text-red-400/60" : expiring ? "text-yellow-400/60" : c("text-white/30", "text-gray-400")}`}>
+              {dt.time} {expired ? "• หมดอายุแล้ว" : expiring ? "• ใกล้หมดอายุ" : ""}
+            </div>
+          </div>
+        );
+      },
+    },
+    {
+      key: "createdAt", label: "วันเริ่มใช้",
+      render: (r) => {
+        const dt = fmtDT(r.createdAt);
+        if (!dt) return <span className={c("text-white/30", "text-gray-400")}>—</span>;
+        return (
+          <div>
+            <span className={`text-xs ${c("text-white/50", "text-gray-500")}`}>{dt.date}</span>
+            <span className={`text-[10px] ml-1 ${c("text-white/30", "text-gray-400")}`}>{dt.time}</span>
+          </div>
+        );
+      },
     },
     {
       key: "actions", label: "เปลี่ยนแพ็กเกจ", configurable: false,
