@@ -14,7 +14,26 @@ import PageHeader from "@/components/dashboard/PageHeader";
 import StatsCard from "@/components/dashboard/StatsCard";
 import DataTable, { Column } from "@/components/dashboard/DataTable";
 import Select from "@/components/dashboard/Select";
+import DatePicker from "@/components/dashboard/DatePicker";
 import Baht from "@/components/dashboard/Baht";
+import { Plus } from "lucide-react";
+
+const BANK_OPTIONS = [
+  { value: "กสิกร", label: "กสิกร (KBank)" },
+  { value: "กรุงเทพ", label: "กรุงเทพ (BBL)" },
+  { value: "ไทยพาณิชย์", label: "ไทยพาณิชย์ (SCB)" },
+  { value: "กรุงไทย", label: "กรุงไทย (KTB)" },
+  { value: "ทหารไทยธนชาต", label: "ทหารไทยธนชาต (TTB)" },
+  { value: "ออมสิน", label: "ออมสิน (GSB)" },
+  { value: "อื่นๆ", label: "อื่นๆ" },
+];
+
+const EMPLOYMENT_TYPES = [
+  { value: "full-time", label: "พนักงานประจำ" },
+  { value: "part-time", label: "พาร์ทไทม์" },
+  { value: "contract", label: "สัญญาจ้าง" },
+  { value: "freelance", label: "ฟรีแลนซ์" },
+];
 
 interface TeamMember {
   _id: string;
@@ -76,8 +95,19 @@ export default function TeamClient({ members: initialMembers, departments, stats
   const [showPanel, setShowPanel] = useState(false);
   const [editingId, setEditingId] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
-  const defaultForm = { employeeCode: "", name: "", nickname: "", position: "", department: "", employmentType: "full-time", baseSalary: 0, bankName: "", bankAccount: "", taxId: "", email: "" };
+  const defaultForm = {
+    employeeCode: "", name: "", nickname: "", position: "", department: "",
+    employmentType: "full-time", startDate: new Date().toISOString().slice(0, 10),
+    baseSalary: "", allowances: [] as { type: string; amount: string }[],
+    socialSecurity: true, providentFund: "",
+    bankName: "กสิกร", bankAccount: "", taxId: "",
+    lineUserId: "", email: "",
+  };
   const [form, setForm] = useState(defaultForm);
+
+  const addAllowanceRow = () => setForm((f) => ({ ...f, allowances: [...f.allowances, { type: "", amount: "" }] }));
+  const removeAllowanceRow = (idx: number) => setForm((f) => ({ ...f, allowances: f.allowances.filter((_, i) => i !== idx) }));
+  const updateAllowance = (idx: number, key: "type" | "amount", val: string) => setForm((f) => ({ ...f, allowances: f.allowances.map((a, i) => (i === idx ? { ...a, [key]: val } : a)) }));
 
   const [copied, setCopied] = useState<"code" | "link" | "line" | null>(null);
   const inviteLink = inviteCode ? `https://iped.codelabdev.co/join/${inviteCode}` : "";
@@ -91,18 +121,35 @@ export default function TeamClient({ members: initialMembers, departments, stats
   const openAdd = () => { setEditingId(null); setForm(defaultForm); setShowPanel(true); };
   const openEdit = (m: TeamMember) => {
     setEditingId(m._id);
-    setForm({ employeeCode: m.employeeCode, name: m.name, nickname: m.nickname, position: m.position === "-" ? "" : m.position, department: m.department === "-" ? "" : m.department, employmentType: m.employmentType, baseSalary: m.baseSalary, bankName: m.bankName, bankAccount: "", taxId: "", email: m.email });
+    setForm({
+      employeeCode: m.employeeCode, name: m.name, nickname: m.nickname,
+      position: m.position === "-" ? "" : m.position, department: m.department === "-" ? "" : m.department,
+      employmentType: m.employmentType, startDate: m.startDate ? m.startDate.slice(0, 10) : new Date().toISOString().slice(0, 10),
+      baseSalary: String(m.baseSalary), allowances: [],
+      socialSecurity: true, providentFund: "",
+      bankName: m.bankName || "กสิกร", bankAccount: "", taxId: "",
+      lineUserId: m.lineUserId || "", email: m.email || "",
+    });
     setShowPanel(true);
   };
   const handleSave = async () => {
-    if (!form.name || !form.employeeCode) return;
+    if (!form.name || !form.baseSalary) return;
     setSaving(true);
     try {
+      const body = {
+        employeeCode: form.employeeCode, name: form.name, nickname: form.nickname,
+        position: form.position, department: form.department, employmentType: form.employmentType,
+        startDate: form.startDate, baseSalary: Number(form.baseSalary),
+        allowances: form.allowances.filter((a) => a.type && a.amount).map((a) => ({ type: a.type, amount: Number(a.amount) })),
+        socialSecurity: form.socialSecurity, providentFund: Number(form.providentFund) || 0,
+        bankName: form.bankName, bankAccount: form.bankAccount, taxId: form.taxId,
+        lineUserId: form.lineUserId || undefined, email: form.email || undefined,
+      };
       if (editingId) {
-        const res = await fetch(`/api/employees/${editingId}`, { method: "PUT", headers: { "Content-Type": "application/json" }, body: JSON.stringify(form) });
+        const res = await fetch(`/api/employees/${editingId}`, { method: "PUT", headers: { "Content-Type": "application/json" }, body: JSON.stringify(body) });
         if (res.ok) { router.refresh(); setShowPanel(false); }
       } else {
-        const res = await fetch("/api/employees", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(form) });
+        const res = await fetch("/api/employees", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(body) });
         if (res.ok) { router.refresh(); setShowPanel(false); }
       }
     } catch {} finally { setSaving(false); }
@@ -242,43 +289,82 @@ export default function TeamClient({ members: initialMembers, departments, stats
       {/* ── Add/Edit Employee Panel ── */}
       {showPanel && <div className="fixed inset-0 z-40 bg-black/60" onClick={() => setShowPanel(false)} />}
       {showPanel && (
-        <div className={`fixed inset-y-0 right-0 z-50 w-[440px] max-w-[95vw] ${panelBg} border-l shadow-2xl overflow-y-auto animate-slide-in-right`}>
+        <div className={`fixed inset-y-0 right-0 z-50 w-[480px] max-w-[95vw] ${panelBg} border-l shadow-2xl overflow-y-auto animate-slide-in-right`}>
           <div className="p-6 space-y-5">
             <div className="flex items-center justify-between">
-              <h2 className={`text-lg font-bold ${c("text-white", "text-gray-900")}`}>{editingId ? "แก้ไขพนักงาน" : "เพิ่มพนักงาน"}</h2>
+              <h2 className={`text-lg font-bold ${c("text-white", "text-gray-900")}`}>{editingId ? "แก้ไขข้อมูลพนักงาน" : "เพิ่มพนักงาน"}</h2>
               <button onClick={() => setShowPanel(false)} className={`w-8 h-8 rounded-lg ${c("hover:bg-white/5 text-white/40", "hover:bg-gray-100 text-gray-400")} flex items-center justify-center`}><X size={18} /></button>
             </div>
 
+            {/* ── Basic info ── */}
             <div className={`rounded-xl ${cardBg} border p-4 space-y-3`}>
               <p className="text-xs font-semibold text-[#FA3633]/70">ข้อมูลพนักงาน</p>
+              <div><label className={lbl}>รหัสพนักงาน</label><input value={form.employeeCode} onChange={(e) => setForm({ ...form, employeeCode: e.target.value })} placeholder="EMP001" className={inp} /></div>
               <div className="grid grid-cols-2 gap-3">
-                <div><label className={lbl}>รหัสพนักงาน *</label><input value={form.employeeCode} onChange={(e) => setForm({ ...form, employeeCode: e.target.value })} placeholder="EMP001" className={inp} /></div>
+                <div><label className={lbl}>ชื่อ-นามสกุล *</label><input value={form.name} onChange={(e) => setForm({ ...form, name: e.target.value })} placeholder="ชื่อ นามสกุล" className={inp} /></div>
                 <div><label className={lbl}>ชื่อเล่น</label><input value={form.nickname} onChange={(e) => setForm({ ...form, nickname: e.target.value })} placeholder="ชื่อเล่น" className={inp} /></div>
               </div>
-              <div><label className={lbl}>ชื่อ-นามสกุล *</label><input value={form.name} onChange={(e) => setForm({ ...form, name: e.target.value })} placeholder="ชื่อ-นามสกุล" className={inp} /></div>
               <div className="grid grid-cols-2 gap-3">
                 <div><label className={lbl}>ตำแหน่ง</label><input value={form.position} onChange={(e) => setForm({ ...form, position: e.target.value })} placeholder="ตำแหน่ง" className={inp} /></div>
                 <div><label className={lbl}>แผนก</label><input value={form.department} onChange={(e) => setForm({ ...form, department: e.target.value })} placeholder="แผนก" className={inp} /></div>
               </div>
-              <div><label className={lbl}>ประเภทการจ้าง</label><Select value={form.employmentType} onChange={(v) => setForm({ ...form, employmentType: v })} options={empTypeOptions} /></div>
-              <div><label className={lbl}>อีเมล</label><input type="email" value={form.email} onChange={(e) => setForm({ ...form, email: e.target.value })} placeholder="email@company.com" className={inp} /></div>
-            </div>
-
-            <div className={`rounded-xl ${cardBg} border p-4 space-y-3`}>
-              <p className="text-xs font-semibold text-[#FA3633]/70">เงินเดือน & ธนาคาร</p>
-              <div><label className={lbl}>เงินเดือน (฿) *</label><input type="number" value={form.baseSalary || ""} onChange={(e) => setForm({ ...form, baseSalary: Number(e.target.value) })} placeholder="15000" className={inp} /></div>
               <div className="grid grid-cols-2 gap-3">
-                <div><label className={lbl}>ธนาคาร</label><input value={form.bankName} onChange={(e) => setForm({ ...form, bankName: e.target.value })} placeholder="กสิกร" className={inp} /></div>
-                <div><label className={lbl}>เลขบัญชี</label><input value={form.bankAccount} onChange={(e) => setForm({ ...form, bankAccount: e.target.value })} placeholder="xxx-x-xxxxx-x" className={inp} /></div>
+                <div><label className={lbl}>ประเภทการจ้าง</label><Select value={form.employmentType} onChange={(v) => setForm({ ...form, employmentType: v })} options={EMPLOYMENT_TYPES} /></div>
+                <div><label className={lbl}>วันที่เริ่มงาน</label><DatePicker value={form.startDate} onChange={(v) => setForm({ ...form, startDate: v })} /></div>
               </div>
-              <div><label className={lbl}>เลขประจำตัวผู้เสียภาษี</label><input value={form.taxId} onChange={(e) => setForm({ ...form, taxId: e.target.value })} placeholder="1-xxxx-xxxxx-xx-x" className={inp} /></div>
             </div>
 
+            {/* ── Compensation ── */}
+            <div className={`rounded-xl ${cardBg} border p-4 space-y-3`}>
+              <p className="text-xs font-semibold text-[#FA3633]/70">ค่าตอบแทน</p>
+              <div><label className={lbl}>เงินเดือนฐาน (บาท) *</label><input type="number" value={form.baseSalary} onChange={(e) => setForm({ ...form, baseSalary: e.target.value })} placeholder="0" className={inp} /></div>
+              <div>
+                <div className="flex items-center justify-between mb-2">
+                  <label className={lbl}>เงินเพิ่ม / ค่าเบี้ยเลี้ยง</label>
+                  <button onClick={addAllowanceRow} className="text-xs text-[#FA3633] hover:text-[#e0302d] flex items-center gap-1"><Plus size={12} />เพิ่ม</button>
+                </div>
+                {form.allowances.map((a, i) => (
+                  <div key={i} className="flex gap-2 mb-2">
+                    <input value={a.type} onChange={(e) => updateAllowance(i, "type", e.target.value)} placeholder="ประเภท เช่น ค่าเดินทาง" className={`${inp} flex-1`} />
+                    <input type="number" value={a.amount} onChange={(e) => updateAllowance(i, "amount", e.target.value)} placeholder="จำนวน" className={`${inp} w-28`} />
+                    <button onClick={() => removeAllowanceRow(i)} className={`p-2 rounded-lg ${c("hover:bg-white/5 text-white/40 hover:text-red-400", "hover:bg-gray-100 text-gray-400 hover:text-red-500")}`}><Trash2 size={14} /></button>
+                  </div>
+                ))}
+              </div>
+            </div>
+
+            {/* ── Deductions ── */}
+            <div className={`rounded-xl ${cardBg} border p-4 space-y-3`}>
+              <p className="text-xs font-semibold text-[#FA3633]/70">หักเงิน</p>
+              <label className="flex items-center gap-2 cursor-pointer">
+                <input type="checkbox" checked={form.socialSecurity} onChange={(e) => setForm({ ...form, socialSecurity: e.target.checked })} className="rounded border-white/20 bg-white/5 text-[#FA3633] focus:ring-[#FA3633]/30" />
+                <span className={`text-sm ${c("text-white", "text-gray-900")}`}>ประกันสังคม</span>
+              </label>
+              <div><label className={lbl}>กองทุนสำรองเลี้ยงชีพ (%)</label><input type="number" value={form.providentFund} onChange={(e) => setForm({ ...form, providentFund: e.target.value })} placeholder="0" className={inp} /></div>
+            </div>
+
+            {/* ── Banking ── */}
+            <div className={`rounded-xl ${cardBg} border p-4 space-y-3`}>
+              <p className="text-xs font-semibold text-[#FA3633]/70">ข้อมูลธนาคาร</p>
+              <div><label className={lbl}>ธนาคาร</label><Select value={form.bankName} onChange={(v) => setForm({ ...form, bankName: v })} options={BANK_OPTIONS} /></div>
+              <div><label className={lbl}>เลขบัญชี</label><input value={form.bankAccount} onChange={(e) => setForm({ ...form, bankAccount: e.target.value })} placeholder="เลขบัญชีธนาคาร" className={inp} /></div>
+              <div><label className={lbl}>เลขประจำตัวผู้เสียภาษี</label><input value={form.taxId} onChange={(e) => setForm({ ...form, taxId: e.target.value })} placeholder="เลข 13 หลัก" className={inp} /></div>
+            </div>
+
+            {/* ── Notifications ── */}
+            <div className={`rounded-xl ${cardBg} border p-4 space-y-3`}>
+              <p className="text-xs font-semibold text-[#FA3633]/70">แจ้งเตือนเงินเดือน</p>
+              <div><label className={lbl}>LINE User ID</label><input value={form.lineUserId} onChange={(e) => setForm({ ...form, lineUserId: e.target.value })} placeholder="Uxxxxxxxxx (จาก LINE Bot)" className={inp} /></div>
+              <div><label className={lbl}>Email</label><input type="email" value={form.email} onChange={(e) => setForm({ ...form, email: e.target.value })} placeholder="employee@email.com" className={inp} /></div>
+              <p className={`text-[10px] ${c("text-white/30", "text-gray-400")}`}>เมื่ออนุมัติหรือจ่ายเงินเดือน ระบบจะส่งสลิปเงินเดือนผ่าน LINE และ/หรือ Email อัตโนมัติ</p>
+            </div>
+
+            {/* ── Save ── */}
             <div className={`flex gap-2 pt-2 sticky bottom-0 pb-6 ${c("bg-[#0a0a0a]", "bg-white")}`}>
-              <button onClick={handleSave} disabled={saving || !form.name || !form.employeeCode} className="flex-1 py-2.5 rounded-xl text-sm font-medium bg-[#FA3633] text-white hover:bg-[#e0302d] transition-colors disabled:opacity-40 flex items-center justify-center gap-2">
+              <button onClick={handleSave} disabled={saving || !form.name || !form.baseSalary} className="flex-1 py-2.5 rounded-xl text-sm font-medium bg-[#FA3633] text-white hover:bg-[#e0302d] transition-colors disabled:opacity-40 flex items-center justify-center gap-2">
                 {saving && <Loader2 size={14} className="animate-spin" />}{editingId ? "บันทึก" : "เพิ่มพนักงาน"}
               </button>
-              <button onClick={() => setShowPanel(false)} className={`flex-1 py-2.5 rounded-xl text-sm font-medium ${c("bg-white/5 text-white/60", "bg-gray-100 text-gray-600")} transition-colors`}>ยกเลิก</button>
+              <button onClick={() => setShowPanel(false)} className={`flex-1 py-2.5 rounded-xl text-sm font-medium ${c("bg-white/5 text-white/60 hover:bg-white/10", "bg-gray-100 text-gray-600 hover:bg-gray-200")} transition-colors`}>ยกเลิก</button>
             </div>
           </div>
         </div>
