@@ -136,6 +136,9 @@ export default function AdminClient({ currentUserId, stats: initialStats, users:
         if (res.ok) {
           setUsers((prev) => prev.map((u) => u._id === editingId ? { ...u, ...form } : u));
           setShowPanel(false);
+        } else {
+          const err = await res.json().catch(() => ({}));
+          alert(err.error || err.message || "บันทึกไม่สำเร็จ");
         }
       } else {
         const res = await fetch("/api/admin/users", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(form) });
