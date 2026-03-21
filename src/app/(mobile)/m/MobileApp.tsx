@@ -62,11 +62,78 @@ function useS(isDark: boolean) {
 }
 
 // ════════════════════════════════════════
+//  NAME PROMPT — ask Thai name on first use
+// ════════════════════════════════════════
+function NamePrompt({ isDark, onSaved }: { isDark: boolean; onSaved: () => void }) {
+  const [firstName, setFirstName] = useState("");
+  const [lastName, setLastName] = useState("");
+  const [saving, setSaving] = useState(false);
+  const s = useS(isDark);
+
+  const handleSave = async () => {
+    if (!firstName.trim()) return;
+    setSaving(true);
+    try {
+      const res = await fetch("/api/user", {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ firstNameTh: firstName.trim(), lastNameTh: lastName.trim() }),
+      });
+      if (res.ok) onSaved();
+    } catch {} finally { setSaving(false); }
+  };
+
+  return (
+    <div className="fixed inset-0 z-[60] flex items-end sm:items-center justify-center" style={{ backgroundColor: "rgba(0,0,0,0.6)" }}>
+      <div className={`w-full max-w-sm mx-4 mb-4 sm:mb-0 rounded-2xl border ${isDark ? "bg-[#111] border-white/[0.08]" : "bg-white border-gray-200"} overflow-hidden`}>
+        <div className="h-1.5" style={{ backgroundColor: "#FA3633" }} />
+        <div className="p-5 space-y-4">
+          <div className="text-center">
+            <div className="w-12 h-12 rounded-xl mx-auto flex items-center justify-center mb-3" style={{ backgroundColor: "rgba(250,54,51,0.1)" }}>
+              <User size={24} style={{ color: "#FA3633" }} />
+            </div>
+            <h3 className={`text-base font-bold ${s.txt}`}>กรอกชื่อ-นามสกุลจริง</h3>
+            <p className={`text-xs mt-1 ${s.sub}`}>ระบบจะใช้เทียบกับสลิปโอนเงิน เพื่อแยกรายรับ-รายจ่ายให้แม่นยำ</p>
+          </div>
+          <div className="space-y-2.5">
+            <input
+              value={firstName}
+              onChange={(e) => setFirstName(e.target.value)}
+              placeholder="ชื่อจริง (ภาษาไทย)"
+              className={s.inp}
+              autoFocus
+            />
+            <input
+              value={lastName}
+              onChange={(e) => setLastName(e.target.value)}
+              placeholder="นามสกุล (ภาษาไทย)"
+              className={s.inp}
+            />
+          </div>
+          <button
+            onClick={handleSave}
+            disabled={!firstName.trim() || saving}
+            className="w-full py-3 rounded-xl text-white text-sm font-semibold transition-colors disabled:opacity-40"
+            style={{ backgroundColor: "#FA3633" }}
+          >
+            {saving ? "กำลังบันทึก..." : "บันทึก"}
+          </button>
+          <button onClick={onSaved} className={`w-full py-2 text-xs ${s.muted} hover:underline`}>
+            ข้ามไปก่อน
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// ════════════════════════════════════════
 //  MAIN APP SHELL
 // ════════════════════════════════════════
 export default function MobileApp({ data }: { data: MobileData }) {
   const { isDark, toggleTheme } = useTheme();
   const [tab, setTab] = useState<Tab>("home");
+  const [showNamePrompt, setShowNamePrompt] = useState(!data.profile.firstNameTh);
   const { txt } = useS(isDark);
   const activeColor = "#FA3633";
   const inactiveColor = isDark ? "rgba(255,255,255,0.3)" : "rgba(0,0,0,0.3)";
@@ -74,6 +141,9 @@ export default function MobileApp({ data }: { data: MobileData }) {
   return (
     <div className="min-h-screen shell-theme">
       <div className="h-[env(safe-area-inset-top)]" />
+
+      {/* Name prompt for first-time users */}
+      {showNamePrompt && <NamePrompt isDark={isDark} onSaved={() => setShowNamePrompt(false)} />}
 
       <header className="sticky top-0 z-40 flex items-center justify-between px-4 h-12 shell-theme backdrop-blur-xl border-b border-transparent" style={{ opacity: 0.98 }}>
         <div className="flex items-center gap-2">
