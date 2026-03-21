@@ -8,7 +8,7 @@ import { useTheme } from "@/contexts/ThemeContext";
 import { useMode } from "@/contexts/ModeContext";
 import {
   Users, UserCheck, UserPlus, Clock, Search, Pencil,
-  Banknote, Shield, Loader2, Trash2, X, Link2, Copy, Share2,
+  Banknote, Shield, Loader2, Trash2, X, Link2, Copy, Share2, Building2,
 } from "lucide-react";
 import PageHeader from "@/components/dashboard/PageHeader";
 import StatsCard from "@/components/dashboard/StatsCard";
@@ -57,12 +57,17 @@ interface DeptInfo {
   icon: string;
 }
 
+interface OrgDept { _id: string; name: string; description: string }
+interface OrgPos { _id: string; name: string; level: number }
+
 interface Props {
   members: TeamMember[];
   departments: DeptInfo[];
   stats: { total: number; active: number; probation: number };
   inviteCode?: string;
   orgName?: string;
+  orgDepartments?: OrgDept[];
+  orgPositions?: OrgPos[];
 }
 
 const empTypeLabel: Record<string, { label: string; cls: string }> = {
@@ -79,14 +84,66 @@ const statusLabel: Record<string, { label: string; cls: string }> = {
   terminated: { label: "เลิกจ้าง", cls: "bg-red-500/20 text-red-400" },
 };
 
-export default function TeamClient({ members: initialMembers, departments, stats: initialStats, inviteCode, orgName }: Props) {
+export default function TeamClient({ members: initialMembers, departments, stats: initialStats, inviteCode, orgName, orgDepartments: initDepts = [], orgPositions: initPos = [] }: Props) {
   const { isDark } = useTheme();
   const { mode } = useMode();
   const modeHref = (path: string) => `/${mode}${path}`;
   const c = (d: string, l: string) => (isDark ? d : l);
   const router = useRouter();
   const [members, setMembers] = useReactiveData(initialMembers);
-  const [tab, setTab] = useState<"team" | "permissions">("team");
+  const [tab, setTab] = useState<"team" | "structure" | "permissions">("team");
+
+  // ── Department & Position management ──
+  const [orgDepts, setOrgDepts] = useState(initDepts);
+  const [orgPos, setOrgPos] = useState(initPos);
+  const [newDept, setNewDept] = useState("");
+  const [newPos, setNewPos] = useState("");
+  const [editDept, setEditDept] = useState<{ id: string; name: string } | null>(null);
+  const [editPos, setEditPos] = useState<{ id: string; name: string } | null>(null);
+  const [structSaving, setStructSaving] = useState(false);
+
+  const handleAddDept = async () => {
+    if (!newDept.trim()) return;
+    setStructSaving(true);
+    const res = await fetch("/api/org/departments", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ type: "department", name: newDept.trim() }) });
+    if (res.ok) { setNewDept(""); router.refresh(); const d = await fetch("/api/org/departments").then(r => r.json()); setOrgDepts(d.departments); setOrgPos(d.positions); }
+    setStructSaving(false);
+  };
+  const handleAddPos = async () => {
+    if (!newPos.trim()) return;
+    setStructSaving(true);
+    const res = await fetch("/api/org/departments", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ type: "position", name: newPos.trim() }) });
+    if (res.ok) { setNewPos(""); router.refresh(); const d = await fetch("/api/org/departments").then(r => r.json()); setOrgDepts(d.departments); setOrgPos(d.positions); }
+    setStructSaving(false);
+  };
+  const handleDeleteDept = async (id: string) => {
+    const res = await fetch("/api/org/departments", { method: "DELETE", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ type: "department", id }) });
+    if (res.ok) { setOrgDepts(prev => prev.filter(d => d._id !== id)); }
+  };
+  const handleDeletePos = async (id: string) => {
+    const res = await fetch("/api/org/departments", { method: "DELETE", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ type: "position", id }) });
+    if (res.ok) { setOrgPos(prev => prev.filter(p => p._id !== id)); }
+  };
+  const handleUpdateDept = async () => {
+    if (!editDept) return;
+    await fetch("/api/org/departments", { method: "PUT", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ type: "department", id: editDept.id, name: editDept.name }) });
+    setOrgDepts(prev => prev.map(d => d._id === editDept.id ? { ...d, name: editDept.name } : d));
+    setEditDept(null);
+  };
+  const handleUpdatePos = async () => {
+    if (!editPos) return;
+    await fetch("/api/org/departments", { method: "PUT", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ type: "position", id: editPos.id, name: editPos.name }) });
+    setOrgPos(prev => prev.map(p => p._id === editPos.id ? { ...p, name: editPos.name } : p));
+    setEditPos(null);
+  };
+
+  // Department + position dropdown options for employee form
+  const deptSelectOptions = orgDepts.length > 0
+    ? orgDepts.map(d => ({ value: d.name, label: d.name }))
+    : [{ value: "", label: "กรุณาเพิ่มแผนกก่อน" }];
+  const posSelectOptions = orgPos.length > 0
+    ? orgPos.map(p => ({ value: p.name, label: p.name }))
+    : [{ value: "", label: "กรุณาเพิ่มตำแหน่งก่อน" }];
   const [search, setSearch] = useState("");
   const [statusFilter, setStatusFilter] = useState("all");
   const [deptFilter, setDeptFilter] = useState("all");
@@ -305,8 +362,8 @@ export default function TeamClient({ members: initialMembers, departments, stats
                 <div><label className={lbl}>ชื่อเล่น</label><input value={form.nickname} onChange={(e) => setForm({ ...form, nickname: e.target.value })} placeholder="ชื่อเล่น" className={inp} /></div>
               </div>
               <div className="grid grid-cols-2 gap-3">
-                <div><label className={lbl}>ตำแหน่ง</label><input value={form.position} onChange={(e) => setForm({ ...form, position: e.target.value })} placeholder="ตำแหน่ง" className={inp} /></div>
-                <div><label className={lbl}>แผนก</label><input value={form.department} onChange={(e) => setForm({ ...form, department: e.target.value })} placeholder="แผนก" className={inp} /></div>
+                <div><label className={lbl}>ตำแหน่ง</label>{orgPos.length > 0 ? <Select value={form.position} onChange={(v) => setForm({ ...form, position: v })} options={posSelectOptions} /> : <input value={form.position} onChange={(e) => setForm({ ...form, position: e.target.value })} placeholder="ตำแหน่ง" className={inp} />}</div>
+                <div><label className={lbl}>แผนก</label>{orgDepts.length > 0 ? <Select value={form.department} onChange={(v) => setForm({ ...form, department: v })} options={deptSelectOptions} /> : <input value={form.department} onChange={(e) => setForm({ ...form, department: e.target.value })} placeholder="แผนก" className={inp} />}</div>
               </div>
               <div className="grid grid-cols-2 gap-3">
                 <div><label className={lbl}>ประเภทการจ้าง</label><Select value={form.employmentType} onChange={(v) => setForm({ ...form, employmentType: v })} options={EMPLOYMENT_TYPES} /></div>
@@ -498,6 +555,12 @@ export default function TeamClient({ members: initialMembers, departments, stats
           พนักงาน
         </button>
         <button
+          onClick={() => setTab("structure")}
+          className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors ${tab === "structure" ? c("bg-white/10 text-white", "bg-white text-gray-900 shadow-sm") : c("text-white/50 hover:text-white/70", "text-gray-500 hover:text-gray-700")}`}
+        >
+          <Building2 size={14} className="inline mr-1.5 -mt-0.5" />แผนก & ตำแหน่ง
+        </button>
+        <button
           onClick={() => { setTab("permissions"); setSearch(""); setStatusFilter("all"); setDeptFilter("all"); }}
           className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors ${tab === "permissions" ? c("bg-white/10 text-white", "bg-white text-gray-900 shadow-sm") : c("text-white/50 hover:text-white/70", "text-gray-500 hover:text-gray-700")}`}
         >
@@ -514,6 +577,79 @@ export default function TeamClient({ members: initialMembers, departments, stats
           emptyText="ยังไม่มีพนักงาน — กด 'เพิ่มพนักงาน' เพื่อเริ่มต้น"
           columnConfigKey="team-members"
         />
+      )}
+      {tab === "structure" && (
+        <div className="grid md:grid-cols-2 gap-6">
+          {/* ── Departments ── */}
+          <div className={`rounded-2xl border p-5 ${c("bg-[rgba(255,255,255,0.02)] border-[rgba(255,255,255,0.06)]", "bg-white border-gray-200")}`}>
+            <div className="flex items-center justify-between mb-4">
+              <h3 className={`text-sm font-bold ${c("text-white", "text-gray-900")}`}><Building2 size={15} className="inline mr-1.5 -mt-0.5 text-blue-400" />แผนก ({orgDepts.length})</h3>
+            </div>
+            <div className="flex gap-2 mb-4">
+              <input value={newDept} onChange={(e) => setNewDept(e.target.value)} onKeyDown={(e) => e.key === "Enter" && handleAddDept()} placeholder="ชื่อแผนกใหม่..." className={`${inp} flex-1`} />
+              <button onClick={handleAddDept} disabled={!newDept.trim() || structSaving} className="px-3 py-2 rounded-lg bg-[#FA3633] text-white text-xs font-medium hover:bg-[#e0302d] disabled:opacity-40 shrink-0">
+                <Plus size={14} />
+              </button>
+            </div>
+            <div className="space-y-2">
+              {orgDepts.map((d) => (
+                <div key={d._id} className={`flex items-center gap-2 p-3 rounded-xl border ${c("border-white/[0.06] bg-white/[0.02]", "border-gray-100 bg-gray-50")}`}>
+                  {editDept?.id === d._id ? (
+                    <>
+                      <input value={editDept.name} onChange={(e) => setEditDept({ ...editDept, name: e.target.value })} onKeyDown={(e) => e.key === "Enter" && handleUpdateDept()} className={`${inp} flex-1`} autoFocus />
+                      <button onClick={handleUpdateDept} className="p-1.5 text-green-400 hover:bg-green-500/10 rounded-lg"><UserCheck size={14} /></button>
+                      <button onClick={() => setEditDept(null)} className={`p-1.5 rounded-lg ${c("text-white/30 hover:bg-white/5", "text-gray-400 hover:bg-gray-100")}`}><X size={14} /></button>
+                    </>
+                  ) : (
+                    <>
+                      <Building2 size={14} className="text-blue-400 shrink-0" />
+                      <span className={`text-sm flex-1 ${c("text-white/80", "text-gray-700")}`}>{d.name}</span>
+                      <span className={`text-[10px] ${c("text-white/30", "text-gray-400")}`}>{members.filter(m => m.department === d.name).length} คน</span>
+                      <button onClick={() => setEditDept({ id: d._id, name: d.name })} className={`p-1.5 rounded-lg ${c("text-white/30 hover:text-blue-400 hover:bg-white/5", "text-gray-400 hover:text-blue-500 hover:bg-gray-100")}`}><Pencil size={12} /></button>
+                      <button onClick={() => handleDeleteDept(d._id)} className={`p-1.5 rounded-lg ${c("text-white/30 hover:text-red-400 hover:bg-white/5", "text-gray-400 hover:text-red-500 hover:bg-gray-100")}`}><Trash2 size={12} /></button>
+                    </>
+                  )}
+                </div>
+              ))}
+              {orgDepts.length === 0 && <p className={`text-center text-xs py-6 ${c("text-white/30", "text-gray-400")}`}>ยังไม่มีแผนก — เพิ่มแผนกแรกด้านบน</p>}
+            </div>
+          </div>
+
+          {/* ── Positions ── */}
+          <div className={`rounded-2xl border p-5 ${c("bg-[rgba(255,255,255,0.02)] border-[rgba(255,255,255,0.06)]", "bg-white border-gray-200")}`}>
+            <div className="flex items-center justify-between mb-4">
+              <h3 className={`text-sm font-bold ${c("text-white", "text-gray-900")}`}><Shield size={15} className="inline mr-1.5 -mt-0.5 text-purple-400" />ตำแหน่ง ({orgPos.length})</h3>
+            </div>
+            <div className="flex gap-2 mb-4">
+              <input value={newPos} onChange={(e) => setNewPos(e.target.value)} onKeyDown={(e) => e.key === "Enter" && handleAddPos()} placeholder="ชื่อตำแหน่งใหม่..." className={`${inp} flex-1`} />
+              <button onClick={handleAddPos} disabled={!newPos.trim() || structSaving} className="px-3 py-2 rounded-lg bg-[#FA3633] text-white text-xs font-medium hover:bg-[#e0302d] disabled:opacity-40 shrink-0">
+                <Plus size={14} />
+              </button>
+            </div>
+            <div className="space-y-2">
+              {orgPos.map((p) => (
+                <div key={p._id} className={`flex items-center gap-2 p-3 rounded-xl border ${c("border-white/[0.06] bg-white/[0.02]", "border-gray-100 bg-gray-50")}`}>
+                  {editPos?.id === p._id ? (
+                    <>
+                      <input value={editPos.name} onChange={(e) => setEditPos({ ...editPos, name: e.target.value })} onKeyDown={(e) => e.key === "Enter" && handleUpdatePos()} className={`${inp} flex-1`} autoFocus />
+                      <button onClick={handleUpdatePos} className="p-1.5 text-green-400 hover:bg-green-500/10 rounded-lg"><UserCheck size={14} /></button>
+                      <button onClick={() => setEditPos(null)} className={`p-1.5 rounded-lg ${c("text-white/30 hover:bg-white/5", "text-gray-400 hover:bg-gray-100")}`}><X size={14} /></button>
+                    </>
+                  ) : (
+                    <>
+                      <Shield size={14} className="text-purple-400 shrink-0" />
+                      <span className={`text-sm flex-1 ${c("text-white/80", "text-gray-700")}`}>{p.name}</span>
+                      <span className={`text-[10px] ${c("text-white/30", "text-gray-400")}`}>{members.filter(m => m.position === p.name).length} คน</span>
+                      <button onClick={() => setEditPos({ id: p._id, name: p.name })} className={`p-1.5 rounded-lg ${c("text-white/30 hover:text-blue-400 hover:bg-white/5", "text-gray-400 hover:text-blue-500 hover:bg-gray-100")}`}><Pencil size={12} /></button>
+                      <button onClick={() => handleDeletePos(p._id)} className={`p-1.5 rounded-lg ${c("text-white/30 hover:text-red-400 hover:bg-white/5", "text-gray-400 hover:text-red-500 hover:bg-gray-100")}`}><Trash2 size={12} /></button>
+                    </>
+                  )}
+                </div>
+              ))}
+              {orgPos.length === 0 && <p className={`text-center text-xs py-6 ${c("text-white/30", "text-gray-400")}`}>ยังไม่มีตำแหน่ง — เพิ่มตำแหน่งแรกด้านบน</p>}
+            </div>
+          </div>
+        </div>
       )}
       {tab === "permissions" && (
         <DataTable

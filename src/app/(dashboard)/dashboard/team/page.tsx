@@ -68,13 +68,17 @@ async function TeamData() {
   const activeCount = members.filter((m) => m.status === "active").length;
   const probationCount = members.filter((m) => m.status === "probation").length;
 
-  // Invite code
+  // Org data
   let inviteCode = "";
   let orgName = "";
+  let orgDepartments: { _id: string; name: string; description: string }[] = [];
+  let orgPositions: { _id: string; name: string; level: number }[] = [];
   if (session.orgId) {
-    const org = await Organization.findById(session.orgId).select("inviteCode name").lean() as any;
+    const org = await Organization.findById(session.orgId).select("inviteCode name departments positions").lean() as any;
     inviteCode = org?.inviteCode || "";
     orgName = org?.name || "";
+    orgDepartments = (org?.departments || []).map((d: any) => ({ _id: String(d._id), name: d.name, description: d.description || "" }));
+    orgPositions = (org?.positions || []).map((p: any) => ({ _id: String(p._id), name: p.name, level: p.level || 0 }));
   }
 
   return (
@@ -84,6 +88,8 @@ async function TeamData() {
       stats={{ total: members.length, active: activeCount, probation: probationCount }}
       inviteCode={inviteCode}
       orgName={orgName}
+      orgDepartments={serialize(orgDepartments)}
+      orgPositions={serialize(orgPositions)}
     />
   );
 }

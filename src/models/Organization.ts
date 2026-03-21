@@ -25,6 +25,8 @@ export interface IOrganization extends Document {
     role: "owner" | "admin" | "manager" | "accountant" | "viewer";
     joinedAt: Date;
   }[];
+  departments: { name: string; description?: string }[];
+  positions: { name: string; level?: number }[];
   inviteCode?: string;
   packageId?: mongoose.Types.ObjectId;
   packageExpiry?: Date;
@@ -61,6 +63,8 @@ const OrganizationSchema = new Schema<IOrganization>(
         joinedAt: { type: Date, default: Date.now },
       },
     ],
+    departments: [{ name: String, description: String }],
+    positions: [{ name: String, level: Number }],
     inviteCode: { type: String, unique: true, sparse: true },
     packageId: { type: Schema.Types.ObjectId, ref: "Package" },
     packageExpiry: Date,
