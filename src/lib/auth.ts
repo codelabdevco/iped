@@ -47,7 +47,9 @@ export async function getSession(): Promise<JWTPayload | null> {
       await connectDB();
       const user = await User.findById(payload.userId).select("orgId").lean() as any;
       if (user?.orgId) payload.orgId = String(user.orgId);
-    } catch {}
+    } catch (e) {
+      console.error("getSession orgId hydrate error:", e);
+    }
   }
 
   return payload;
