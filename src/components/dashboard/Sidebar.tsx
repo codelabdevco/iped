@@ -440,17 +440,7 @@ export default function Sidebar({ onNavigate, badges = {}, hasOrg = false, planU
             </div>
           );
         })}
-        {/* Theme toggle */}
-        <div className="pt-2">
-          <button
-            onClick={toggleTheme}
-            className={`flex items-center gap-2.5 px-2.5 py-2 rounded-lg text-[13px] font-medium ${txt} w-full whitespace-nowrap overflow-hidden`}
-            title={collapsed ? (isDark ? "โหมดสว่าง" : "โหมดมืด") : undefined}
-          >
-            {isDark ? <Sun size={16} className="shrink-0" /> : <Moon size={16} className="shrink-0" />}
-            <span style={fadeStyle()}>{isDark ? "โหมดสว่าง" : "โหมดมืด"}</span>
-          </button>
-        </div>
+        {/* Theme toggle removed — dark mode only */}
       </nav>
       </div>
 

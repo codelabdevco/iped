@@ -1,55 +1,30 @@
 "use client";
 
-import { createContext, useContext, useState, useEffect, ReactNode } from "react";
-
-type Theme = "dark" | "light";
+import { createContext, useContext, useEffect, useState, ReactNode } from "react";
 
 interface ThemeContextType {
-  theme: Theme;
+  theme: "dark";
   toggleTheme: () => void;
-  isDark: boolean;
+  isDark: true;
   mounted: boolean;
 }
 
 const ThemeContext = createContext<ThemeContextType | undefined>(undefined);
 
-function getInitialTheme(): Theme {
-  if (typeof window !== "undefined") {
-    // Read from data-theme set by inline script, or localStorage, or default dark
-    const attr = document.documentElement.getAttribute("data-theme") as Theme;
-    if (attr === "light" || attr === "dark") return attr;
-    const saved = localStorage.getItem("iped-theme") as Theme;
-    if (saved) return saved;
-  }
-  return "dark";
-}
-
 export function ThemeProvider({ children }: { children: ReactNode }) {
-  const [theme, setTheme] = useState<Theme>(getInitialTheme);
   const [mounted, setMounted] = useState(false);
 
   useEffect(() => {
     setMounted(true);
+    // Force dark mode
+    document.documentElement.setAttribute("data-theme", "dark");
+    document.documentElement.style.backgroundColor = "#0a0a0a";
+    document.documentElement.style.color = "#fff";
+    localStorage.setItem("iped-theme", "dark");
   }, []);
 
-  const toggleTheme = () => {
-    const n = theme === "dark" ? "light" : "dark";
-    setTheme(n);
-    localStorage.setItem("iped-theme", n);
-    document.documentElement.setAttribute("data-theme", n);
-    document.documentElement.style.backgroundColor = n === "dark" ? "#0a0a0a" : "#f7f7f7";
-    document.documentElement.style.color = n === "dark" ? "#fff" : "#111";
-  };
-
-  useEffect(() => {
-    if (!mounted) return;
-    document.documentElement.setAttribute("data-theme", theme);
-    document.documentElement.style.backgroundColor = theme === "dark" ? "#0a0a0a" : "#f7f7f7";
-    document.documentElement.style.color = theme === "dark" ? "#fff" : "#111";
-  }, [theme, mounted]);
-
   return (
-    <ThemeContext.Provider value={{ theme, toggleTheme, isDark: theme === "dark", mounted }}>
+    <ThemeContext.Provider value={{ theme: "dark", toggleTheme: () => {}, isDark: true, mounted }}>
       {children}
     </ThemeContext.Provider>
   );

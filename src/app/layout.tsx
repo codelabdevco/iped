@@ -52,15 +52,10 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
         />
         <script dangerouslySetInnerHTML={{ __html: `
           (function(){
-            try {
-              var t = localStorage.getItem('iped-theme') || 'dark';
-              var d = document.documentElement;
-              var bg = t === 'dark' ? '#0a0a0a' : '#f7f7f7';
-              var fg = t === 'dark' ? '#fff' : '#111';
-              d.setAttribute('data-theme', t);
-              d.style.cssText = 'background-color:' + bg + ';color:' + fg;
-              document.body && (document.body.style.backgroundColor = bg);
-            } catch(e){}
+            var d = document.documentElement;
+            d.setAttribute('data-theme', 'dark');
+            d.style.cssText = 'background-color:#0a0a0a;color:#fff';
+            localStorage.setItem('iped-theme', 'dark');
           })();
         `}} />
         {/* Service Worker Registration */}

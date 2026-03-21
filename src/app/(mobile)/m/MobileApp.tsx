@@ -135,7 +135,7 @@ function NamePrompt({ isDark, onSaved }: { isDark: boolean; onSaved: () => void 
 //  MAIN APP SHELL
 // ════════════════════════════════════════
 export default function MobileApp({ data }: { data: MobileData }) {
-  const { isDark, toggleTheme } = useTheme();
+  const { isDark } = useTheme();
   const [tab, setTab] = useState<Tab>("home");
   const [showNamePrompt, setShowNamePrompt] = useState(!data.profile.firstNameTh);
   const { txt } = useS(isDark);
@@ -155,9 +155,6 @@ export default function MobileApp({ data }: { data: MobileData }) {
           <span className={`text-sm font-bold ${txt}`}>อาซิ่ม</span>
         </div>
         <div className="flex items-center gap-2">
-          <button onClick={toggleTheme} className={`w-8 h-8 rounded-full flex items-center justify-center ${isDark ? "hover:bg-white/5" : "hover:bg-gray-100"}`}>
-            {isDark ? <Moon size={16} className="text-white/40" /> : <Sun size={16} className="text-gray-400" />}
-          </button>
           <button onClick={() => setTab("profile")} className="relative">
             {data.profile.lineProfilePic ? (
               <img src={data.profile.lineProfilePic} alt="" className="w-8 h-8 rounded-full object-cover ring-2 ring-[#FA3633]/20" />
@@ -176,7 +173,7 @@ export default function MobileApp({ data }: { data: MobileData }) {
           {tab === "receipts" && <ReceiptsTab receipts={data.receipts} isDark={isDark} orgName={data.profile.orgName} orgId={data.profile.orgId} />}
           {tab === "scan" && <ScanTab isDark={isDark} onDone={() => setTab("home")} />}
           {tab === "reports" && <ReportsTab data={data} isDark={isDark} />}
-          {tab === "profile" && <ProfileTab data={data} isDark={isDark} toggleTheme={toggleTheme} />}
+          {tab === "profile" && <ProfileTab data={data} isDark={isDark} />}
         </div>
       </main>
 
@@ -1602,7 +1599,7 @@ function ReportsTab({ data, isDark }: { data: MobileData; isDark: boolean }) {
 // ════════════════════════════════════════
 //  PROFILE TAB
 // ════════════════════════════════════════
-function ProfileTab({ data, isDark, toggleTheme }: { data: MobileData; isDark: boolean; toggleTheme: () => void }) {
+function ProfileTab({ data, isDark }: { data: MobileData; isDark: boolean }) {
   const { card, border, txt, sub, muted, inp } = useS(isDark);
   const p = data.profile;
   const s = data.stats;
@@ -1842,11 +1839,7 @@ function ProfileTab({ data, isDark, toggleTheme }: { data: MobileData; isDark: b
 
       <div className={`${card} border ${border} rounded-2xl overflow-hidden divide-y ${isDark ? "divide-white/[0.04]" : "divide-gray-100"}`}>
         <ToggleItem icon={<Bell size={16} />} label="สรุปรายวัน" value={p.settings.dailySummary} onChange={(v) => saveSettings({ "settings.notifications.dailySummary": v })} isDark={isDark} />
-        <button onClick={toggleTheme} className={`w-full flex items-center gap-3 px-4 py-3 ${isDark ? "active:bg-white/5" : "active:bg-gray-50"}`}>
-          <span className={muted}>{isDark ? <Moon size={16} /> : <Sun size={16} />}</span>
-          <span className={`text-sm flex-1 text-left ${txt}`}>ธีม</span>
-          <span className={`text-xs ${muted}`}>{isDark ? "มืด" : "สว่าง"}</span>
-        </button>
+        {/* Theme toggle removed — dark mode only */}
         {!p.googleEmail && (
           <a href="/api/auth/google" className={`flex items-center gap-3 px-4 py-3 ${isDark ? "active:bg-white/5" : "active:bg-gray-50"}`}>
             <BrandIcon brand="gmail" size={16} />
