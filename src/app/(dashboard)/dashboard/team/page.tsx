@@ -3,6 +3,7 @@ import { getSession } from "@/lib/auth";
 import { redirect } from "next/navigation";
 import { connectDB } from "@/lib/mongodb";
 import Employee from "@/models/Employee";
+import Organization from "@/models/Organization";
 import TeamClient from "./TeamClient";
 
 const DEPT_ICONS: Record<string, string> = {
@@ -67,11 +68,22 @@ async function TeamData() {
   const activeCount = members.filter((m) => m.status === "active").length;
   const probationCount = members.filter((m) => m.status === "probation").length;
 
+  // Invite code
+  let inviteCode = "";
+  let orgName = "";
+  if (session.orgId) {
+    const org = await Organization.findById(session.orgId).select("inviteCode name").lean() as any;
+    inviteCode = org?.inviteCode || "";
+    orgName = org?.name || "";
+  }
+
   return (
     <TeamClient
       members={serialize(members)}
       departments={serialize(departments)}
       stats={{ total: members.length, active: activeCount, probation: probationCount }}
+      inviteCode={inviteCode}
+      orgName={orgName}
     />
   );
 }

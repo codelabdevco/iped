@@ -8,7 +8,7 @@ import { useTheme } from "@/contexts/ThemeContext";
 import { useMode } from "@/contexts/ModeContext";
 import {
   Users, UserCheck, UserPlus, Clock, Search, Pencil,
-  Banknote, Shield, Loader2, Trash2, X,
+  Banknote, Shield, Loader2, Trash2, X, Link2, Copy, Share2,
 } from "lucide-react";
 import PageHeader from "@/components/dashboard/PageHeader";
 import StatsCard from "@/components/dashboard/StatsCard";
@@ -42,6 +42,8 @@ interface Props {
   members: TeamMember[];
   departments: DeptInfo[];
   stats: { total: number; active: number; probation: number };
+  inviteCode?: string;
+  orgName?: string;
 }
 
 const empTypeLabel: Record<string, { label: string; cls: string }> = {
@@ -58,7 +60,7 @@ const statusLabel: Record<string, { label: string; cls: string }> = {
   terminated: { label: "เลิกจ้าง", cls: "bg-red-500/20 text-red-400" },
 };
 
-export default function TeamClient({ members: initialMembers, departments, stats: initialStats }: Props) {
+export default function TeamClient({ members: initialMembers, departments, stats: initialStats, inviteCode, orgName }: Props) {
   const { isDark } = useTheme();
   const { mode } = useMode();
   const modeHref = (path: string) => `/${mode}${path}`;
@@ -76,6 +78,15 @@ export default function TeamClient({ members: initialMembers, departments, stats
   const [saving, setSaving] = useState(false);
   const defaultForm = { employeeCode: "", name: "", nickname: "", position: "", department: "", employmentType: "full-time", baseSalary: 0, bankName: "", bankAccount: "", taxId: "", email: "" };
   const [form, setForm] = useState(defaultForm);
+
+  const [copied, setCopied] = useState<"code" | "link" | "line" | null>(null);
+  const inviteLink = inviteCode ? `https://iped.codelabdev.co/join/${inviteCode}` : "";
+  const lineCommand = inviteCode ? `เชื่อม ${inviteCode}` : "";
+  const copyText = (text: string, type: "code" | "link" | "line") => {
+    navigator.clipboard.writeText(text);
+    setCopied(type);
+    setTimeout(() => setCopied(null), 2000);
+  };
 
   const openAdd = () => { setEditingId(null); setForm(defaultForm); setShowPanel(true); };
   const openEdit = (m: TeamMember) => {
@@ -282,6 +293,63 @@ export default function TeamClient({ members: initialMembers, departments, stats
         <StatsCard label="ทดลองงาน" value={`${stats.probation} คน`} icon={<Clock size={20} />} color="text-yellow-500" />
         <StatsCard label="แผนก" value={`${departments.length} แผนก`} icon={<Users size={20} />} color="text-purple-500" />
       </div>
+
+      {/* ── Invite Section ── */}
+      {inviteCode && (
+        <div className={`rounded-2xl border p-5 ${c("bg-blue-500/[0.04] border-blue-500/10", "bg-blue-50 border-blue-200")}`}>
+          <div className="flex flex-col sm:flex-row sm:items-center gap-4">
+            <div className="flex items-center gap-3 flex-1">
+              <div className={`w-10 h-10 rounded-xl flex items-center justify-center shrink-0 ${c("bg-blue-500/15", "bg-blue-100")}`}>
+                <Share2 size={20} className="text-blue-400" />
+              </div>
+              <div>
+                <h3 className={`text-sm font-semibold ${c("text-white", "text-gray-900")}`}>เชิญพนักงานเข้า{orgName ? ` "${orgName}"` : "บริษัท"}</h3>
+                <p className={`text-xs ${c("text-white/40", "text-gray-500")}`}>แชร์ลิงก์หรือรหัสเชิญให้พนักงาน — เชื่อมผ่าน LINE Bot หรือเปิดลิงก์</p>
+              </div>
+            </div>
+            <div className="flex flex-wrap gap-2">
+              <button
+                onClick={() => copyText(inviteCode, "code")}
+                className={`flex items-center gap-1.5 px-3 py-2 rounded-lg text-xs font-medium transition-all ${
+                  copied === "code"
+                    ? "bg-green-500/20 text-green-400"
+                    : c("bg-white/[0.06] text-white/60 hover:bg-white/[0.1]", "bg-white text-gray-600 hover:bg-gray-100 border border-gray-200")
+                }`}
+              >
+                {copied === "code" ? <UserCheck size={13} /> : <Copy size={13} />}
+                {copied === "code" ? "คัดลอกแล้ว!" : `รหัส: ${inviteCode}`}
+              </button>
+              <button
+                onClick={() => copyText(inviteLink, "link")}
+                className={`flex items-center gap-1.5 px-3 py-2 rounded-lg text-xs font-medium transition-all ${
+                  copied === "link"
+                    ? "bg-green-500/20 text-green-400"
+                    : c("bg-white/[0.06] text-white/60 hover:bg-white/[0.1]", "bg-white text-gray-600 hover:bg-gray-100 border border-gray-200")
+                }`}
+              >
+                {copied === "link" ? <UserCheck size={13} /> : <Link2 size={13} />}
+                {copied === "link" ? "คัดลอกแล้ว!" : "คัดลอกลิงก์เชิญ"}
+              </button>
+              <button
+                onClick={() => copyText(lineCommand, "line")}
+                className={`flex items-center gap-1.5 px-3 py-2 rounded-lg text-xs font-medium transition-all ${
+                  copied === "line"
+                    ? "bg-green-500/20 text-green-400"
+                    : "bg-[#06C755]/20 text-[#06C755] hover:bg-[#06C755]/30"
+                }`}
+              >
+                {copied === "line" ? <UserCheck size={13} /> : <svg width="13" height="13" viewBox="0 0 24 24" fill="currentColor"><path d="M24 10.314C24 4.943 18.615.572 12 .572S0 4.943 0 10.314c0 4.811 4.27 8.842 10.035 9.608.391.082.923.258 1.058.59.12.301.079.766.038 1.08l-.164 1.02c-.045.301-.24 1.186 1.049.645 1.291-.539 6.916-4.078 9.436-6.975C23.176 14.393 24 12.458 24 10.314"/></svg>}
+                {copied === "line" ? "คัดลอกแล้ว!" : "คัดลอกคำสั่ง LINE"}
+              </button>
+            </div>
+          </div>
+          <div className={`mt-3 flex flex-wrap gap-x-6 gap-y-1 text-[11px] ${c("text-white/30", "text-gray-400")}`}>
+            <span>วิธี 1: เปิดลิงก์เชิญในเบราว์เซอร์</span>
+            <span>วิธี 2: พิมพ์ "{lineCommand}" ใน LINE @315ilalq</span>
+            <span>วิธี 3: กรอกรหัสในแอปมือถือ &gt; โปรไฟล์</span>
+          </div>
+        </div>
+      )}
 
       {/* ── Department cards ── */}
       {departments.length > 0 && (
