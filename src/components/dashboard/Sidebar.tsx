@@ -119,8 +119,23 @@ const businessNav: NavGroup[] = [
 ];
 
 export default function Sidebar({ onNavigate, badges = {}, hasOrg = false, planUsage }: { onNavigate?: () => void; badges?: Record<string, number>; hasOrg?: boolean; planUsage?: any }) {
-  const [collapsed, setCollapsed] = useState(false);
-  const [collapsedGroups, setCollapsedGroups] = useState<Record<string, boolean>>({});
+  const [collapsed, setCollapsed] = useState(() => {
+    if (typeof window !== "undefined") {
+      try { return localStorage.getItem("iped-sidebar-collapsed") === "true"; } catch {}
+    }
+    return false;
+  });
+  const [collapsedGroups, setCollapsedGroups] = useState<Record<string, boolean>>(() => {
+    if (typeof window !== "undefined") {
+      try {
+        const saved = localStorage.getItem("iped-sidebar-groups");
+        if (saved) return JSON.parse(saved);
+      } catch {}
+    }
+    return {};
+  });
+  const [canScrollUp, setCanScrollUp] = useState(false);
+  const [canScrollDown, setCanScrollDown] = useState(false);
   const navRef = useRef<HTMLElement>(null);
   const pathname = usePathname();
   const router = useRouter();
@@ -141,7 +156,11 @@ export default function Sidebar({ onNavigate, badges = {}, hasOrg = false, planU
   };
 
   const toggleGroup = (label: string) => {
-    setCollapsedGroups((prev) => ({ ...prev, [label]: !prev[label] }));
+    setCollapsedGroups((prev) => {
+      const next = { ...prev, [label]: !prev[label] };
+      try { localStorage.setItem("iped-sidebar-groups", JSON.stringify(next)); } catch {}
+      return next;
+    });
   };
 
   // Filter nav: hide "บริษัท" section in personal if user hasn't joined a company
@@ -161,20 +180,58 @@ export default function Sidebar({ onNavigate, badges = {}, hasOrg = false, planU
     return rawPath.startsWith(href + "/");
   };
 
-  // Auto-collapse groups without active item + scroll active into view
+  // Auto-collapse groups without active item (only if no saved state) + auto-expand active group + scroll into view
   useEffect(() => {
-    const init: Record<string, boolean> = {};
-    navGroups.forEach((g) => {
-      const hasActive = g.items.some((i) => isActive(i.href));
-      if (!hasActive) init[g.label] = true;
-    });
-    setCollapsedGroups(init);
+    const hasSaved = (() => {
+      try { return !!localStorage.getItem("iped-sidebar-groups"); } catch { return false; }
+    })();
+    if (!hasSaved) {
+      const init: Record<string, boolean> = {};
+      navGroups.forEach((g) => {
+        const hasActive = g.items.some((i) => isActive(i.href));
+        if (!hasActive) init[g.label] = true;
+      });
+      setCollapsedGroups(init);
+      try { localStorage.setItem("iped-sidebar-groups", JSON.stringify(init)); } catch {}
+    } else {
+      // Even with saved state, always expand the group containing the active item
+      setCollapsedGroups((prev) => {
+        let changed = false;
+        const next = { ...prev };
+        navGroups.forEach((g) => {
+          const hasActive = g.items.some((i) => isActive(i.href));
+          if (hasActive && next[g.label]) {
+            next[g.label] = false;
+            changed = true;
+          }
+        });
+        if (changed) {
+          try { localStorage.setItem("iped-sidebar-groups", JSON.stringify(next)); } catch {}
+        }
+        return changed ? next : prev;
+      });
+    }
     setTimeout(() => {
       const el = navRef.current?.querySelector("[data-active='true']");
       if (el) el.scrollIntoView({ block: "nearest", behavior: "instant" });
     }, 100);
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
+
+  // Scroll indicator detection
+  useEffect(() => {
+    const nav = navRef.current;
+    if (!nav) return;
+    const check = () => {
+      setCanScrollUp(nav.scrollTop > 8);
+      setCanScrollDown(nav.scrollTop + nav.clientHeight < nav.scrollHeight - 8);
+    };
+    check();
+    nav.addEventListener("scroll", check, { passive: true });
+    const ro = new ResizeObserver(check);
+    ro.observe(nav);
+    return () => { nav.removeEventListener("scroll", check); ro.disconnect(); };
+  }, [collapsed, mode]);
 
   const handleLogout = async () => {
     document.cookie = "iped-token=; Path=/; Expires=Thu, 01 Jan 1970 00:00:00 GMT";
@@ -192,6 +249,20 @@ export default function Sidebar({ onNavigate, badges = {}, hasOrg = false, planU
   const sectionLabel = isDark ? "text-white/30" : "text-gray-400";
   const sub = isDark ? "text-white/50" : "text-gray-500";
   const muted = isDark ? "text-white/30" : "text-gray-400";
+
+  const [tooltip, setTooltip] = useState<{ text: string; top: number } | null>(null);
+  const tooltipTimer = useRef<ReturnType<typeof setTimeout>>();
+
+  const showTooltip = (e: React.MouseEvent, text: string) => {
+    if (!collapsed) return;
+    clearTimeout(tooltipTimer.current);
+    const rect = (e.currentTarget as HTMLElement).getBoundingClientRect();
+    setTooltip({ text, top: rect.top + rect.height / 2 });
+  };
+  const hideTooltip = () => {
+    clearTimeout(tooltipTimer.current);
+    tooltipTimer.current = setTimeout(() => setTooltip(null), 100);
+  };
 
   const fadeStyle = (): React.CSSProperties => ({
     opacity: collapsed ? 0 : 1,
@@ -277,7 +348,18 @@ export default function Sidebar({ onNavigate, badges = {}, hasOrg = false, planU
       )}
 
       {/* Nav Groups */}
-      <nav ref={navRef} className="flex-1 py-1 px-2 space-y-0 overflow-y-auto overflow-x-hidden">
+      <div className="flex-1 relative overflow-hidden">
+        {/* Scroll fade top */}
+        <div
+          className={`absolute top-0 left-0 right-0 h-6 z-10 pointer-events-none transition-opacity duration-200 ${canScrollUp ? "opacity-100" : "opacity-0"}`}
+          style={{ background: isDark ? "linear-gradient(to bottom, #111111, transparent)" : "linear-gradient(to bottom, white, transparent)" }}
+        />
+        {/* Scroll fade bottom */}
+        <div
+          className={`absolute bottom-0 left-0 right-0 h-6 z-10 pointer-events-none transition-opacity duration-200 ${canScrollDown ? "opacity-100" : "opacity-0"}`}
+          style={{ background: isDark ? "linear-gradient(to top, #111111, transparent)" : "linear-gradient(to top, white, transparent)" }}
+        />
+      <nav ref={navRef} className="h-full py-1 px-2 space-y-0 overflow-y-auto overflow-x-hidden">
         {navGroups.map((group, gi) => {
           const isGroupCollapsed = collapsedGroups[group.label];
           return (
@@ -286,13 +368,13 @@ export default function Sidebar({ onNavigate, badges = {}, hasOrg = false, planU
               {!collapsed && (
                 <button
                   onClick={() => toggleGroup(group.label)}
-                  className={`flex items-center justify-between w-full px-3 ${gi === 0 ? "pt-1" : "pt-2.5"} pb-1 ${sectionLabel}`}
+                  className={`flex items-center justify-between w-full px-3 ${gi === 0 ? "pt-2" : "pt-3.5"} pb-1.5 rounded-md hover:bg-black/[0.02] dark:hover:bg-white/[0.03] transition-colors ${sectionLabel}`}
                 >
-                  <span className="text-[10px] font-bold uppercase tracking-widest">
+                  <span className="text-[11px] font-bold uppercase tracking-widest">
                     {group.label}
                   </span>
                   <ChevronDown
-                    size={12}
+                    size={14}
                     className={`transition-transform duration-200 ${
                       isGroupCollapsed ? "-rotate-90" : ""
                     }`}
@@ -324,10 +406,11 @@ export default function Sidebar({ onNavigate, badges = {}, hasOrg = false, planU
                       href={modeHref(item.href)}
                       onClick={onNavigate}
                       data-active={active ? "true" : undefined}
-                      className={`flex items-center gap-2.5 px-2.5 py-1.5 rounded-lg text-[12.5px] font-medium transition-colors whitespace-nowrap overflow-hidden ${
+                      className={`flex items-center gap-2.5 px-2.5 py-2 rounded-lg text-[13px] font-medium transition-colors whitespace-nowrap overflow-hidden ${
                         active ? activeCls : txt
                       }`}
-                      title={collapsed ? `${item.label}${badge ? ` (${badge})` : ""}` : undefined}
+                      onMouseEnter={(e) => showTooltip(e, `${item.label}${badge ? ` (${badge})` : ""}`)}
+                      onMouseLeave={hideTooltip}
                     >
                       <div className="relative shrink-0">
                         <Icon size={16} />
@@ -353,7 +436,7 @@ export default function Sidebar({ onNavigate, badges = {}, hasOrg = false, planU
         <div className="pt-2">
           <button
             onClick={toggleTheme}
-            className={`flex items-center gap-2.5 px-2.5 py-1.5 rounded-lg text-[12.5px] font-medium ${txt} w-full whitespace-nowrap overflow-hidden`}
+            className={`flex items-center gap-2.5 px-2.5 py-2 rounded-lg text-[13px] font-medium ${txt} w-full whitespace-nowrap overflow-hidden`}
             title={collapsed ? (isDark ? "โหมดสว่าง" : "โหมดมืด") : undefined}
           >
             {isDark ? <Sun size={16} className="shrink-0" /> : <Moon size={16} className="shrink-0" />}
@@ -361,49 +444,91 @@ export default function Sidebar({ onNavigate, badges = {}, hasOrg = false, planU
           </button>
         </div>
       </nav>
+      </div>
 
       {/* Bottom */}
-      <div className={`py-1.5 px-2 border-t ${borderCls} overflow-hidden`}>
+      <div className={`border-t ${borderCls} overflow-hidden`}>
         {/* Plan badge */}
         {planUsage && !collapsed && (
-          <Link href={modeHref("/dashboard/billing")} className={`flex items-center justify-between px-2.5 py-1 mb-1 rounded-lg ${isDark ? "bg-white/[0.03] hover:bg-white/[0.06]" : "bg-gray-50 hover:bg-gray-100"} transition-colors`}>
-            <span className={`text-[10px] font-bold ${muted}`}>{planUsage.planName?.toUpperCase()}</span>
-            <span className={`text-[9px] ${sub}`}>{planUsage.usage?.receipts || 0}/{(planUsage.limits?.receiptsPerMonth ?? 30) === -1 ? "\u221E" : planUsage.limits?.receiptsPerMonth ?? 30} ใบเสร็จ</span>
-          </Link>
+          <div className="px-2 pt-2">
+            <Link href={modeHref("/dashboard/billing")} className={`flex items-center justify-between px-3 py-2 rounded-xl ${isDark ? "bg-white/[0.04] hover:bg-white/[0.07]" : "bg-gray-50 hover:bg-gray-100"} transition-colors`}>
+              <span className={`text-[10px] font-bold tracking-wide ${muted}`}>{planUsage.planName?.toUpperCase()}</span>
+              <span className={`text-[10px] ${sub}`}>{planUsage.usage?.receipts || 0}/{(planUsage.limits?.receiptsPerMonth ?? 30) === -1 ? "\u221E" : planUsage.limits?.receiptsPerMonth ?? 30} ใบเสร็จ</span>
+            </Link>
+          </div>
         )}
-        <div className="flex gap-0.5">
+
+        {/* Settings & Logout group */}
+        <div className="px-2 pt-2 space-y-0.5">
           <Link
             href={modeHref("/dashboard/settings")}
-            className={`flex-1 flex items-center gap-2 px-2.5 py-1.5 rounded-lg text-[12px] font-medium transition-colors whitespace-nowrap overflow-hidden ${
+            className={`flex items-center gap-2.5 px-2.5 py-2 rounded-lg text-[13px] font-medium transition-colors whitespace-nowrap overflow-hidden w-full ${
               rawPath.startsWith("/dashboard/settings") ? activeCls : txt
             }`}
+            onMouseEnter={(e) => showTooltip(e, "ตั้งค่า")}
+            onMouseLeave={hideTooltip}
           >
-            <Settings size={15} className="shrink-0" />
+            <Settings size={16} className="shrink-0" />
             <span style={fadeStyle()}>ตั้งค่า</span>
           </Link>
           <button
             onClick={handleLogout}
-            className={`flex items-center gap-2 px-2.5 py-1.5 rounded-lg text-[12px] font-medium ${
+            className={`flex items-center gap-2.5 px-2.5 py-2 rounded-lg text-[13px] font-medium w-full ${
               isDark ? "text-white/40 hover:text-red-400 hover:bg-white/[0.04]" : "text-gray-400 hover:text-red-500 hover:bg-gray-100"
             } transition-colors whitespace-nowrap overflow-hidden`}
+            onMouseEnter={(e) => showTooltip(e, "ออกจากระบบ")}
+            onMouseLeave={hideTooltip}
           >
-            <LogOut size={15} className="shrink-0" />
-            <span style={fadeStyle()}>ออก</span>
+            <LogOut size={16} className="shrink-0" />
+            <span style={fadeStyle()}>ออกจากระบบ</span>
           </button>
         </div>
 
-        <button
-          onClick={() => setCollapsed(!collapsed)}
-          className={`flex items-center gap-3 px-3 py-2 rounded-lg text-[13px] ${txt} w-full whitespace-nowrap overflow-hidden`}
-        >
-          {collapsed ? (
-            <ChevronRight size={18} className="shrink-0" />
-          ) : (
-            <ChevronLeft size={18} className="shrink-0" />
-          )}
-          <span style={fadeStyle()}>ย่อเมนู</span>
-        </button>
+        {/* Collapse toggle — visually separated */}
+        <div className={`mx-2 mt-1.5 mb-2 pt-1.5 border-t ${isDark ? "border-white/[0.04]" : "border-gray-100"}`}>
+          <button
+            onClick={() => {
+              const next = !collapsed;
+              setCollapsed(next);
+              try { localStorage.setItem("iped-sidebar-collapsed", String(next)); } catch {}
+            }}
+            className={`flex items-center justify-center gap-2.5 px-2.5 py-1.5 rounded-lg text-[12px] w-full whitespace-nowrap overflow-hidden ${
+              isDark ? "text-white/25 hover:text-white/50 hover:bg-white/[0.03]" : "text-gray-300 hover:text-gray-500 hover:bg-gray-50"
+            } transition-colors`}
+            onMouseEnter={(e) => showTooltip(e, collapsed ? "ขยายเมนู" : "ย่อเมนู")}
+            onMouseLeave={hideTooltip}
+          >
+            {collapsed ? (
+              <ChevronRight size={15} className="shrink-0" />
+            ) : (
+              <>
+                <ChevronLeft size={15} className="shrink-0" />
+                <span style={fadeStyle()}>ย่อเมนู</span>
+              </>
+            )}
+          </button>
+        </div>
       </div>
+      {/* Tooltip for collapsed mode */}
+      {collapsed && tooltip && (
+        <div
+          className={`fixed z-50 px-3 py-1.5 rounded-lg text-[12px] font-medium shadow-lg pointer-events-none whitespace-nowrap ${
+            isDark ? "bg-[#222] text-white border border-white/10" : "bg-gray-900 text-white"
+          }`}
+          style={{
+            left: 78,
+            top: tooltip.top,
+            transform: "translateY(-50%)",
+          }}
+        >
+          {tooltip.text}
+          <div
+            className={`absolute top-1/2 -left-1 w-2 h-2 rotate-45 -translate-y-1/2 ${
+              isDark ? "bg-[#222] border-l border-b border-white/10" : "bg-gray-900"
+            }`}
+          />
+        </div>
+      )}
     </aside>
   );
 }
