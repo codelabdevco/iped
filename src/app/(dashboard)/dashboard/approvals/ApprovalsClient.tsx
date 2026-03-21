@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useMemo, useCallback } from "react";
+import { useState, useMemo, useCallback, useEffect, useRef } from "react";
 import { useTheme } from "@/contexts/ThemeContext";
 import { useModal } from "@/components/dashboard/ConfirmModal";
 import {
@@ -28,6 +28,30 @@ interface ItemRow {
 export default function ApprovalsClient({ items: initial }: { items: ItemRow[] }) {
   const { isDark } = useTheme();
   const modal = useModal();
+
+  // Auto-poll every 10s for new approvals
+  const countRef = useRef(initial.length);
+  useEffect(() => {
+    const timer = setInterval(async () => {
+      if (document.visibilityState !== "visible") return;
+      try {
+        const res = await fetch("/api/receipts?accountType=business&status=pending,confirmed&limit=200");
+        if (!res.ok) return;
+        const json = await res.json();
+        const items = json.data?.receipts || json.receipts || [];
+        if (items.length !== countRef.current) {
+          countRef.current = items.length;
+          setItems(items.map((r: any) => ({
+            _id: String(r._id), name: r.merchant || "ไม่ระบุ", category: r.category || "",
+            amount: r.amount || 0, date: r.date || r.createdAt || "", status: r.status || "pending",
+            source: r.source || "web", hasImage: !!r.imageHash, isReimbursement: !!(r.note || "").includes("บริษัท"),
+            note: r.note || "",
+          })));
+        }
+      } catch {}
+    }, 10000);
+    return () => clearInterval(timer);
+  }, []);
   const c = (d: string, l: string) => (isDark ? d : l);
   const [items, setItems] = useState(initial);
   const [search, setSearch] = useState("");

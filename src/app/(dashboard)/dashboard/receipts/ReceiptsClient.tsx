@@ -168,7 +168,39 @@ export default function ReceiptsClient({ receipts: initialReceipts, hasOrg = fal
     };
   }, [initialReceipts]);
 
-  // Polling removed — data comes fresh from server on each page load via <a> navigation
+  // Auto-poll for new receipts every 5s
+  useEffect(() => {
+    const timer = setInterval(async () => {
+      if (document.visibilityState !== "visible") return;
+      try {
+        const res = await fetch("/api/receipts/poll");
+        if (!res.ok) return;
+        const poll = await res.json();
+        // If count or latest changed, fetch full data
+        if (poll.count !== pollRef.current.count || poll.latestId !== pollRef.current.latestId) {
+          const dataRes = await fetch("/api/receipts?limit=200");
+          if (dataRes.ok) {
+            const json = await dataRes.json();
+            const items = json.data?.receipts || json.receipts || [];
+            if (items.length > 0) {
+              setReceipts(items.map((r: any) => ({
+                _id: String(r._id), merchant: r.merchant || "ไม่ระบุ", amount: r.amount || 0,
+                category: r.category || "", categoryIcon: r.categoryIcon || "", direction: r.direction || "expense",
+                paymentMethod: r.paymentMethod || "", date: r.date || "", time: r.time || "",
+                status: r.status || "pending", source: r.source || "web", note: r.note || "",
+                imageUrl: r.imageUrl || "", hasImage: !!r.imageHash, accountType: r.accountType || "personal",
+                vat: r.vat || 0, wht: r.wht || 0, lineItems: r.lineItems || [],
+                emailSubject: r.emailSubject || "", emailFrom: r.emailFrom || "",
+                createdAt: r.createdAt || "",
+              })));
+              pollRef.current = { count: poll.count, latestId: poll.latestId };
+            }
+          }
+        }
+      } catch {}
+    }, 5000);
+    return () => clearInterval(timer);
+  }, []);
   const [search, setSearch] = useState("");
   const [statusFilter, setStatusFilter] = useState("all");
   const [typeFilter, setTypeFilter] = useState("all");
