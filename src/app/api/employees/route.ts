@@ -24,7 +24,9 @@ export async function GET(request: NextRequest) {
     const { page, limit, skip } = getPagination(request);
     const { searchParams } = new URL(request.url);
 
-    const filter: Record<string, unknown> = { userId: session.userId };
+    const filter: Record<string, unknown> = session.orgId
+      ? { $or: [{ orgId: session.orgId }, { userId: session.userId }] }
+      : { userId: session.userId };
 
     const status = searchParams.get("status");
     if (status) filter.status = status;
@@ -68,17 +70,18 @@ export async function POST(request: NextRequest) {
       return apiError(`เกินจำนวนพนักงานที่อนุญาต (${limit} คน) อัพเกรดแพ็กเกจเพื่อเพิ่ม`, 402);
     }
 
-    // Check duplicate employeeCode for this user
-    const existing = await Employee.findOne({
-      userId: session.userId,
-      employeeCode: body.employeeCode,
-    });
+    // Check duplicate employeeCode for this user/org
+    const dupQuery = session.orgId
+      ? { orgId: session.orgId, employeeCode: body.employeeCode }
+      : { userId: session.userId, employeeCode: body.employeeCode };
+    const existing = await Employee.findOne(dupQuery);
     if (existing) {
       return apiError("รหัสพนักงานซ้ำ", 400);
     }
 
     const employee = await Employee.create({
       userId: session.userId,
+      orgId: session.orgId || undefined,
       employeeCode: body.employeeCode,
       name: body.name,
       nickname: body.nickname,

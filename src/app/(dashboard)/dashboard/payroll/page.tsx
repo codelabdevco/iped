@@ -16,7 +16,9 @@ async function PayrollData() {
   const month = now.getMonth() + 1; // 1-12
   const year = now.getFullYear();
 
-  const query = session.orgId ? { orgId: session.orgId } : { userId: session.userId };
+  const query = session.orgId
+    ? { $or: [{ orgId: session.orgId }, { userId: session.userId }] }
+    : { userId: session.userId };
 
   const employees = await Employee.find({ ...query, status: "active" }).lean();
   const payrolls = await Payroll.find({ ...query, month, year }).lean();

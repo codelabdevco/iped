@@ -26,7 +26,10 @@ async function TeamData() {
 
   await connectDB();
 
-  const employees = await Employee.find({ userId: session.userId })
+  const empQuery = session.orgId
+    ? { $or: [{ orgId: session.orgId }, { userId: session.userId }] }
+    : { userId: session.userId };
+  const employees = await Employee.find(empQuery)
     .sort({ status: 1, department: 1, name: 1 })
     .lean();
 

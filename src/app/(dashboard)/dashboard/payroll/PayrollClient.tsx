@@ -112,7 +112,8 @@ export default function PayrollClient({ employees: initialEmp, payrolls: initial
   const [payrolls, setPayrolls] = useReactiveData(initialPay);
 
   /* ── UI state ── */
-  const [tab, setTab] = useState<"payroll" | "employees">("payroll");
+  const initTab = typeof window !== "undefined" && new URLSearchParams(window.location.search).get("tab") === "employees" ? "employees" : "payroll";
+  const [tab, setTab] = useState<"payroll" | "employees">(initTab as "payroll" | "employees");
   const [selectedMonth, setSelectedMonth] = useState(currentMonth);
   const [selectedYear, setSelectedYear] = useState(currentYear);
   const [showAddEmployee, setShowAddEmployee] = useState(false);
