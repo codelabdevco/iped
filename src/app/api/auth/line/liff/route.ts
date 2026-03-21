@@ -42,6 +42,8 @@ export async function POST(request: NextRequest) {
         role: "user",
         accountType: "personal",
         status: "active",
+        onboardingStep: 0,
+        onboardingComplete: false,
         lastLogin: new Date(),
         loginCount: 1,
       });

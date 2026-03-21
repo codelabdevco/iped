@@ -48,8 +48,11 @@ export async function GET(req: NextRequest) {
         name: profile.displayName || "",
         role: "user",
         accountType: "personal",
+        status: "active",
         onboardingStep: 0,
         onboardingComplete: false,
+        lastLogin: new Date(),
+        loginCount: 1,
       });
     } else {
       // Update profile info

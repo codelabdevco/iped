@@ -27,8 +27,12 @@ export async function POST(request: NextRequest) {
         role: email.includes("admin") ? "admin" : "user",
         accountType: "personal",
         status: "active",
+        onboardingStep: 0,
+        onboardingComplete: false,
         pdpaConsent: true,
         pdpaConsentDate: new Date(),
+        lastLogin: new Date(),
+        loginCount: 1,
       });
     }
 
