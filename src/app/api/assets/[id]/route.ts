@@ -93,6 +93,12 @@ export async function PUT(
     if (body.purchaseDate) update.purchaseDate = new Date(body.purchaseDate);
     if (body.warrantyExpiry) update.warrantyExpiry = new Date(body.warrantyExpiry);
     if (body.purchasePrice !== undefined) update.purchasePrice = Number(body.purchasePrice);
+    if (body.files !== undefined) {
+      update.files = (body.files || []).map((f: any) => ({
+        name: f.name, type: f.type, size: f.size, data: f.data,
+        uploadedAt: f.uploadedAt ? new Date(f.uploadedAt) : new Date(),
+      }));
+    }
 
     // Condition change history
     if (update.condition && update.condition !== asset.condition) {

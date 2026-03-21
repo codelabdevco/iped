@@ -26,14 +26,29 @@ export async function POST(request: NextRequest) {
     await connectDB();
     const body = await req.json();
 
-    if (!body.name || !body.assetCode || !body.category) {
-      return apiError("กรุณากรอก: รหัสทรัพย์สิน, ชื่อ, หมวดหมู่", 400);
+    if (!body.name || !body.category) {
+      return apiError("กรุณากรอก: ชื่อ, หมวดหมู่", 400);
+    }
+
+    // Auto-generate asset code if empty or "auto"
+    let assetCode = body.assetCode;
+    if (!assetCode || assetCode === "auto") {
+      const baseQuery = session.orgId
+        ? { orgId: session.orgId }
+        : { userId: session.userId };
+      const lastAsset = await Asset.findOne(baseQuery).sort({ createdAt: -1 }).select("assetCode").lean() as any;
+      let nextNum = 1;
+      if (lastAsset?.assetCode) {
+        const match = lastAsset.assetCode.match(/AST-(\d+)/);
+        if (match) nextNum = parseInt(match[1], 10) + 1;
+      }
+      assetCode = `AST-${String(nextNum).padStart(4, "0")}`;
     }
 
     // Check duplicate code
     const dupQuery = session.orgId
-      ? { orgId: session.orgId, assetCode: body.assetCode }
-      : { userId: session.userId, assetCode: body.assetCode };
+      ? { orgId: session.orgId, assetCode }
+      : { userId: session.userId, assetCode };
     if (await Asset.findOne(dupQuery)) {
       return apiError("รหัสทรัพย์สินซ้ำ", 400);
     }
@@ -43,7 +58,7 @@ export async function POST(request: NextRequest) {
     const asset = await Asset.create({
       userId: session.userId,
       orgId: session.orgId || undefined,
-      assetCode: body.assetCode,
+      assetCode,
       name: body.name,
       description: body.description || "",
       category: body.category,
@@ -71,6 +86,7 @@ export async function POST(request: NextRequest) {
       condition: body.condition || "new",
       note: body.note || "",
       tags: body.tags || [],
+      files: (body.files || []).map((f: any) => ({ name: f.name, type: f.type, size: f.size, data: f.data, uploadedAt: new Date() })),
       history: [{ action: "register", date: new Date(), note: "ลงทะเบียนทรัพย์สินใหม่" }],
     });
 

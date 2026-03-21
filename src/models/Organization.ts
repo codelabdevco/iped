@@ -27,6 +27,7 @@ export interface IOrganization extends Document {
   }[];
   departments: { name: string; description?: string }[];
   positions: { name: string; level?: number }[];
+  assetCategories: { name: string; icon?: string; description?: string }[];
   inviteCode?: string;
   packageId?: mongoose.Types.ObjectId;
   packageExpiry?: Date;
@@ -65,6 +66,7 @@ const OrganizationSchema = new Schema<IOrganization>(
     ],
     departments: [{ name: String, description: String }],
     positions: [{ name: String, level: Number }],
+    assetCategories: [{ name: String, icon: String, description: String }],
     inviteCode: { type: String, unique: true, sparse: true },
     packageId: { type: Schema.Types.ObjectId, ref: "Package" },
     packageExpiry: Date,

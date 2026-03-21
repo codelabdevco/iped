@@ -15,6 +15,14 @@ export interface IAssetHistory {
   note?: string;
 }
 
+export interface IAssetFile {
+  name: string;
+  type: string;
+  size: number;
+  data: string; // base64
+  uploadedAt: Date;
+}
+
 export interface IAsset extends Document {
   userId: string;
   orgId?: string;
@@ -72,6 +80,9 @@ export interface IAsset extends Document {
   // History
   history: IAssetHistory[];
 
+  // Files
+  files: IAssetFile[];
+
   // Meta
   imageUrl?: string;
   tags?: string[];
@@ -79,6 +90,14 @@ export interface IAsset extends Document {
   createdAt: Date;
   updatedAt: Date;
 }
+
+const AssetFileSchema = new Schema({
+  name: String,
+  type: String,
+  size: Number,
+  data: String,
+  uploadedAt: { type: Date, default: Date.now },
+}, { _id: true });
 
 const AssetHistorySchema = new Schema({
   action: { type: String, enum: ["register", "borrow", "return", "transfer", "maintenance", "retire", "condition-change"], required: true },
@@ -143,6 +162,7 @@ const AssetSchema = new Schema<IAsset>(
     borrowPurpose: String,
 
     history: [AssetHistorySchema],
+    files: [AssetFileSchema],
 
     imageUrl: String,
     tags: [String],

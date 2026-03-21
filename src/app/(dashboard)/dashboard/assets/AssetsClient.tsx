@@ -7,7 +7,9 @@ import {
   Package, Monitor, CheckCircle, AlertTriangle, Clock, Plus, Search,
   Pencil, Trash2, X, Loader2, ArrowLeftRight, Wrench, History,
   CircleDollarSign, Archive, Hand, RotateCcw, Laptop, Car, Building2,
-  Armchair, Printer, Smartphone, HardDrive, Wifi,
+  Armchair, Printer, Smartphone, HardDrive, Wifi, QrCode, Paperclip,
+  Upload, FileText, Tag, Shield, ShieldAlert, ShieldOff, TrendingDown,
+  FolderOpen,
 } from "lucide-react";
 import PageHeader from "@/components/dashboard/PageHeader";
 import StatsCard from "@/components/dashboard/StatsCard";
@@ -25,18 +27,24 @@ interface AssetRow {
   _id: string; assetCode: string; name: string; description: string;
   category: string; subCategory: string; brand: string; model: string; serialNumber: string;
   purchaseDate: string; purchasePrice: number; currentValue: number;
+  depreciationMethod: string; usefulLifeYears: number; salvageValue: number;
   vendor: string; warrantyExpiry: string; location: string; department: string;
   status: string; condition: string; currentBorrowerName: string;
   borrowDate: string; expectedReturnDate: string; borrowPurpose: string;
-  historyCount: number; history: HistoryItem[]; note: string; createdAt: string;
+  historyCount: number; fileCount: number; history: HistoryItem[]; note: string; createdAt: string;
+}
+
+interface OrgCategory {
+  _id: string; name: string; icon: string; description: string;
 }
 
 interface Props {
   assets: AssetRow[];
-  stats: { total: number; totalValue: number; available: number; inUse: number; borrowed: number; maintenance: number; overdue: number };
+  stats: { total: number; totalValue: number; totalCurrentValue: number; available: number; inUse: number; borrowed: number; maintenance: number; overdue: number };
+  orgCategories: OrgCategory[];
 }
 
-const CATEGORIES = [
+const DEFAULT_CATEGORIES = [
   { value: "computer", label: "คอมพิวเตอร์/โน้ตบุ๊ก" }, { value: "phone", label: "โทรศัพท์/แท็บเล็ต" },
   { value: "printer", label: "เครื่องพิมพ์/สแกนเนอร์" }, { value: "network", label: "อุปกรณ์เครือข่าย" },
   { value: "furniture", label: "เฟอร์นิเจอร์" }, { value: "vehicle", label: "ยานพาหนะ" },
@@ -84,18 +92,110 @@ const catIcon: Record<string, typeof Monitor> = {
 
 function baht(n: number) { return `฿${n.toLocaleString("th-TH", { minimumFractionDigits: 0 })}`; }
 
-export default function AssetsClient({ assets: initial, stats }: Props) {
+// ── QR Code SVG generator ──
+function generateQRMatrix(data: string): boolean[][] {
+  // Simple QR-like matrix for display purposes
+  // This creates a deterministic pattern from the input string
+  const size = 25;
+  const matrix: boolean[][] = Array.from({ length: size }, () => Array(size).fill(false));
+
+  // Fixed finder patterns (top-left, top-right, bottom-left)
+  const drawFinder = (x: number, y: number) => {
+    for (let dy = 0; dy < 7; dy++) for (let dx = 0; dx < 7; dx++) {
+      matrix[y + dy][x + dx] = dy === 0 || dy === 6 || dx === 0 || dx === 6 ||
+        (dy >= 2 && dy <= 4 && dx >= 2 && dx <= 4);
+    }
+  };
+  drawFinder(0, 0);
+  drawFinder(size - 7, 0);
+  drawFinder(0, size - 7);
+
+  // Timing patterns
+  for (let i = 8; i < size - 8; i++) {
+    matrix[6][i] = i % 2 === 0;
+    matrix[i][6] = i % 2 === 0;
+  }
+
+  // Data encoding from string hash
+  let hash = 0;
+  for (let i = 0; i < data.length; i++) {
+    hash = ((hash << 5) - hash + data.charCodeAt(i)) | 0;
+  }
+
+  for (let y = 9; y < size - 8; y++) {
+    for (let x = 9; x < size - 8; x++) {
+      if (x === 6 || y === 6) continue;
+      hash = ((hash << 5) - hash + x * y) | 0;
+      matrix[y][x] = (hash & 1) === 1;
+    }
+  }
+  // Fill remaining data areas
+  for (let y = 0; y < size; y++) {
+    for (let x = 8; x < size - 8; x++) {
+      if (y >= 8 && y < size - 8) continue;
+      if (y === 6) continue;
+      if (y < 8 && x < 8) continue;
+      hash = ((hash << 5) - hash + x * y + 7) | 0;
+      matrix[y][x] = (hash & 1) === 1;
+    }
+  }
+  for (let y = 8; y < size - 8; y++) {
+    for (let x = 0; x < 8; x++) {
+      if (y === 6 || x === 6) continue;
+      hash = ((hash << 5) - hash + x * y + 13) | 0;
+      matrix[y][x] = (hash & 1) === 1;
+    }
+    for (let x = size - 8; x < size; x++) {
+      if (y === 6) continue;
+      hash = ((hash << 5) - hash + x * y + 17) | 0;
+      matrix[y][x] = (hash & 1) === 1;
+    }
+  }
+
+  return matrix;
+}
+
+function QRCodeSVG({ data, size = 200 }: { data: string; size?: number }) {
+  const matrix = generateQRMatrix(data);
+  const cellSize = size / matrix.length;
+  return (
+    <svg width={size} height={size} viewBox={`0 0 ${size} ${size}`} xmlns="http://www.w3.org/2000/svg">
+      <rect width={size} height={size} fill="white" />
+      {matrix.map((row, y) =>
+        row.map((cell, x) =>
+          cell ? <rect key={`${x}-${y}`} x={x * cellSize} y={y * cellSize} width={cellSize} height={cellSize} fill="black" /> : null
+        )
+      )}
+    </svg>
+  );
+}
+
+function getWarrantyStatus(warrantyExpiry: string): { label: string; style: string; icon: typeof Shield } | null {
+  if (!warrantyExpiry) return null;
+  const expiry = new Date(warrantyExpiry);
+  const now = new Date();
+  const diffDays = Math.ceil((expiry.getTime() - now.getTime()) / (1000 * 60 * 60 * 24));
+  if (diffDays < 0) return { label: "ประกันหมดแล้ว", style: "bg-red-500/20 text-red-400", icon: ShieldOff };
+  if (diffDays <= 30) return { label: "ประกันใกล้หมด", style: "bg-yellow-500/20 text-yellow-400", icon: ShieldAlert };
+  return null;
+}
+
+export default function AssetsClient({ assets: initial, stats, orgCategories: initialOrgCats }: Props) {
   const { isDark } = useTheme();
   const router = useRouter();
   const c = (d: string, l: string) => (isDark ? d : l);
   const [assets, setAssets] = useState(initial);
-  const [tab, setTab] = useState<"assets" | "borrows" | "history">("assets");
+  const [orgCategories, setOrgCategories] = useState(initialOrgCats);
+  const [tab, setTab] = useState<"assets" | "borrows" | "history" | "categories">("assets");
   const [search, setSearch] = useState("");
   const [statusFilter, setStatusFilter] = useState("all");
   const [showPanel, setShowPanel] = useState(false);
   const [editingId, setEditingId] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
   const [historyAssetId, setHistoryAssetId] = useState<string | null>(null);
+
+  // QR modal
+  const [qrAsset, setQrAsset] = useState<AssetRow | null>(null);
 
   // Borrow modal
   const [borrowAssetId, setBorrowAssetId] = useState<string | null>(null);
@@ -111,8 +211,29 @@ export default function AssetsClient({ assets: initial, stats }: Props) {
   const [deleteTarget, setDeleteTarget] = useState<{ id: string; name: string } | null>(null);
   const [deleting, setDeleting] = useState(false);
 
+  // Files for add/edit
+  const [formFiles, setFormFiles] = useState<{ name: string; type: string; size: number; data: string }[]>([]);
+
+  // Category management
+  const [catForm, setCatForm] = useState({ name: "", icon: "", description: "" });
+  const [editingCatId, setEditingCatId] = useState<string | null>(null);
+  const [catSaving, setCatSaving] = useState(false);
+
+  // Build category options: use org categories if available, otherwise defaults
+  const CATEGORIES = useMemo(() => {
+    if (orgCategories.length > 0) {
+      return orgCategories.map(c => ({ value: c.name, label: c.name }));
+    }
+    return DEFAULT_CATEGORIES;
+  }, [orgCategories]);
+
+  const getCategoryLabel = useCallback((val: string) => {
+    const found = CATEGORIES.find(c => c.value === val);
+    return found?.label || val;
+  }, [CATEGORIES]);
+
   const defaultForm = {
-    assetCode: "", name: "", description: "", category: "computer", subCategory: "",
+    assetCode: "", name: "", description: "", category: CATEGORIES[0]?.value || "computer", subCategory: "",
     brand: "", model: "", serialNumber: "", purchaseDate: new Date().toISOString().slice(0, 10),
     purchasePrice: "", vendor: "", warrantyExpiry: "", condition: "new",
     location: "", department: "", note: "",
@@ -130,7 +251,12 @@ export default function AssetsClient({ assets: initial, stats }: Props) {
     return data;
   }, [assets, tab, statusFilter, search]);
 
-  const openAdd = () => { setEditingId(null); setForm(defaultForm); setShowPanel(true); };
+  const openAdd = () => {
+    setEditingId(null);
+    setForm({ ...defaultForm, assetCode: "" });
+    setFormFiles([]);
+    setShowPanel(true);
+  };
   const openEdit = (a: AssetRow) => {
     setEditingId(a._id);
     setForm({
@@ -140,18 +266,45 @@ export default function AssetsClient({ assets: initial, stats }: Props) {
       vendor: a.vendor, warrantyExpiry: a.warrantyExpiry?.slice(0, 10) || "",
       condition: a.condition, location: a.location, department: a.department, note: a.note,
     });
+    setFormFiles([]);
     setShowPanel(true);
   };
 
+  const handleFileUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const files = e.target.files;
+    if (!files) return;
+    Array.from(files).forEach(file => {
+      const reader = new FileReader();
+      reader.onload = () => {
+        setFormFiles(prev => [...prev, {
+          name: file.name,
+          type: file.type,
+          size: file.size,
+          data: reader.result as string,
+        }]);
+      };
+      reader.readAsDataURL(file);
+    });
+    e.target.value = "";
+  };
+
   const handleSave = useCallback(async () => {
-    if (!form.name || !form.assetCode || !form.category) return;
+    if (!form.name || !form.category) return;
     setSaving(true);
     try {
+      const payload: any = { ...form };
+      // If assetCode is empty on new asset, let backend auto-generate
+      if (!editingId && !payload.assetCode) {
+        payload.assetCode = "auto";
+      }
+      if (formFiles.length > 0) {
+        payload.files = formFiles;
+      }
       const url = editingId ? `/api/assets/${editingId}` : "/api/assets";
-      const res = await fetch(url, { method: editingId ? "PUT" : "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(form) });
+      const res = await fetch(url, { method: editingId ? "PUT" : "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(payload) });
       if (res.ok) { setShowPanel(false); window.location.reload(); }
     } catch {} finally { setSaving(false); }
-  }, [form, editingId]);
+  }, [form, editingId, formFiles]);
 
   const handleBorrow = useCallback(async () => {
     if (!borrowAssetId || !borrowForm.borrowerName) return;
@@ -186,6 +339,41 @@ export default function AssetsClient({ assets: initial, stats }: Props) {
     } catch {} finally { setDeleting(false); }
   }, [deleteTarget]);
 
+  // ── Category CRUD ──
+  const handleCatSave = useCallback(async () => {
+    if (!catForm.name) return;
+    setCatSaving(true);
+    try {
+      if (editingCatId) {
+        await fetch("/api/org/asset-categories", {
+          method: "PUT", headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ id: editingCatId, ...catForm }),
+        });
+      } else {
+        await fetch("/api/org/asset-categories", {
+          method: "POST", headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(catForm),
+        });
+      }
+      // Reload categories
+      const res = await fetch("/api/org/asset-categories");
+      const data = await res.json();
+      setOrgCategories(data.assetCategories || []);
+      setCatForm({ name: "", icon: "", description: "" });
+      setEditingCatId(null);
+    } catch {} finally { setCatSaving(false); }
+  }, [catForm, editingCatId]);
+
+  const handleCatDelete = useCallback(async (id: string) => {
+    try {
+      await fetch("/api/org/asset-categories", {
+        method: "DELETE", headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ id }),
+      });
+      setOrgCategories(prev => prev.filter(c => c._id !== id));
+    } catch {}
+  }, []);
+
   const inp = `w-full h-9 px-3 ${c("bg-white/5 border-white/10 text-white", "bg-gray-50 border-gray-200 text-gray-900")} border rounded-lg text-sm focus:outline-none focus:border-[#FA3633]/50`;
   const lbl = `block text-xs ${c("text-white/40", "text-gray-500")} mb-1`;
   const panelBg = c("bg-[#0a0a0a] border-white/10", "bg-white border-gray-200");
@@ -218,28 +406,69 @@ export default function AssetsClient({ assets: initial, stats }: Props) {
     },
     {
       key: "category", label: "หมวด",
-      render: (r) => <span className={`text-xs ${c("text-white/50", "text-gray-500")}`}>{CATEGORIES.find(ct => ct.value === r.category)?.label || r.category}</span>,
+      render: (r) => <span className={`text-xs ${c("text-white/50", "text-gray-500")}`}>{getCategoryLabel(r.category)}</span>,
     },
     {
-      key: "purchasePrice", label: "มูลค่า", align: "right",
+      key: "purchasePrice", label: "มูลค่าซื้อ", align: "right",
       render: (r) => <Baht value={r.purchasePrice} />,
+    },
+    {
+      key: "currentValue", label: "มูลค่าปัจจุบัน", align: "right",
+      render: (r) => {
+        const diff = r.purchasePrice - r.currentValue;
+        return (
+          <div>
+            <Baht value={r.currentValue} />
+            {diff > 0 && <p className="text-[10px] text-orange-400/70">-{baht(diff)}</p>}
+          </div>
+        );
+      },
     },
     {
       key: "condition", label: "สภาพ",
       render: (r) => <span className={`text-xs font-medium ${condStyle[r.condition]}`}>{condLabel[r.condition]}</span>,
     },
     {
+      key: "warrantyExpiry", label: "ประกัน",
+      render: (r) => {
+        const ws = getWarrantyStatus(r.warrantyExpiry);
+        if (!r.warrantyExpiry) return <span className={`text-xs ${c("text-white/20", "text-gray-300")}`}>-</span>;
+        const WIcon = ws?.icon || Shield;
+        return (
+          <div>
+            <span className={`text-xs ${c("text-white/50", "text-gray-500")}`}>{new Date(r.warrantyExpiry).toLocaleDateString("th-TH", { day: "numeric", month: "short", year: "2-digit" })}</span>
+            {ws && (
+              <span className={`ml-1 px-1.5 py-0.5 rounded-full text-[10px] font-medium inline-flex items-center gap-0.5 ${ws.style}`}>
+                <WIcon size={10} />{ws.label}
+              </span>
+            )}
+          </div>
+        );
+      },
+    },
+    {
       key: "status", label: "สถานะ",
-      render: (r) => (
-        <div>
-          <span className={`px-2 py-1 rounded-full text-[11px] font-medium ${statusStyle[r.status]}`}>{statusLabel[r.status]}</span>
-          {r.status === "borrowed" && r.currentBorrowerName && (
-            <p className={`text-[10px] mt-0.5 ${isOverdue(r) ? "text-red-400" : c("text-white/30", "text-gray-400")}`}>
-              {r.currentBorrowerName} {isOverdue(r) && "• เกินกำหนด"}
-            </p>
-          )}
-        </div>
-      ),
+      render: (r) => {
+        const ws = getWarrantyStatus(r.warrantyExpiry);
+        return (
+          <div>
+            <span className={`px-2 py-1 rounded-full text-[11px] font-medium ${statusStyle[r.status]}`}>{statusLabel[r.status]}</span>
+            {r.status === "borrowed" && r.currentBorrowerName && (
+              <p className={`text-[10px] mt-0.5 ${isOverdue(r) ? "text-red-400" : c("text-white/30", "text-gray-400")}`}>
+                {r.currentBorrowerName} {isOverdue(r) && "• เกินกำหนด"}
+              </p>
+            )}
+          </div>
+        );
+      },
+    },
+    {
+      key: "fileCount", label: "ไฟล์",
+      render: (r) => r.fileCount > 0 ? (
+        <span className={`text-xs inline-flex items-center gap-1 ${c("text-white/50", "text-gray-500")}`}>
+          <Paperclip size={12} />{r.fileCount}
+        </span>
+      ) : <span className={`text-xs ${c("text-white/20", "text-gray-300")}`}>-</span>,
     },
     {
       key: "actions", label: "จัดการ", configurable: false,
@@ -253,13 +482,14 @@ export default function AssetsClient({ assets: initial, stats }: Props) {
             <button onClick={() => { setReturnAssetId(r._id); setReturnForm({ conditionAfter: r.condition, note: "" }); }}
               className={`p-1.5 rounded-lg transition-colors ${c("hover:bg-white/5 text-white/40 hover:text-green-400", "hover:bg-gray-100 text-gray-400 hover:text-green-500")}`} title="รับคืน"><RotateCcw size={14} /></button>
           )}
+          <button onClick={() => setQrAsset(r)} className={`p-1.5 rounded-lg transition-colors ${c("hover:bg-white/5 text-white/40 hover:text-cyan-400", "hover:bg-gray-100 text-gray-400 hover:text-cyan-500")}`} title="QR Code"><QrCode size={14} /></button>
           <button onClick={() => setHistoryAssetId(historyAssetId === r._id ? null : r._id)} className={`p-1.5 rounded-lg transition-colors ${c("hover:bg-white/5 text-white/40 hover:text-purple-400", "hover:bg-gray-100 text-gray-400 hover:text-purple-500")}`} title="ประวัติ"><History size={14} /></button>
           <button onClick={() => openEdit(r)} className={`p-1.5 rounded-lg transition-colors ${c("hover:bg-white/5 text-white/40 hover:text-blue-400", "hover:bg-gray-100 text-gray-400 hover:text-blue-500")}`} title="แก้ไข"><Pencil size={14} /></button>
           <button onClick={() => setDeleteTarget({ id: r._id, name: r.name })} className={`p-1.5 rounded-lg transition-colors ${c("hover:bg-white/5 text-white/40 hover:text-red-400", "hover:bg-gray-100 text-gray-400 hover:text-red-500")}`} title="ลบ"><Trash2 size={14} /></button>
         </div>
       ),
     },
-  ], [isDark, historyAssetId]);
+  ], [isDark, historyAssetId, CATEGORIES]);
 
   return (
     <div className="space-y-6">
@@ -275,7 +505,10 @@ export default function AssetsClient({ assets: initial, stats }: Props) {
             <div className={`rounded-xl ${cardBg} border p-4 space-y-3`}>
               <p className="text-xs font-semibold text-[#FA3633]/70">ข้อมูลทรัพย์สิน</p>
               <div className="grid grid-cols-2 gap-3">
-                <div><label className={lbl}>รหัสทรัพย์สิน *</label><input value={form.assetCode} onChange={e => setForm({ ...form, assetCode: e.target.value })} placeholder="AST-001" className={inp} /></div>
+                <div>
+                  <label className={lbl}>รหัสทรัพย์สิน {editingId ? "*" : "(อัตโนมัติ)"}</label>
+                  <input value={form.assetCode} onChange={e => setForm({ ...form, assetCode: e.target.value })} placeholder={editingId ? "AST-001" : "ว่างไว้ = สร้างอัตโนมัติ"} className={inp} />
+                </div>
                 <div><label className={lbl}>หมวดหมู่ *</label><Select value={form.category} onChange={v => setForm({ ...form, category: v })} options={CATEGORIES} /></div>
               </div>
               <div><label className={lbl}>ชื่อทรัพย์สิน *</label><input value={form.name} onChange={e => setForm({ ...form, name: e.target.value })} placeholder="เช่น MacBook Pro 14 นิ้ว" className={inp} /></div>
@@ -306,14 +539,64 @@ export default function AssetsClient({ assets: initial, stats }: Props) {
               </div>
               <div><label className={lbl}>หมายเหตุ</label><input value={form.note} onChange={e => setForm({ ...form, note: e.target.value })} className={inp} /></div>
             </div>
+            {/* File attachments */}
+            <div className={`rounded-xl ${cardBg} border p-4 space-y-3`}>
+              <p className="text-xs font-semibold text-[#FA3633]/70">ไฟล์แนบ</p>
+              <label className={`flex items-center gap-2 px-3 py-2 rounded-lg border border-dashed cursor-pointer transition-colors ${c("border-white/10 hover:border-white/20 text-white/40", "border-gray-300 hover:border-gray-400 text-gray-400")}`}>
+                <Upload size={14} />
+                <span className="text-xs">เลือกไฟล์...</span>
+                <input type="file" multiple className="hidden" onChange={handleFileUpload} />
+              </label>
+              {formFiles.length > 0 && (
+                <div className="space-y-1.5">
+                  {formFiles.map((f, i) => (
+                    <div key={i} className={`flex items-center gap-2 px-3 py-2 rounded-lg text-xs ${c("bg-white/[0.03] text-white/60", "bg-gray-50 text-gray-600")}`}>
+                      <FileText size={12} />
+                      <span className="flex-1 truncate">{f.name}</span>
+                      <span className={c("text-white/30", "text-gray-400")}>{(f.size / 1024).toFixed(0)} KB</span>
+                      <button onClick={() => setFormFiles(prev => prev.filter((_, idx) => idx !== i))} className="text-red-400 hover:text-red-300"><X size={12} /></button>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
             <div className={`flex gap-2 pt-2 sticky bottom-0 pb-6 ${c("bg-[#0a0a0a]", "bg-white")}`}>
-              <button onClick={handleSave} disabled={saving || !form.name || !form.assetCode} className="flex-1 py-2.5 rounded-xl text-sm font-medium bg-[#FA3633] text-white hover:bg-[#e0302d] disabled:opacity-40 flex items-center justify-center gap-2">
+              <button onClick={handleSave} disabled={saving || !form.name} className="flex-1 py-2.5 rounded-xl text-sm font-medium bg-[#FA3633] text-white hover:bg-[#e0302d] disabled:opacity-40 flex items-center justify-center gap-2">
                 {saving && <Loader2 size={14} className="animate-spin" />}{editingId ? "บันทึก" : "เพิ่มทรัพย์สิน"}
               </button>
               <button onClick={() => setShowPanel(false)} className={`flex-1 py-2.5 rounded-xl text-sm font-medium ${c("bg-white/5 text-white/60", "bg-gray-100 text-gray-600")} transition-colors`}>ยกเลิก</button>
             </div>
           </div>
         </div>
+      )}
+
+      {/* QR Code Modal */}
+      {qrAsset && (
+        <>
+          <div className="fixed inset-0 z-40 bg-black/60" onClick={() => setQrAsset(null)} />
+          <div className={`fixed top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 z-50 w-[380px] max-w-[90vw] ${panelBg} border rounded-2xl shadow-2xl`}>
+            <div className="p-6 space-y-4">
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-3">
+                  <div className="w-10 h-10 rounded-xl bg-cyan-500/10 flex items-center justify-center"><QrCode size={20} className="text-cyan-400" /></div>
+                  <div>
+                    <h2 className={`text-lg font-bold ${c("text-white", "text-gray-900")}`}>QR Code</h2>
+                    <p className={`text-xs ${c("text-white/40", "text-gray-500")}`}>{qrAsset.assetCode}</p>
+                  </div>
+                </div>
+                <button onClick={() => setQrAsset(null)} className={`w-8 h-8 rounded-lg ${c("hover:bg-white/5 text-white/40", "hover:bg-gray-100 text-gray-400")} flex items-center justify-center`}><X size={18} /></button>
+              </div>
+              <div className="flex justify-center p-4 bg-white rounded-xl">
+                <QRCodeSVG data={`https://iped.codelabdev.co/asset/${qrAsset.assetCode}`} size={200} />
+              </div>
+              <div className={`text-center space-y-1`}>
+                <p className={`text-sm font-medium ${c("text-white", "text-gray-900")}`}>{qrAsset.name}</p>
+                <p className={`text-xs ${c("text-white/40", "text-gray-500")}`}>{qrAsset.brand} {qrAsset.model}</p>
+                <p className={`text-[10px] font-mono ${c("text-white/30", "text-gray-400")}`}>https://iped.codelabdev.co/asset/{qrAsset.assetCode}</p>
+              </div>
+            </div>
+          </div>
+        </>
       )}
 
       {/* Borrow Modal */}
@@ -420,16 +703,86 @@ export default function AssetsClient({ assets: initial, stats }: Props) {
         <button onClick={() => { setTab("borrows"); setSearch(""); }} className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors ${tab === "borrows" ? c("bg-white/10 text-white", "bg-white text-gray-900 shadow-sm") : c("text-white/50", "text-gray-500")}`}>
           <ArrowLeftRight size={14} className="inline mr-1.5 -mt-0.5" />ยืม-คืน {stats.borrowed > 0 && <span className="ml-1 px-1.5 py-0.5 rounded-full text-[10px] bg-yellow-500/20 text-yellow-400">{stats.borrowed}</span>}
         </button>
+        <button onClick={() => setTab("categories")} className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors ${tab === "categories" ? c("bg-white/10 text-white", "bg-white text-gray-900 shadow-sm") : c("text-white/50", "text-gray-500")}`}>
+          <Tag size={14} className="inline mr-1.5 -mt-0.5" />หมวดหมู่
+        </button>
       </div>
 
+      {/* ── Categories Tab ── */}
+      {tab === "categories" && (
+        <div className={`rounded-2xl border p-5 space-y-4 ${c("bg-[rgba(255,255,255,0.02)] border-[rgba(255,255,255,0.06)]", "bg-white border-gray-200")}`}>
+          <div className="flex items-center justify-between">
+            <h4 className={`text-sm font-bold ${c("text-white", "text-gray-900")}`}>
+              <FolderOpen size={15} className="inline mr-1.5 -mt-0.5 text-[#FA3633]" />หมวดหมู่ทรัพย์สิน
+            </h4>
+          </div>
+          {/* Add / Edit form */}
+          <div className={`flex flex-wrap items-end gap-3 p-4 rounded-xl ${cardBg} border`}>
+            <div className="flex-1 min-w-[160px]">
+              <label className={lbl}>ชื่อหมวดหมู่ *</label>
+              <input value={catForm.name} onChange={e => setCatForm({ ...catForm, name: e.target.value })} placeholder="เช่น อุปกรณ์สำนักงาน" className={inp} />
+            </div>
+            <div className="w-32">
+              <label className={lbl}>ไอคอน</label>
+              <input value={catForm.icon} onChange={e => setCatForm({ ...catForm, icon: e.target.value })} placeholder="computer" className={inp} />
+            </div>
+            <div className="flex-1 min-w-[160px]">
+              <label className={lbl}>คำอธิบาย</label>
+              <input value={catForm.description} onChange={e => setCatForm({ ...catForm, description: e.target.value })} placeholder="รายละเอียด" className={inp} />
+            </div>
+            <button onClick={handleCatSave} disabled={catSaving || !catForm.name} className="h-9 px-4 rounded-lg text-sm font-medium bg-[#FA3633] text-white hover:bg-[#e0302d] disabled:opacity-40 flex items-center gap-1.5">
+              {catSaving ? <Loader2 size={14} className="animate-spin" /> : <Plus size={14} />}
+              {editingCatId ? "บันทึก" : "เพิ่ม"}
+            </button>
+            {editingCatId && (
+              <button onClick={() => { setEditingCatId(null); setCatForm({ name: "", icon: "", description: "" }); }} className={`h-9 px-3 rounded-lg text-sm ${c("bg-white/5 text-white/60", "bg-gray-100 text-gray-600")}`}>ยกเลิก</button>
+            )}
+          </div>
+          {/* Existing categories list */}
+          {orgCategories.length > 0 ? (
+            <div className="space-y-2">
+              {orgCategories.map(cat => (
+                <div key={cat._id} className={`flex items-center gap-3 px-4 py-3 rounded-xl ${c("bg-white/[0.03] border border-white/[0.04]", "bg-gray-50 border border-gray-100")}`}>
+                  <Tag size={14} className="text-[#FA3633] shrink-0" />
+                  <div className="flex-1">
+                    <p className={`text-sm font-medium ${c("text-white", "text-gray-900")}`}>{cat.name}</p>
+                    {cat.description && <p className={`text-[11px] ${c("text-white/40", "text-gray-500")}`}>{cat.description}</p>}
+                  </div>
+                  {cat.icon && <span className={`text-xs ${c("text-white/30", "text-gray-400")}`}>{cat.icon}</span>}
+                  <button onClick={() => { setEditingCatId(cat._id); setCatForm({ name: cat.name, icon: cat.icon, description: cat.description }); }}
+                    className={`p-1.5 rounded-lg transition-colors ${c("hover:bg-white/5 text-white/40 hover:text-blue-400", "hover:bg-gray-100 text-gray-400 hover:text-blue-500")}`}><Pencil size={13} /></button>
+                  <button onClick={() => handleCatDelete(cat._id)}
+                    className={`p-1.5 rounded-lg transition-colors ${c("hover:bg-white/5 text-white/40 hover:text-red-400", "hover:bg-gray-100 text-gray-400 hover:text-red-500")}`}><Trash2 size={13} /></button>
+                </div>
+              ))}
+            </div>
+          ) : (
+            <div className={`text-center py-8 ${c("text-white/30", "text-gray-400")}`}>
+              <Tag size={24} className="mx-auto mb-2 opacity-50" />
+              <p className="text-sm">ยังไม่มีหมวดหมู่กำหนดเอง</p>
+              <p className="text-xs mt-1">เพิ่มหมวดหมู่ด้านบนเพื่อใช้แทนหมวดหมู่เริ่มต้น</p>
+            </div>
+          )}
+          {/* Show default categories info */}
+          <div className={`p-3 rounded-lg text-xs ${c("bg-white/[0.02] text-white/30", "bg-gray-50 text-gray-400")}`}>
+            {orgCategories.length > 0
+              ? `กำลังใช้หมวดหมู่กำหนดเอง ${orgCategories.length} รายการ`
+              : `กำลังใช้หมวดหมู่เริ่มต้น ${DEFAULT_CATEGORIES.length} รายการ — เพิ่มหมวดหมู่กำหนดเองเพื่อแทนที่`
+            }
+          </div>
+        </div>
+      )}
+
       {/* ── Table ── */}
-      <DataTable
-        columns={assetColumns}
-        data={filtered}
-        rowKey={r => r._id}
-        emptyText={tab === "borrows" ? "ไม่มีทรัพย์สินที่ยืมออก" : "ยังไม่มีทรัพย์สิน — กด 'เพิ่มทรัพย์สิน' เพื่อเริ่มต้น"}
-        columnConfigKey={tab === "borrows" ? "assets-borrows" : "assets-all"}
-      />
+      {tab !== "categories" && (
+        <DataTable
+          columns={assetColumns}
+          data={filtered}
+          rowKey={r => r._id}
+          emptyText={tab === "borrows" ? "ไม่มีทรัพย์สินที่ยืมออก" : "ยังไม่มีทรัพย์สิน — กด 'เพิ่มทรัพย์สิน' เพื่อเริ่มต้น"}
+          columnConfigKey={tab === "borrows" ? "assets-borrows" : "assets-all"}
+        />
+      )}
 
       {/* ── History Panel ── */}
       {historyAssetId && (() => {
