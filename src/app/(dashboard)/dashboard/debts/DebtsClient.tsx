@@ -6,7 +6,7 @@ import { useTheme } from "@/contexts/ThemeContext";
 import {
   Landmark, CircleDollarSign, CheckCircle, AlertTriangle, Clock, Plus,
   Search, Pencil, Trash2, X, Loader2, Banknote, CreditCard, History,
-  Building2, User, FileText, ChevronDown, ChevronUp,
+  Building2, User, FileText, ChevronDown, ChevronUp, Paperclip, Upload,
 } from "lucide-react";
 import PageHeader from "@/components/dashboard/PageHeader";
 import StatsCard from "@/components/dashboard/StatsCard";
@@ -15,8 +15,13 @@ import Select from "@/components/dashboard/Select";
 import DatePicker from "@/components/dashboard/DatePicker";
 import Baht from "@/components/dashboard/Baht";
 
+interface DebtFile {
+  _id: string; name: string; type: string; size: number; uploadedAt: string;
+}
+
 interface Payment {
-  _id: string; date: string; amount: number; principal: number; interest: number; note: string;
+  _id: string; date: string; amount: number; principal: number; interest: number;
+  paymentType: string; note: string; files: DebtFile[];
 }
 
 interface DebtRow {
@@ -24,7 +29,7 @@ interface DebtRow {
   originalAmount: number; remainingBalance: number; interestRate: number; interestType: string;
   monthlyPayment: number; startDate: string; dueDate: string;
   contractNumber: string; collateral: string; guarantor: string; bankAccount: string;
-  totalPaid: number; totalInterestPaid: number; paymentsCount: number;
+  totalPaid: number; totalInterestPaid: number; paymentsCount: number; filesCount: number;
   payments: Payment[]; status: string; note: string; createdAt: string;
 }
 
@@ -66,8 +71,18 @@ const creditorIcon: Record<string, typeof Landmark> = {
   bank: Landmark, company: Building2, personal: User, government: FileText, other: CreditCard,
 };
 
+const PAYMENT_TYPES = [
+  { value: "installment", label: "ผ่อนชำระ (งวด)" }, { value: "lump-sum", label: "ชำระครั้งเดียว" },
+  { value: "interest-only", label: "จ่ายเฉพาะดอกเบี้ย" }, { value: "partial", label: "ชำระบางส่วน" },
+  { value: "other", label: "อื่นๆ" },
+];
+const payTypeLabel: Record<string, string> = {
+  installment: "ผ่อนงวด", "lump-sum": "ชำระครบ", "interest-only": "เฉพาะดอก", partial: "บางส่วน", other: "อื่นๆ",
+};
+
 function baht(n: number) { return `฿${n.toLocaleString("th-TH", { minimumFractionDigits: 0 })}`; }
 function pct(n: number) { return `${n.toFixed(2)}%`; }
+function fmtSize(bytes: number) { return bytes > 1048576 ? `${(bytes / 1048576).toFixed(1)} MB` : `${(bytes / 1024).toFixed(0)} KB`; }
 
 export default function DebtsClient({ debts: initial, stats }: Props) {
   const { isDark } = useTheme();
@@ -81,9 +96,29 @@ export default function DebtsClient({ debts: initial, stats }: Props) {
   const [saving, setSaving] = useState(false);
   const [expandedId, setExpandedId] = useState<string | null>(null);
 
+  // File upload
+  const [formFiles, setFormFiles] = useState<{ name: string; type: string; size: number; data: string }[]>([]);
+  const [payFiles, setPayFiles] = useState<{ name: string; type: string; size: number; data: string }[]>([]);
+  const handleFileSelect = (e: React.ChangeEvent<HTMLInputElement>, target: "form" | "pay") => {
+    const files = e.target.files;
+    if (!files) return;
+    Array.from(files).forEach(file => {
+      if (file.size > 10 * 1024 * 1024) return; // 10MB limit
+      const reader = new FileReader();
+      reader.onload = () => {
+        const base64 = (reader.result as string).split(",")[1];
+        const entry = { name: file.name, type: file.type, size: file.size, data: base64 };
+        if (target === "form") setFormFiles(prev => [...prev, entry]);
+        else setPayFiles(prev => [...prev, entry]);
+      };
+      reader.readAsDataURL(file);
+    });
+    e.target.value = "";
+  };
+
   // Payment modal
   const [payDebtId, setPayDebtId] = useState<string | null>(null);
-  const [payForm, setPayForm] = useState({ amount: "", interest: "", date: new Date().toISOString().slice(0, 10), note: "" });
+  const [payForm, setPayForm] = useState({ amount: "", interest: "", paymentType: "installment", date: new Date().toISOString().slice(0, 10), note: "" });
   const [paying, setPaying] = useState(false);
 
   // Delete confirm
@@ -108,7 +143,7 @@ export default function DebtsClient({ debts: initial, stats }: Props) {
     return data;
   }, [debts, statusFilter, search]);
 
-  const openAdd = () => { setEditingId(null); setForm(defaultForm); setShowPanel(true); };
+  const openAdd = () => { setEditingId(null); setForm(defaultForm); setFormFiles([]); setShowPanel(true); };
   const openEdit = (d: DebtRow) => {
     setEditingId(d._id);
     setForm({
@@ -128,7 +163,7 @@ export default function DebtsClient({ debts: initial, stats }: Props) {
     try {
       const url = editingId ? `/api/debts/${editingId}` : "/api/debts";
       const method = editingId ? "PUT" : "POST";
-      const res = await fetch(url, { method, headers: { "Content-Type": "application/json" }, body: JSON.stringify(form) });
+      const res = await fetch(url, { method, headers: { "Content-Type": "application/json" }, body: JSON.stringify({ ...form, files: formFiles }) });
       if (res.ok) { router.refresh(); setShowPanel(false); window.location.reload(); }
     } catch {} finally { setSaving(false); }
   }, [form, editingId, router]);
@@ -139,7 +174,7 @@ export default function DebtsClient({ debts: initial, stats }: Props) {
     try {
       const res = await fetch(`/api/debts/${payDebtId}`, {
         method: "PUT", headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ action: "payment", amount: Number(payForm.amount), interest: Number(payForm.interest) || 0, date: payForm.date, note: payForm.note }),
+        body: JSON.stringify({ action: "payment", amount: Number(payForm.amount), interest: Number(payForm.interest) || 0, paymentType: payForm.paymentType, date: payForm.date, note: payForm.note, files: payFiles }),
       });
       if (res.ok) { setPayDebtId(null); window.location.reload(); }
     } catch {} finally { setPaying(false); }
@@ -231,7 +266,7 @@ export default function DebtsClient({ debts: initial, stats }: Props) {
       render: (r) => (
         <div className="flex items-center gap-0.5" onClick={e => e.stopPropagation()}>
           {r.status === "active" && (
-            <button onClick={() => { setPayDebtId(r._id); setPayForm({ amount: String(r.monthlyPayment || ""), interest: "", date: new Date().toISOString().slice(0, 10), note: "" }); }}
+            <button onClick={() => { setPayDebtId(r._id); setPayForm({ amount: String(r.monthlyPayment || ""), interest: "", paymentType: "installment", date: new Date().toISOString().slice(0, 10), note: "" }); setPayFiles([]); }}
               className={`p-1.5 rounded-lg transition-colors ${c("hover:bg-white/5 text-white/40 hover:text-green-400", "hover:bg-gray-100 text-gray-400 hover:text-green-500")}`} title="บันทึกชำระ">
               <Banknote size={14} />
             </button>
@@ -294,6 +329,31 @@ export default function DebtsClient({ debts: initial, stats }: Props) {
               <div><label className={lbl}>หมายเหตุ</label><input value={form.note} onChange={e => setForm({ ...form, note: e.target.value })} placeholder="หมายเหตุเพิ่มเติม" className={inp} /></div>
             </div>
 
+            {/* Files */}
+            <div className={`rounded-xl ${cardBg} border p-4 space-y-3`}>
+              <p className="text-xs font-semibold text-[#FA3633]/70">เอกสารแนบ</p>
+              <label className={`flex items-center justify-center gap-2 py-3 rounded-xl border-2 border-dashed cursor-pointer transition-colors ${c("border-white/10 hover:border-white/20 text-white/40", "border-gray-200 hover:border-gray-300 text-gray-400")}`}>
+                <Upload size={16} />
+                <span className="text-xs">คลิกเพื่อแนบไฟล์ (สลิป, สัญญา, เอกสาร)</span>
+                <input type="file" multiple accept="image/*,.pdf,.doc,.docx,.xls,.xlsx" onChange={e => handleFileSelect(e, "form")} className="hidden" />
+              </label>
+              {formFiles.length > 0 && (
+                <div className="space-y-1.5">
+                  {formFiles.map((f, i) => (
+                    <div key={i} className={`flex items-center justify-between p-2 rounded-lg ${c("bg-white/[0.03]", "bg-gray-50")}`}>
+                      <div className="flex items-center gap-2">
+                        <Paperclip size={13} className={c("text-white/40", "text-gray-400")} />
+                        <span className={`text-xs truncate max-w-[200px] ${c("text-white/70", "text-gray-600")}`}>{f.name}</span>
+                        <span className={`text-[10px] ${c("text-white/30", "text-gray-400")}`}>{fmtSize(f.size)}</span>
+                      </div>
+                      <button onClick={() => setFormFiles(prev => prev.filter((_, j) => j !== i))} className={`p-1 rounded ${c("hover:bg-white/5 text-white/30", "hover:bg-gray-100 text-gray-400")}`}><X size={12} /></button>
+                    </div>
+                  ))}
+                </div>
+              )}
+              <p className={`text-[10px] ${c("text-white/20", "text-gray-400")}`}>รองรับ: รูปภาพ, PDF, Word, Excel (สูงสุด 10MB/ไฟล์)</p>
+            </div>
+
             <div className={`flex gap-2 pt-2 sticky bottom-0 pb-6 ${c("bg-[#0a0a0a]", "bg-white")}`}>
               <button onClick={handleSave} disabled={saving || !form.creditor || !form.originalAmount || !form.dueDate} className="flex-1 py-2.5 rounded-xl text-sm font-medium bg-[#FA3633] text-white hover:bg-[#e0302d] transition-colors disabled:opacity-40 flex items-center justify-center gap-2">
                 {saving && <Loader2 size={14} className="animate-spin" />}{editingId ? "บันทึก" : "เพิ่มหนี้สิน"}
@@ -314,10 +374,23 @@ export default function DebtsClient({ debts: initial, stats }: Props) {
                 <div className="w-10 h-10 rounded-xl bg-green-500/10 flex items-center justify-center"><Banknote size={20} className="text-green-400" /></div>
                 <h2 className={`text-lg font-bold ${c("text-white", "text-gray-900")}`}>บันทึกการชำระ</h2>
               </div>
+              <div><label className={lbl}>ประเภทการชำระ</label><Select value={payForm.paymentType} onChange={v => setPayForm({ ...payForm, paymentType: v })} options={PAYMENT_TYPES} /></div>
               <div><label className={lbl}>ยอดชำระ (฿) *</label><input type="number" value={payForm.amount} onChange={e => setPayForm({ ...payForm, amount: e.target.value })} placeholder="0" className={inp} autoFocus /></div>
               <div><label className={lbl}>ส่วนที่เป็นดอกเบี้ย (฿)</label><input type="number" value={payForm.interest} onChange={e => setPayForm({ ...payForm, interest: e.target.value })} placeholder="0" className={inp} /></div>
               <div><label className={lbl}>วันที่ชำระ</label><DatePicker value={payForm.date} onChange={v => setPayForm({ ...payForm, date: v })} /></div>
               <div><label className={lbl}>หมายเหตุ</label><input value={payForm.note} onChange={e => setPayForm({ ...payForm, note: e.target.value })} placeholder="เช่น งวดที่ 12" className={inp} /></div>
+              <div>
+                <label className={`flex items-center justify-center gap-2 py-2.5 rounded-xl border-2 border-dashed cursor-pointer transition-colors ${c("border-white/10 hover:border-white/20 text-white/40", "border-gray-200 hover:border-gray-300 text-gray-400")}`}>
+                  <Paperclip size={14} /><span className="text-xs">แนบสลิป/หลักฐานการชำระ</span>
+                  <input type="file" multiple accept="image/*,.pdf" onChange={e => handleFileSelect(e, "pay")} className="hidden" />
+                </label>
+                {payFiles.length > 0 && <div className="mt-2 space-y-1">{payFiles.map((f, i) => (
+                  <div key={i} className={`flex items-center justify-between p-1.5 rounded-lg text-xs ${c("bg-white/[0.03] text-white/50", "bg-gray-50 text-gray-500")}`}>
+                    <span className="flex items-center gap-1.5 truncate"><Paperclip size={11} />{f.name}</span>
+                    <button onClick={() => setPayFiles(prev => prev.filter((_, j) => j !== i))} className="p-0.5"><X size={11} /></button>
+                  </div>
+                ))}</div>}
+              </div>
               <div className="flex gap-2 pt-2">
                 <button onClick={handlePayment} disabled={paying || !payForm.amount} className="flex-1 py-2.5 rounded-xl text-sm font-medium bg-green-500 text-white hover:bg-green-600 transition-colors disabled:opacity-40 flex items-center justify-center gap-2">
                   {paying && <Loader2 size={14} className="animate-spin" />}บันทึกชำระ
@@ -408,7 +481,9 @@ export default function DebtsClient({ debts: initial, stats }: Props) {
                     </div>
                     <div className="text-right">
                       <span className="text-sm font-medium text-green-400">{baht(p.amount)}</span>
+                      <span className={`text-[10px] ml-1.5 px-1.5 py-0.5 rounded-full ${c("bg-white/[0.06] text-white/40", "bg-gray-100 text-gray-500")}`}>{payTypeLabel[p.paymentType] || "ผ่อนงวด"}</span>
                       <span className={`text-[10px] ml-2 ${c("text-white/30", "text-gray-400")}`}>เงินต้น {baht(p.principal)} | ดอกเบี้ย {baht(p.interest)}</span>
+                      {p.files && p.files.length > 0 && <span className={`text-[10px] ml-1.5 ${c("text-white/30", "text-gray-400")}`}><Paperclip size={10} className="inline -mt-0.5" /> {p.files.length}</span>}
                     </div>
                   </div>
                 ))}

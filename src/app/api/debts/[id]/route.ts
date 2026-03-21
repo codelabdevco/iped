@@ -27,8 +27,12 @@ export async function PUT(
         amount: paymentAmount,
         principal,
         interest,
+        paymentType: body.paymentType || "installment",
         note: body.note || "",
         receiptId: body.receiptId || "",
+        files: (body.files || []).map((f: any) => ({
+          name: f.name, type: f.type, size: f.size, data: f.data, uploadedAt: new Date(),
+        })),
       });
 
       debt.totalPaid = (debt.totalPaid || 0) + paymentAmount;
@@ -40,6 +44,18 @@ export async function PUT(
         debt.remainingBalance = 0;
       }
 
+      await debt.save();
+      return apiSuccess({ debt: { ...debt.toObject(), _id: String(debt._id) } });
+    }
+
+    // Add files to existing debt
+    if (body.action === "add-files" && body.files) {
+      const debt = await Debt.findById(id);
+      if (!debt) return apiError("ไม่พบข้อมูลหนี้", 404);
+      const newFiles = (body.files || []).map((f: any) => ({
+        name: f.name, type: f.type, size: f.size, data: f.data, uploadedAt: new Date(),
+      }));
+      debt.files.push(...newFiles);
       await debt.save();
       return apiSuccess({ debt: { ...debt.toObject(), _id: String(debt._id) } });
     }

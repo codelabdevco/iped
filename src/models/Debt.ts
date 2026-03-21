@@ -1,12 +1,22 @@
 import mongoose, { Schema, Document } from "mongoose";
 
+export interface IDebtFile {
+  name: string;
+  type: string;
+  size: number;
+  data: string; // base64
+  uploadedAt: Date;
+}
+
 export interface IDebtPayment {
   date: Date;
   amount: number;
   principal: number;
   interest: number;
+  paymentType: "installment" | "lump-sum" | "interest-only" | "partial" | "other";
   note?: string;
   receiptId?: string;
+  files?: IDebtFile[];
 }
 
 export interface IDebt extends Document {
@@ -29,19 +39,30 @@ export interface IDebt extends Document {
   payments: IDebtPayment[];
   totalPaid: number;
   totalInterestPaid: number;
+  files: IDebtFile[];
   status: "active" | "paid" | "overdue" | "restructured" | "defaulted" | "cancelled";
   note?: string;
   createdAt: Date;
   updatedAt: Date;
 }
 
+const DebtFileSchema = new Schema({
+  name: String,
+  type: String,
+  size: Number,
+  data: String,
+  uploadedAt: { type: Date, default: Date.now },
+}, { _id: true });
+
 const DebtPaymentSchema = new Schema({
   date: { type: Date, required: true },
   amount: { type: Number, required: true },
   principal: { type: Number, default: 0 },
   interest: { type: Number, default: 0 },
+  paymentType: { type: String, enum: ["installment", "lump-sum", "interest-only", "partial", "other"], default: "installment" },
   note: String,
   receiptId: String,
+  files: [DebtFileSchema],
 }, { _id: true });
 
 const DebtSchema = new Schema<IDebt>(
@@ -63,6 +84,7 @@ const DebtSchema = new Schema<IDebt>(
     guarantor: String,
     bankAccount: String,
     payments: [DebtPaymentSchema],
+    files: [DebtFileSchema],
     totalPaid: { type: Number, default: 0 },
     totalInterestPaid: { type: Number, default: 0 },
     status: { type: String, enum: ["active", "paid", "overdue", "restructured", "defaulted", "cancelled"], default: "active" },

@@ -49,6 +49,9 @@ export async function POST(request: NextRequest) {
       bankAccount: body.bankAccount || "",
       status: "active",
       note: body.note || "",
+      files: (body.files || []).map((f: any) => ({
+        name: f.name, type: f.type, size: f.size, data: f.data, uploadedAt: new Date(),
+      })),
     });
 
     return apiSuccess({ debt: { ...debt.toObject(), _id: String(debt._id) } }, 201);
