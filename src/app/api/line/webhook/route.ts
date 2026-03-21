@@ -65,7 +65,7 @@ async function getUserNameContext(lineUserId: string): Promise<string> {
     if (user.firstNameEn) names.push(`${user.firstNameEn} ${user.lastNameEn || ""}`.trim());
     if (user.name && !names.some(n => n.includes(user.name))) names.push(user.name);
     if (names.length === 0) return "";
-    return `\n\nIMPORTANT — The user's name is: ${names.join(" / ")}. Use this to determine income vs expense: if the user's name appears as the RECEIVER/ผู้รับ, it's INCOME. If the user's name appears as the SENDER/ผู้โอน, it's EXPENSE. Match any variation of their name (first name only, full name, Thai or English).`;
+    return `\n\nIMPORTANT — The user's name is: ${names.join(" / ")}. The user is the person who SENT this slip image, so they are most likely the PAYER/SENDER. For bank transfer slips: if the user's name appears as ผู้โอน/From/ต้นทาง → EXPENSE (they paid). Only mark as INCOME if the user's name explicitly appears as ผู้รับ/To/ปลายทาง AND the slip says เงินเข้า/received. When in doubt, default to EXPENSE. Use the merchant field for the OTHER party's name (the one the user paid to or received from).`;
   } catch { return ""; }
 }
 
@@ -90,7 +90,7 @@ If it IS a receipt/invoice/bill, extract and return ONLY this JSON:
   "categoryIcon": "emoji matching the category: 🍜อาหาร 🚗เดินทาง 🛒ช็อปปิ้ง 💡สาธารณูปโภค 🏠ของใช้ 🏥สุขภาพ 📚การศึกษา 🎬บันเทิง 🏨ที่พัก 💼ธุรกิจ 💰เงินเดือน 💻ฟรีแลนซ์ 🛍️ขายของ 📈ลงทุน 🎁โบนัส ↩️คืนเงิน ✈️ท่องเที่ยว 🛡️ฉุกเฉิน 🏡บ้าน/รถ 🌴เกษียณ 🐷เงินออม 📦อื่นๆ",
   "items": "brief summary of items in Thai",
   "documentType": "receipt or invoice or tax_invoice or billing",
-  "type": "expense, income, or savings — determine from context and category: expense = user PAID/sent money (shopping, bills, food). income = user RECEIVED money (salary, refund, incoming transfer, ได้รับเงิน). savings = user moved money to savings (ออมเงิน, กองทุน, ฝากประจำ). For bank slips: check sender vs receiver direction.",
+  "type": "expense, income, or savings. CRITICAL RULE: The person who sends this slip image is almost always the SENDER/PAYER (ผู้โอน/ผู้จ่าย), so DEFAULT to 'expense' for bank transfer slips and PromptPay slips. Only classify as 'income' if the slip EXPLICITLY says 'เงินเข้า', 'ได้รับ', 'received', or shows the user as RECEIVER (ผู้รับ). expense = user PAID/sent money. income = user RECEIVED money (salary, refund, incoming transfer). savings = user moved money to savings (ออมเงิน, กองทุน, ฝากประจำ).",
   "paymentMethod": "detect payment method from slip/receipt. Use these exact values: promptpay (if QR/พร้อมเพย์/PromptPay), bank-scb (SCB/ไทยพาณิชย์), bank-kbank (KBank/กสิกร), bank-bbl (BBL/กรุงเทพ), bank-ktb (KTB/กรุงไทย), bank-bay (BAY/กรุงศรี), bank-tmb (TTB/ทีเอ็มบี), bank-gsb (GSB/ออมสิน), credit (บัตรเครดิต/VISA/MC), debit (บัตรเดบิต), transfer (โอนธนาคารทั่วไป), cash (เงินสด), ewallet-truemoney (TrueMoney), ewallet-rabbit (Rabbit LINE Pay), ewallet-shopee (ShopeePay), other. If it's a bank transfer slip, identify the bank from logo/name.",
   "confidence": 0_to_100_confidence_score
 }` + knowledgeCtx + userCtx + "\n\nReturn ONLY valid JSON, no markdown fences.";
