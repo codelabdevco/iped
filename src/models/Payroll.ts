@@ -39,6 +39,7 @@ export interface IPayroll extends Document {
   approvedAt?: Date;
   paidAt?: Date;
   bankTransferRef?: string;
+  slipFiles?: { name: string; type: string; size: number; data: string; uploadedAt: Date }[];
   note?: string;
   createdAt: Date;
   updatedAt: Date;
@@ -81,6 +82,7 @@ const PayrollSchema = new Schema<IPayroll>(
     approvedAt: Date,
     paidAt: Date,
     bankTransferRef: String,
+    slipFiles: [{ name: String, type: String, size: Number, data: String, uploadedAt: { type: Date, default: Date.now } }],
     note: String,
   },
   { timestamps: true }

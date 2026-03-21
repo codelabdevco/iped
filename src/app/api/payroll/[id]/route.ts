@@ -82,6 +82,12 @@ export async function PUT(
       body.approvedAt = new Date();
     } else if (body.status === "paid") {
       body.paidAt = new Date();
+      if (body.bankTransferRef) body.bankTransferRef = body.bankTransferRef;
+      if (body.slipFiles && body.slipFiles.length > 0) {
+        body.slipFiles = body.slipFiles.map((f: any) => ({
+          name: f.name, type: f.type, size: f.size, data: f.data, uploadedAt: new Date(),
+        }));
+      }
     }
 
     // Merge updates and recalculate

@@ -6,7 +6,7 @@ import { useReactiveData } from "@/hooks/useReactiveMode";
 import { useTheme } from "@/contexts/ThemeContext";
 import {
   Banknote, Users, CheckCircle, Clock, Plus, Play, Loader2,
-  Pencil, Check, CreditCard, Trash2, Search, Filter,
+  Pencil, Check, CreditCard, Trash2, Search, Filter, Paperclip, Upload, X, Image,
 } from "lucide-react";
 import PageHeader from "@/components/dashboard/PageHeader";
 import StatsCard from "@/components/dashboard/StatsCard";
@@ -14,6 +14,8 @@ import DataTable, { Column } from "@/components/dashboard/DataTable";
 import Select from "@/components/dashboard/Select";
 import DatePicker from "@/components/dashboard/DatePicker";
 import Baht from "@/components/dashboard/Baht";
+
+function baht(n: number) { return `฿${n.toLocaleString("th-TH", { minimumFractionDigits: 0 })}`; }
 
 /* ── Thai month names ── */
 const TH_MONTHS = [
@@ -124,6 +126,50 @@ export default function PayrollClient({ employees: initialEmp, payrolls: initial
   const [empForm, setEmpForm] = useState(defaultEmpForm);
   const [search, setSearch] = useState("");
   const [statusFilter, setStatusFilter] = useState("all");
+
+  // ── Pay with slip modal ──
+  const [payModalId, setPayModalId] = useState<string | null>(null);
+  const [paySlipFiles, setPaySlipFiles] = useState<{ name: string; type: string; size: number; data: string }[]>([]);
+  const [payNote, setPayNote] = useState("");
+  const [payRef, setPayRef] = useState("");
+  const [payingSlip, setPayingSlip] = useState(false);
+
+  const handleSlipFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const files = e.target.files;
+    if (!files) return;
+    Array.from(files).forEach(file => {
+      if (file.size > 10 * 1024 * 1024) return;
+      const reader = new FileReader();
+      reader.onload = () => {
+        const base64 = (reader.result as string).split(",")[1];
+        setPaySlipFiles(prev => [...prev, { name: file.name, type: file.type, size: file.size, data: base64 }]);
+      };
+      reader.readAsDataURL(file);
+    });
+    e.target.value = "";
+  };
+
+  const handlePayWithSlip = useCallback(async () => {
+    if (!payModalId) return;
+    setPayingSlip(true);
+    try {
+      await fetch(`/api/payroll/${payModalId}`, {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          status: "paid",
+          bankTransferRef: payRef,
+          note: payNote,
+          slipFiles: paySlipFiles,
+        }),
+      });
+      setPayrolls(prev => prev.map(p => p._id === payModalId ? { ...p, status: "paid" } : p));
+      setPayModalId(null);
+      setPaySlipFiles([]);
+      setPayNote("");
+      setPayRef("");
+    } catch {} finally { setPayingSlip(false); }
+  }, [payModalId, payRef, payNote, paySlipFiles]);
 
   /* ── Stats (recompute from local state) ── */
   const stats = useMemo(() => {
@@ -332,7 +378,7 @@ export default function PayrollClient({ employees: initialEmp, payrolls: initial
           )}
           {r.status === "approved" && (
             <button
-              onClick={() => handlePayrollAction(r._id, "pay")}
+              onClick={() => { setPayModalId(r._id); setPaySlipFiles([]); setPayNote(""); setPayRef(""); }}
               className={`px-2.5 py-1 rounded-lg text-[11px] font-medium transition-colors ${dark ? "bg-green-500/15 text-green-400 hover:bg-green-500/25" : "bg-green-50 text-green-600 hover:bg-green-100"}`}
             ><CreditCard className="w-3 h-3 inline mr-1" />จ่ายเงิน</button>
           )}
@@ -565,6 +611,61 @@ export default function PayrollClient({ employees: initialEmp, payrolls: initial
           <Users size={16} />จัดการพนักงาน
         </Link>
       </div>
+
+      {/* ── Pay with Slip Modal ── */}
+      {payModalId && (
+        <>
+          <div className="fixed inset-0 z-40 bg-black/60" onClick={() => setPayModalId(null)} />
+          <div className={`fixed top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 z-50 w-[460px] max-w-[90vw] ${c("bg-[#0a0a0a] border-white/10", "bg-white border-gray-200")} border rounded-2xl shadow-2xl`}>
+            <div className="p-6 space-y-4">
+              <div className="flex items-center gap-3">
+                <div className="w-10 h-10 rounded-xl bg-green-500/10 flex items-center justify-center"><Banknote size={20} className="text-green-400" /></div>
+                <div>
+                  <h2 className={`text-lg font-bold ${c("text-white", "text-gray-900")}`}>จ่ายเงินเดือน</h2>
+                  <p className={`text-xs ${c("text-white/40", "text-gray-500")}`}>{payrolls.find(p => p._id === payModalId)?.employeeName} — {baht(payrolls.find(p => p._id === payModalId)?.netPay || 0)}</p>
+                </div>
+              </div>
+
+              <div><label className={`block text-xs ${c("text-white/40", "text-gray-500")} mb-1`}>เลข Ref การโอน</label><input value={payRef} onChange={e => setPayRef(e.target.value)} placeholder="เลขอ้างอิงการโอน" className={`w-full h-9 px-3 ${c("bg-white/5 border-white/10 text-white", "bg-gray-50 border-gray-200 text-gray-900")} border rounded-lg text-sm focus:outline-none focus:border-[#FA3633]/50`} /></div>
+              <div><label className={`block text-xs ${c("text-white/40", "text-gray-500")} mb-1`}>หมายเหตุ</label><input value={payNote} onChange={e => setPayNote(e.target.value)} placeholder="หมายเหตุ" className={`w-full h-9 px-3 ${c("bg-white/5 border-white/10 text-white", "bg-gray-50 border-gray-200 text-gray-900")} border rounded-lg text-sm focus:outline-none focus:border-[#FA3633]/50`} /></div>
+
+              <div>
+                <label className={`block text-xs ${c("text-white/40", "text-gray-500")} mb-1`}>แนบสลิปเงินเดือน</label>
+                <label className={`flex items-center justify-center gap-2 py-3 rounded-xl border-2 border-dashed cursor-pointer transition-colors ${c("border-white/10 hover:border-white/20 text-white/40", "border-gray-200 hover:border-gray-300 text-gray-400")}`}>
+                  <Upload size={16} />
+                  <span className="text-xs">คลิกเพื่อแนบสลิป/หลักฐานการโอน</span>
+                  <input type="file" multiple accept="image/*,.pdf" onChange={handleSlipFileSelect} className="hidden" />
+                </label>
+                {paySlipFiles.length > 0 && (
+                  <div className="mt-2 space-y-1.5">
+                    {paySlipFiles.map((f, i) => (
+                      <div key={i} className={`flex items-center justify-between p-2 rounded-lg ${c("bg-white/[0.03]", "bg-gray-50")}`}>
+                        <div className="flex items-center gap-2">
+                          {f.type.startsWith("image/") ? (
+                            <img src={`data:${f.type};base64,${f.data}`} alt="" className="w-8 h-8 rounded object-cover" />
+                          ) : (
+                            <Paperclip size={13} className={c("text-white/40", "text-gray-400")} />
+                          )}
+                          <span className={`text-xs truncate max-w-[200px] ${c("text-white/70", "text-gray-600")}`}>{f.name}</span>
+                          <span className={`text-[10px] ${c("text-white/30", "text-gray-400")}`}>{f.size > 1048576 ? `${(f.size / 1048576).toFixed(1)}MB` : `${(f.size / 1024).toFixed(0)}KB`}</span>
+                        </div>
+                        <button onClick={() => setPaySlipFiles(prev => prev.filter((_, j) => j !== i))} className={`p-1 rounded ${c("hover:bg-white/5 text-white/30", "hover:bg-gray-100 text-gray-400")}`}><X size={12} /></button>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
+
+              <div className="flex gap-2 pt-2">
+                <button onClick={handlePayWithSlip} disabled={payingSlip} className="flex-1 py-2.5 rounded-xl text-sm font-medium bg-green-500 text-white hover:bg-green-600 disabled:opacity-40 flex items-center justify-center gap-2">
+                  {payingSlip && <Loader2 size={14} className="animate-spin" />}ยืนยันจ่ายเงิน
+                </button>
+                <button onClick={() => setPayModalId(null)} className={`flex-1 py-2.5 rounded-xl text-sm font-medium ${c("bg-white/5 text-white/60", "bg-gray-100 text-gray-600")} transition-colors`}>ยกเลิก</button>
+              </div>
+            </div>
+          </div>
+        </>
+      )}
 
       {/* ── Table ── */}
       <DataTable columns={payrollColumns} data={filteredPayrolls} rowKey={(r) => r._id} emptyText="ยังไม่มีข้อมูลเงินเดือนเดือนนี้ — กด 'สร้างเงินเดือน' เพื่อเริ่มต้น" columnConfigKey="payroll-slips" />
