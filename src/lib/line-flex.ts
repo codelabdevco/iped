@@ -507,6 +507,25 @@ function iconCircle(emoji: string, bg: string, sizePx: string): any {
 const APP_URL =
   process.env.NEXT_PUBLIC_APP_URL || "https://iped.codelabdev.co";
 
+const BANNERS = {
+  success: `${APP_URL}/banners/scan-success.png`,
+  duplicate: `${APP_URL}/banners/duplicate.png`,
+  error: `${APP_URL}/banners/ocr-error.png`,
+  notReceipt: `${APP_URL}/banners/not-receipt.png`,
+  dailySummary: `${APP_URL}/banners/daily-summary.png`,
+};
+
+/** Hero image banner for Flex header */
+function heroBanner(url: string): any {
+  return {
+    type: "image",
+    url,
+    size: "full",
+    aspectRatio: "20:8",
+    aspectMode: "cover",
+  };
+}
+
 // ════════════════════════════════════════════════════════════
 //  1. receiptConfirmFlex — ยืนยันใบเสร็จ (success / warning)
 // ════════════════════════════════════════════════════════════
@@ -569,7 +588,7 @@ export function receiptConfirmFlex(data: ReceiptFlexData) {
     contents: {
       type: "bubble",
       size: "mega",
-      header: headerBar(statusText, statusColor, bandColor),
+      hero: heroBanner(BANNERS.success),
       body: {
         type: "box",
         layout: "vertical",
@@ -708,7 +727,7 @@ export function duplicateWarningFlex(data: {
     contents: {
       type: "bubble",
       size: "mega",
-      header: headerBar("🔄 พบรายการซ้ำ", C.blue, C.blueBg),
+      hero: heroBanner(BANNERS.duplicate),
       body: {
         type: "box",
         layout: "vertical",
@@ -854,7 +873,7 @@ export function errorFlex(confidence?: number) {
     contents: {
       type: "bubble",
       size: "mega",
-      header: headerBar("❌ ผิดพลาด", C.red, C.redBg),
+      hero: heroBanner(BANNERS.error),
       body: {
         type: "box",
         layout: "vertical",
@@ -952,7 +971,7 @@ export function notReceiptFlex(receiptId?: string) {
     contents: {
       type: "bubble",
       size: "mega",
-      header: headerBar("ไม่ใช่ใบเสร็จ", C.amber, C.amberBg),
+      hero: heroBanner(BANNERS.notReceipt),
       body: {
         type: "box",
         layout: "vertical",
@@ -1066,7 +1085,7 @@ export function dailySummaryFlex(data: {
     contents: {
       type: "bubble",
       size: "mega",
-      header: headerBar("📊 สรุปวันนี้", C.green, C.greenBg),
+      hero: heroBanner(BANNERS.dailySummary),
       body: {
         type: "box",
         layout: "vertical",
