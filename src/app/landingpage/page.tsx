@@ -7,6 +7,10 @@ import {
   ChevronRight, Check, Star, ArrowRight, Smartphone,
   Camera, FileText, PieChart, Bell, Users,
   Sparkles, Globe, CreditCard, ChevronDown,
+  Home, User, UtensilsCrossed, Car, ShoppingCart, Lightbulb,
+  Building2, Link2, ClipboardCheck, CircleDollarSign,
+  UserPlus, FileSpreadsheet, BellRing, Package,
+  TrendingDown, CheckCircle, Clock,
 } from "lucide-react";
 
 /* ─── brand tokens ─── */
@@ -68,10 +72,10 @@ function FadeIn({ children, className = "", delay = 0 }: { children: React.React
 
 /* ─── interactive demo ─── */
 const DEMO_STEPS = [
-  { icon: Camera, title: "ถ่ายรูปสลิป", desc: "ส่งรูปสลิปหรือใบเสร็จผ่าน LINE Bot", img: "📸" },
-  { icon: Sparkles, title: "AI อ่านอัตโนมัติ", desc: "Claude Vision แยกร้านค้า ยอดเงิน หมวดหมู่", img: "🤖" },
-  { icon: FileText, title: "บันทึกทันที", desc: "ใบเสร็จเข้าระบบพร้อมจัดหมวดอัตโนมัติ", img: "📋" },
-  { icon: PieChart, title: "ดูสรุปรายจ่าย", desc: "แดชบอร์ดสรุปยอดแบบเรียลไทม์", img: "📊" },
+  { icon: Camera, title: "ถ่ายรูปสลิป", desc: "ส่งรูปสลิปหรือใบเสร็จผ่าน LINE Bot", Icon2: Camera },
+  { icon: Sparkles, title: "AI อ่านอัตโนมัติ", desc: "Claude Vision แยกร้านค้า ยอดเงิน หมวดหมู่", Icon2: Bot },
+  { icon: FileText, title: "บันทึกทันที", desc: "ใบเสร็จเข้าระบบพร้อมจัดหมวดอัตโนมัติ", Icon2: ClipboardCheck },
+  { icon: PieChart, title: "ดูสรุปรายจ่าย", desc: "แดชบอร์ดสรุปยอดแบบเรียลไทม์", Icon2: BarChart3 },
 ];
 
 function InteractiveDemo() {
@@ -109,7 +113,7 @@ function InteractiveDemo() {
             <div className="flex-1 px-4 py-3 flex flex-col gap-3 transition-all duration-500">
               {step === 0 && (
                 <div className="flex-1 flex flex-col items-center justify-center gap-3 animate-fadeIn">
-                  <div className="w-20 h-20 rounded-2xl bg-white/5 border border-white/10 flex items-center justify-center text-4xl">📸</div>
+                  <div className="w-20 h-20 rounded-2xl bg-white/5 border border-white/10 flex items-center justify-center"><Camera size={36} className="text-white/40" /></div>
                   <div className="w-48 h-32 rounded-xl bg-white/5 border border-dashed border-white/10 flex flex-col items-center justify-center gap-2">
                     <Camera size={24} className="text-white/30" />
                     <span className="text-[11px] text-white/30">ส่งรูปสลิปมาเลย</span>
@@ -122,9 +126,9 @@ function InteractiveDemo() {
               {step === 1 && (
                 <div className="flex-1 flex flex-col gap-3 animate-fadeIn">
                   <div className="text-[11px] text-white/40 text-center mt-4">กำลังวิเคราะห์...</div>
-                  <div className="mx-auto w-12 h-12 rounded-xl flex items-center justify-center text-2xl" style={{ backgroundColor: `${RED}20` }}>🤖</div>
+                  <div className="mx-auto w-12 h-12 rounded-xl flex items-center justify-center" style={{ backgroundColor: `${RED}20` }}><Bot size={24} style={{ color: RED }} /></div>
                   <div className="space-y-2 mt-2">
-                    {["ร้านค้า: 7-Eleven", "ยอด: ฿156.00", "หมวด: 🛒 ช็อปปิ้ง", "วันที่: 21 มี.ค. 69"].map((line, i) => (
+                    {["ร้านค้า: 7-Eleven", "ยอด: ฿156.00", "หมวด: ช็อปปิ้ง", "วันที่: 21 มี.ค. 69"].map((line, i) => (
                       <div key={i} className="h-8 rounded-lg bg-white/5 border border-white/8 flex items-center px-3 text-[11px] text-white/70"
                         style={{ animation: `slideRight 0.4s ease ${i * 150}ms both` }}>
                         {line}
@@ -146,13 +150,13 @@ function InteractiveDemo() {
                     <span className="text-[11px] font-medium text-white/70">บันทึกสำเร็จ</span>
                   </div>
                   {[
-                    { m: "7-Eleven", a: "฿156", cat: "🛒", d: "21 มี.ค.", s: "confirmed" },
-                    { m: "Grab", a: "฿89", cat: "🚗", d: "21 มี.ค.", s: "confirmed" },
-                    { m: "แม็คโคร", a: "฿1,230", cat: "🛒", d: "20 มี.ค.", s: "pending" },
+                    { m: "7-Eleven", a: "฿156", CatIcon: ShoppingCart, d: "21 มี.ค.", s: "confirmed" },
+                    { m: "Grab", a: "฿89", CatIcon: Car, d: "21 มี.ค.", s: "confirmed" },
+                    { m: "แม็คโคร", a: "฿1,230", CatIcon: ShoppingCart, d: "20 มี.ค.", s: "pending" },
                   ].map((r, i) => (
                     <div key={i} className="flex items-center gap-3 p-2.5 rounded-xl bg-white/[0.03] border border-white/[0.06]"
                       style={{ animation: `slideRight 0.3s ease ${i * 100}ms both` }}>
-                      <span className="text-lg">{r.cat}</span>
+                      <div className="w-7 h-7 rounded-lg bg-white/[0.06] flex items-center justify-center"><r.CatIcon size={14} className="text-white/50" /></div>
                       <div className="flex-1 min-w-0">
                         <div className="text-[12px] font-medium text-white/80 truncate">{r.m}</div>
                         <div className="text-[10px] text-white/30">{r.d}</div>
@@ -186,13 +190,13 @@ function InteractiveDemo() {
                   </div>
                   <div className="grid grid-cols-2 gap-2">
                     {[
-                      { icon: "🍜", label: "อาหาร", val: "฿4,200" },
-                      { icon: "🚗", label: "เดินทาง", val: "฿3,100" },
-                      { icon: "🛒", label: "ช็อปปิ้ง", val: "฿2,800" },
-                      { icon: "💡", label: "สาธารณูปโภค", val: "฿2,350" },
+                      { Icon: UtensilsCrossed, label: "อาหาร", val: "฿4,200" },
+                      { Icon: Car, label: "เดินทาง", val: "฿3,100" },
+                      { Icon: ShoppingCart, label: "ช็อปปิ้ง", val: "฿2,800" },
+                      { Icon: Lightbulb, label: "สาธารณูปโภค", val: "฿2,350" },
                     ].map((c, i) => (
                       <div key={i} className="flex items-center gap-2 p-2 rounded-lg bg-white/[0.03] border border-white/[0.06]">
-                        <span className="text-sm">{c.icon}</span>
+                        <div className="w-6 h-6 rounded flex items-center justify-center bg-white/[0.06]"><c.Icon size={12} className="text-white/50" /></div>
                         <div>
                           <div className="text-[10px] text-white/40">{c.label}</div>
                           <div className="text-[11px] font-medium text-white/70">{c.val}</div>
@@ -207,14 +211,14 @@ function InteractiveDemo() {
             {/* Bottom nav */}
             <div className="flex items-center justify-around py-2 border-t border-white/[0.06]">
               {[
-                { icon: "🏠", label: "หน้าหลัก" },
-                { icon: "🧾", label: "ใบเสร็จ" },
-                { icon: "📷", label: "สแกน" },
-                { icon: "📊", label: "สรุป" },
-                { icon: "👤", label: "โปรไฟล์" },
+                { Icon: Home, label: "หน้าหลัก" },
+                { Icon: Receipt, label: "ใบเสร็จ" },
+                { Icon: Camera, label: "สแกน" },
+                { Icon: BarChart3, label: "สรุป" },
+                { Icon: User, label: "โปรไฟล์" },
               ].map((tab, i) => (
                 <div key={i} className="flex flex-col items-center gap-0.5">
-                  <span className="text-sm">{tab.icon}</span>
+                  <tab.Icon size={16} className={i === step ? "text-white/70" : "text-white/20"} />
                   <span className={`text-[8px] ${i === step ? "text-white/70" : "text-white/20"}`}>{tab.label}</span>
                 </div>
               ))}
@@ -484,16 +488,16 @@ export default function LandingPage() {
             <FadeIn>
               <div className="space-y-4">
                 {[
-                  { step: "1", icon: "🏢", title: "สร้างองค์กร", desc: "ผู้ดูแลสร้างบริษัทในระบบ รับรหัสเชิญอัตโนมัติ", color: "#3B82F6" },
-                  { step: "2", icon: "🔗", title: "เชิญพนักงาน", desc: "แชร์รหัสเชิญ — พนักงานพิมพ์ \"เชื่อม XXXX\" ใน LINE Bot หรือกรอกในแอป", color: "#8B5CF6" },
-                  { step: "3", icon: "🧾", title: "พนักงานส่งสลิป", desc: "สแกนสลิปตามปกติ แล้วกด \"ส่งเข้าบริษัท\" — ใบเสร็จคัดลอกเข้าบัญชีธุรกิจ", color: "#06B6D4" },
-                  { step: "4", icon: "✅", title: "บริษัทอนุมัติ + จ่ายเงิน", desc: "ผู้ดูแลเห็นรายการเบิกจ่าย → อนุมัติ → โอนเงิน → พนักงานได้รับแจ้งเตือนผ่าน LINE", color: "#10B981" },
+                  { step: "1", Icon: Building2, title: "สร้างองค์กร", desc: "ผู้ดูแลสร้างบริษัทในระบบ รับรหัสเชิญอัตโนมัติ", color: "#3B82F6" },
+                  { step: "2", Icon: Link2, title: "เชิญพนักงาน", desc: "แชร์รหัสเชิญ — พนักงานพิมพ์ \"เชื่อม XXXX\" ใน LINE Bot หรือกรอกในแอป", color: "#8B5CF6" },
+                  { step: "3", Icon: Receipt, title: "พนักงานส่งสลิป", desc: "สแกนสลิปตามปกติ แล้วกด \"ส่งเข้าบริษัท\" — ใบเสร็จคัดลอกเข้าบัญชีธุรกิจ", color: "#06B6D4" },
+                  { step: "4", Icon: CheckCircle, title: "บริษัทอนุมัติ + จ่ายเงิน", desc: "ผู้ดูแลเห็นรายการเบิกจ่าย → อนุมัติ → โอนเงิน → พนักงานได้รับแจ้งเตือนผ่าน LINE", color: "#10B981" },
                 ].map((item, i) => (
                   <div key={i} className="flex gap-4 items-start">
                     <div className="flex flex-col items-center">
-                      <div className="w-10 h-10 rounded-xl flex items-center justify-center text-lg shrink-0"
+                      <div className="w-10 h-10 rounded-xl flex items-center justify-center shrink-0"
                         style={{ backgroundColor: `${item.color}15` }}>
-                        {item.icon}
+                        <item.Icon size={20} style={{ color: item.color }} />
                       </div>
                       {i < 3 && <div className="w-px h-6 bg-white/[0.08] mt-1" />}
                     </div>
@@ -510,16 +514,18 @@ export default function LandingPage() {
             <FadeIn delay={200}>
               <div className="grid grid-cols-2 gap-3">
                 {[
-                  { icon: "📋", title: "เบิกจ่าย", desc: "พนักงานส่งใบเสร็จเข้าบริษัท รอผู้ดูแลอนุมัติ", stat: "อนุมัติผ่าน LINE" },
-                  { icon: "💰", title: "Payroll", desc: "คำนวณเงินเดือน ค่าล่วงเวลา ภาษี ประกันสังคม", stat: "สลิปเงินเดือนอัตโนมัติ" },
-                  { icon: "👥", title: "จัดการทีม", desc: "เพิ่มพนักงาน กำหนดแผนก ตำแหน่ง สิทธิ์การเข้าถึง", stat: "รหัสเชิญ 1 คลิก" },
-                  { icon: "📊", title: "รายงานบริษัท", desc: "สรุปค่าใช้จ่ายทั้งองค์กร แยกแผนก หมวดหมู่ พนักงาน", stat: "Dashboard เรียลไทม์" },
-                  { icon: "🧾", title: "ใบกำกับภาษี", desc: "บันทึกเลขประจำตัวผู้เสียภาษี VAT WHT อัตโนมัติ", stat: "OCR อ่านให้ทันที" },
-                  { icon: "🔔", title: "แจ้งเตือนทาง LINE", desc: "อนุมัติ/จ่ายเงิน → พนักงานได้รับ Flex Message ทันที", stat: "Real-time notification" },
+                  { Icon: ClipboardCheck, title: "เบิกจ่าย", desc: "พนักงานส่งใบเสร็จเข้าบริษัท รอผู้ดูแลอนุมัติ", stat: "อนุมัติผ่าน LINE", color: "#3B82F6" },
+                  { Icon: CircleDollarSign, title: "Payroll", desc: "คำนวณเงินเดือน ค่าล่วงเวลา ภาษี ประกันสังคม", stat: "สลิปเงินเดือนอัตโนมัติ", color: "#10B981" },
+                  { Icon: UserPlus, title: "จัดการทีม", desc: "เพิ่มพนักงาน กำหนดแผนก ตำแหน่ง สิทธิ์การเข้าถึง", stat: "รหัสเชิญ 1 คลิก", color: "#8B5CF6" },
+                  { Icon: FileSpreadsheet, title: "รายงานบริษัท", desc: "สรุปค่าใช้จ่ายทั้งองค์กร แยกแผนก หมวดหมู่ พนักงาน", stat: "Dashboard เรียลไทม์", color: "#F59E0B" },
+                  { Icon: Receipt, title: "ใบกำกับภาษี", desc: "บันทึกเลขประจำตัวผู้เสียภาษี VAT WHT อัตโนมัติ", stat: "OCR อ่านให้ทันที", color: "#06B6D4" },
+                  { Icon: BellRing, title: "แจ้งเตือนทาง LINE", desc: "อนุมัติ/จ่ายเงิน → พนักงานได้รับ Flex Message ทันที", stat: "Real-time notification", color: "#EF4444" },
                 ].map((card, i) => (
                   <div key={i} className="p-4 rounded-xl border border-white/[0.06] bg-white/[0.02] hover:bg-white/[0.05] transition-all"
                     style={{ animation: `fadeIn 0.5s ease ${i * 80}ms both` }}>
-                    <span className="text-xl">{card.icon}</span>
+                    <div className="w-9 h-9 rounded-lg flex items-center justify-center mb-2" style={{ backgroundColor: `${card.color}15` }}>
+                      <card.Icon size={18} style={{ color: card.color }} />
+                    </div>
                     <div className="text-[13px] font-semibold text-white/85 mt-2">{card.title}</div>
                     <div className="text-[11px] text-white/35 leading-relaxed mt-1">{card.desc}</div>
                     <div className="mt-2 text-[10px] font-medium text-blue-400/70">{card.stat}</div>
